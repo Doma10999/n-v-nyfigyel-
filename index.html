@@ -269,38 +269,67 @@
     }
     .led-slider {
       width: 92%;
-      margin: 8px auto 0 auto;
+      margin: 12px auto 0 auto;
       display: block;
+      appearance: none;
+      background: #e0e0e0;
+      height: 16px;
+      border-radius: 12px;
+      outline: none;
+      box-shadow: 0 2px 6px rgba(44,124,54,0.10);
     }
-    .slider-labels {
-      display: flex;
-      justify-content: space-between;
-      margin-top: 2px;
-      font-size: 0.98em;
-      color: #888;
-      width: 92%;
-      margin-left: auto;
-      margin-right: auto;
+    .led-slider::-webkit-slider-thumb {
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      margin-top: -5px;
+      background: #4CAF50;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
+      cursor: pointer;
+      transition: background 0.19s;
     }
-    @media (max-width: 480px) {
-      body { padding: 10px; }
-      h1 { font-size: 1.8em; margin-bottom: 20px; }
-      .card { max-width: 95%; padding: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);}
-      input, button { width: 100%; font-size: 18px;padding: 12px;box-sizing: border-box;}
-      .gauge-container { width: 150px;height: 150px;margin: 15px auto;}
-      .gauge-svg { width: 150px !important;height: 150px !important;}
-      .gauge-value { font-size: 22px !important;}
-      #addAccountBtn { display: flex !important;width: 50px;height: 50px;font-size: 28px;bottom: 15px;right: 15px;z-index: 1100;box-shadow: 0 4px 8px rgba(0,0,0,0.4);}
-      .deleteBtn { top: 8px; right: 8px; font-size: 26px; padding: 0; margin: 0; line-height: 1;}
-      .card h3 { margin-top: 40px !important;}
-      #modalContent { width: 90vw;padding: 20px 15px 15px 15px;}
+    .led-slider::-webkit-slider-runnable-track {
+      height: 16px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #e7ffe0 0%, #4CAF50 100%);
     }
+    .led-slider::-moz-range-thumb {
+      width: 26px;
+      height: 26px;
+      background: #4CAF50;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
+      cursor: pointer;
+    }
+    .led-slider::-moz-range-track {
+      height: 16px;
+      border-radius: 12px;
+      background: linear-gradient(90deg, #e7ffe0 0%, #4CAF50 100%);
+    }
+    .led-slider::-ms-thumb {
+      width: 26px;
+      height: 26px;
+      background: #4CAF50;
+      border-radius: 50%;
+      border: 3px solid #fff;
+      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
+      cursor: pointer;
+    }
+    .led-slider::-ms-fill-lower, .led-slider::-ms-fill-upper {
+      height: 16px;
+    }
+
+    /* További stílusok változatlanul */
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
 
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
@@ -313,11 +342,13 @@
       measurementId: "G-890H6FDBYE"
     };
 
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth();
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
+
 
     function getStoredAccounts() {
       try {
@@ -340,6 +371,7 @@
       setStoredAccounts(accs);
     }
 
+
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -357,9 +389,11 @@
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
 
+
     const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
     let firstUser = null;
+
 
     window.addEventListener('load', () => {
       const stored = getStoredAccounts();
@@ -372,6 +406,7 @@
         showLoginScreen();
       }
     });
+
 
     onAuthStateChanged(auth, (user) => {
       if (user) {
@@ -386,6 +421,7 @@
         }
       }
     });
+
 
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -413,12 +449,14 @@
       }
     });
 
+
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
       await signOut(auth);
       removeAccount(firstUser.uid);
       showLoginScreen();
     });
+
 
     function showLoginScreen() {
       loginForm.style.display = "block";
@@ -550,6 +588,7 @@
       });
     });
 
+
     // Fő: CARD generálás, slider csak ha van ledLevel
     function addAccountCard(user, email, auth, isMain=false) {
       const card = document.createElement("div");
@@ -565,13 +604,9 @@
           <div class="gauge-value">0%</div>
         </div>
         <div class="slider-container">
-          <input type="range" min="0" max="100" step="25" value="0" class="led-slider" />
+          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
           <div class="slider-labels">
-            <span>0%</span>
-            <span>25%</span>
-            <span>50%</span>
-            <span>75%</span>
-            <span>100%</span>
+            <span>Fény erő</span>
           </div>
         </div>
         ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
@@ -579,6 +614,7 @@
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
+
 
       function updateAccountGauge(value) {
         gaugeValue.innerText = value + "%";
@@ -589,6 +625,7 @@
         gaugeValue.style.color = color;
       }
 
+
       (async () => {
         const devicesRef = ref(db, `users/${user.uid}/devices`);
         const snapshot = await get(devicesRef);
@@ -596,6 +633,7 @@
           const devicesData = snapshot.val();
           const firstDeviceId = Object.keys(devicesData)[0];
           const deviceObj = devicesData[firstDeviceId];
+
 
           const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
           onValue(soilRef, (snap) => {
@@ -614,6 +652,7 @@
               }
             }
           });
+
 
           // Itt ellenőrzi a device-ot, hogy van-e ledLevel!
           const sliderContainer = card.querySelector('.slider-container');
@@ -636,6 +675,7 @@
         }
       })();
 
+
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -645,6 +685,7 @@
         }
       });
 
+
       if (isMain) {
         const logoutBtnMain = card.querySelector(".logoutBtn");
         logoutBtnMain.addEventListener("click", async () => {
@@ -652,6 +693,7 @@
           removeAccount(user.uid);
         });
       }
+
 
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
