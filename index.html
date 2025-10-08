@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" /> <!-- Dokumentum karakterkódolása -->
-  <meta name="viewport" content="width=device-width, initial-scale=1" /> <!-- Reszponzív nézet -->
-  <title>Növényfigyelő</title> <!-- Oldalcím -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Növényfigyelő</title>
   <style>
-    /* Az eredeti stílusrészleted, változtatás nélkül, hogy ugyanúgy nézzen ki az oldal */
-
     body {
       font-family: Arial, sans-serif;
       background: #f0f8ff;
@@ -264,10 +262,10 @@
     .confirm-igen:hover { background: #388e3c; }
     .confirm-nem        { background: #eee; color: #222; }
     .confirm-nem:hover  { background: #dadada; }
-
-    /* Új slider stílus */
+    /* Slider: csak akkor lesz látható, ha a JS előhozza! */
     .slider-container {
       margin-top: 16px;
+      display: none;
     }
     .led-slider {
       width: 92%;
@@ -284,73 +282,26 @@
       margin-left: auto;
       margin-right: auto;
     }
-
     @media (max-width: 480px) {
-      body {
-        padding: 10px;
-      }
-      h1 {
-        font-size: 1.8em;
-        margin-bottom: 20px;
-      }
-      .card {
-        max-width: 95%;
-        padding: 15px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-      }
-      input, button {
-        width: 100%;
-        font-size: 18px;
-        padding: 12px;
-        box-sizing: border-box;
-      }
-      .gauge-container {
-        width: 150px;
-        height: 150px;
-        margin: 15px auto;
-      }
-      .gauge-svg {
-        width: 150px !important;
-        height: 150px !important;
-      }
-      .gauge-value {
-        font-size: 22px !important;
-      }
-      #addAccountBtn {
-        display: flex !important;
-        width: 50px;
-        height: 50px;
-        font-size: 28px;
-        bottom: 15px;
-        right: 15px;
-        z-index: 1100;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.4);
-      }
-      .deleteBtn {
-        top: 8px;
-        right: 8px;
-        font-size: 26px;
-        padding: 0;
-        margin: 0;
-        line-height: 1;
-      }
-      .card h3 {
-        margin-top: 40px !important;
-      }
-      #modalContent {
-        width: 90vw;
-        padding: 20px 15px 15px 15px;
-      }
+      body { padding: 10px; }
+      h1 { font-size: 1.8em; margin-bottom: 20px; }
+      .card { max-width: 95%; padding: 15px; box-shadow: 0 4px 8px rgba(0,0,0,0.2);}
+      input, button { width: 100%; font-size: 18px;padding: 12px;box-sizing: border-box;}
+      .gauge-container { width: 150px;height: 150px;margin: 15px auto;}
+      .gauge-svg { width: 150px !important;height: 150px !important;}
+      .gauge-value { font-size: 22px !important;}
+      #addAccountBtn { display: flex !important;width: 50px;height: 50px;font-size: 28px;bottom: 15px;right: 15px;z-index: 1100;box-shadow: 0 4px 8px rgba(0,0,0,0.4);}
+      .deleteBtn { top: 8px; right: 8px; font-size: 26px; padding: 0; margin: 0; line-height: 1;}
+      .card h3 { margin-top: 40px !important;}
+      #modalContent { width: 90vw;padding: 20px 15px 15px 15px;}
     }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script type="module">
-    // Firebase modulok
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
       authDomain: "plant-monitor-3976f.firebaseapp.com",
@@ -368,14 +319,11 @@
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
 
-    // localStorage funkciók
     function getStoredAccounts() {
       try {
         const data = localStorage.getItem(STORAGE_KEY);
         return data ? JSON.parse(data) : [];
-      } catch {
-        return [];
-      }
+      } catch { return []; }
     }
     function setStoredAccounts(accs) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
@@ -392,7 +340,6 @@
       setStoredAccounts(accs);
     }
 
-    // HTML elemek
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -410,7 +357,6 @@
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
 
-    // Gauge beállítások
     const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
     let firstUser = null;
@@ -604,7 +550,7 @@
       });
     });
 
-    // LEGÚJABB KIEGÉSZÍTÉS: LED SLIDER
+    // Fő: CARD generálás, slider csak ha van ledLevel
     function addAccountCard(user, email, auth, isMain=false) {
       const card = document.createElement("div");
       card.className = "card accountCard";
@@ -618,7 +564,6 @@
           </svg>
           <div class="gauge-value">0%</div>
         </div>
-        <!-- LED fényerő csúszka -->
         <div class="slider-container">
           <input type="range" min="0" max="100" step="25" value="0" class="led-slider" />
           <div class="slider-labels">
@@ -635,7 +580,6 @@
       const gaugeCircle = card.querySelector(".gauge-fill");
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
 
-      // Kör frissítése
       function updateAccountGauge(value) {
         gaugeValue.innerText = value + "%";
         const offset = 2 * Math.PI * 80 - (value / 100) * 2 * Math.PI * 80;
@@ -645,15 +589,14 @@
         gaugeValue.style.color = color;
       }
 
-      // Adatok lekérése Firebase-ből fiókoknak + LED slider működés
       (async () => {
         const devicesRef = ref(db, `users/${user.uid}/devices`);
         const snapshot = await get(devicesRef);
         if (snapshot.exists()) {
           const devicesData = snapshot.val();
           const firstDeviceId = Object.keys(devicesData)[0];
+          const deviceObj = devicesData[firstDeviceId];
 
-          // Nedvesség adatfigyelő
           const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
           onValue(soilRef, (snap) => {
             if (snap.exists()) {
@@ -672,26 +615,27 @@
             }
           });
 
-          // LED slider inicializálása és Firebase-vel szinkron
-          const slider = card.querySelector('.led-slider');
-
-          // Firebase 'ledLevel' értékének lekérése és slider értékének frissítése
-          const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
-          onValue(ledLevelRef, (snap) => {
-            if (snap.exists()) {
-              slider.value = snap.val();
-            }
-          });
-
-          // Slider érték változtatására: Firebase-be írás
-          slider.addEventListener('input', async (e) => {
-            const newValue = parseInt(e.target.value);
-            await set(ledLevelRef, newValue);
-          });
+          // Itt ellenőrzi a device-ot, hogy van-e ledLevel!
+          const sliderContainer = card.querySelector('.slider-container');
+          if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
+            sliderContainer.style.display = "block";
+            const slider = card.querySelector('.led-slider');
+            const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
+            onValue(ledLevelRef, (snap) => {
+              if (snap.exists()) {
+                slider.value = snap.val();
+              }
+            });
+            slider.addEventListener('input', async (e) => {
+              const newValue = parseInt(e.target.value);
+              await set(ledLevelRef, newValue);
+            });
+          } else {
+            sliderContainer.style.display = "none";
+          }
         }
       })();
 
-      // Fióktörlés és kijelentkezés
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -709,7 +653,6 @@
         });
       }
 
-      // Kártya megjelenítése
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
     }
@@ -719,9 +662,7 @@
     OneSignal.push(function() {
       OneSignal.init({
         appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
-        notifyButton: {
-          enable: true,
-        },
+        notifyButton: { enable: true },
         allowLocalhostAsSecureOrigin: true,
         serviceWorkerPath: 'OneSignalSDKWorker.js',
         serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
