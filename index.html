@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" /> <!-- Reszponzív nézet -->
   <title>Növényfigyelő</title> <!-- Oldalcím -->
   <style>
+    /* Az eredeti stílusrészleted, változtatás nélkül, hogy ugyanúgy nézzen ki az oldal */
+
     body {
       font-family: Arial, sans-serif;
       background: #f0f8ff;
@@ -262,6 +264,27 @@
     .confirm-igen:hover { background: #388e3c; }
     .confirm-nem        { background: #eee; color: #222; }
     .confirm-nem:hover  { background: #dadada; }
+
+    /* Új slider stílus */
+    .slider-container {
+      margin-top: 16px;
+    }
+    .led-slider {
+      width: 92%;
+      margin: 8px auto 0 auto;
+      display: block;
+    }
+    .slider-labels {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 2px;
+      font-size: 0.98em;
+      color: #888;
+      width: 92%;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
     @media (max-width: 480px) {
       body {
         padding: 10px;
@@ -321,14 +344,13 @@
     }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <!-- Firebase script module -->
   <script type="module">
-    // Firebase modulok importálása
+    // Firebase modulok
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, onValue, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-    // Firebase konfiguráció
+    // Firebase config
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
       authDomain: "plant-monitor-3976f.firebaseapp.com",
@@ -340,19 +362,13 @@
       measurementId: "G-890H6FDBYE"
     };
 
-    // Firebase alkalmazás inicializálása
     const app = initializeApp(firebaseConfig);
-    // Adatbázis referencia
     const db = getDatabase(app);
-    // Firebase autentikáció kezelő
     const auth = getAuth();
-    // Tárolt fiókok Map-je a képernyőre idomítva (uid => objektum)
     const accounts = new Map();
-
-    // Tárolókulcs localStorage-hoz
     const STORAGE_KEY = 'storedAccounts';
 
-    // localStorage-ból lekéri a fiókokat (tömb), ha nincs vagy hiba, akkor üres tömböt ad vissza
+    // localStorage funkciók
     function getStoredAccounts() {
       try {
         const data = localStorage.getItem(STORAGE_KEY);
@@ -361,11 +377,9 @@
         return [];
       }
     }
-    // localStorage-ba menti a fiókok tömbjét JSON-ként
     function setStoredAccounts(accs) {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
     }
-    // Egy új fiók (email+uid) hozzáadása a helyi tárolóhoz, ha még nincs benne
     function addStoredAccount(email, uid) {
       const accs = getStoredAccounts();
       if (!accs.some(a => a.uid === uid)) {
@@ -373,13 +387,12 @@
         setStoredAccounts(accs);
       }
     }
-    // Egy fiók eltávolítása uid alapján a helyi tárolóból
     function removeStoredAccount(uid) {
       const accs = getStoredAccounts().filter(a => a.uid !== uid);
       setStoredAccounts(accs);
     }
 
-    // HTML elemek lekérése változókba
+    // HTML elemek
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -397,31 +410,23 @@
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
 
-    // Kör sugarak konstans értékei a látványhoz
-    const RADIUS = 80;
-    const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-    // Inicializálás kör paraméterezéséhez: átfogás hossza
+    // Gauge beállítások
+    const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
-
-    // Az első felhasználó, akivel dolgozunk (fő user)
     let firstUser = null;
 
-    // Oldal betöltésekor: localStorage-ból töltjük vissza a kártyákat és állapotot
     window.addEventListener('load', () => {
       const stored = getStoredAccounts();
       if (stored.length > 0) {
         stored.forEach(acc => {
-          // Mindegyik fiókhoz létrehoz egy kártyát az email és uid alapján
           addAccountCard({ uid: acc.uid }, acc.email, auth, false);
         });
-        // Bejelentkezési képernyő elkülönítése
         hideLoginScreen();
       } else {
         showLoginScreen();
       }
     });
 
-    // Firebase Auth módosítás figyelés: új sessionok kezelése
     onAuthStateChanged(auth, (user) => {
       if (user) {
         if(!accounts.has(user.uid)) {
@@ -436,28 +441,23 @@
       }
     });
 
-    // Bejelentkezési űrlap eseménykezelése
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       statusDiv.style.color = "green";
       statusDiv.innerText = "Bejelentkezés...";
       try {
-        // Firebase hitelesítés
         const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
         const user = userCred.user;
-        // Már létező fiók ellenőrzése
         if (accounts.has(user.uid)) {
           statusDiv.style.color = "red";
           statusDiv.innerText = "Ez a fiók már hozzá van adva!";
           modal.style.display = "none";
           return;
         }
-        // Újonnan létrejövő fiók hozzáadása, localStorage frissítése
         addAccountCard(user, emailInput.value, auth, accounts.size === 0);
         addStoredAccount(emailInput.value, user.uid);
         hideLoginScreen();
       } catch (err) {
-        // Hiba esetén hibaüzenetek kezelése
         statusDiv.style.color = "red";
         if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
           statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
@@ -467,7 +467,6 @@
       }
     });
 
-    // Kijelentkezési esemény
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
       await signOut(auth);
@@ -475,7 +474,6 @@
       showLoginScreen();
     });
 
-    // Bejelentkezési képernyő megjelenítése
     function showLoginScreen() {
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
@@ -486,8 +484,6 @@
       updateGauge(0);
       firstUser = null;
     }
-
-    // Bejelentkezési képernyő elrejtése, fő UI megjelenítése
     function hideLoginScreen() {
       loginForm.style.display = "none";
       statusDiv.style.display = "none";
@@ -496,8 +492,6 @@
       accountsContainer.style.display = "block";
       addAccountBtn.style.display = "flex";
     }
-
-    // Kis kör értékének frissítése szöveg és grafika
     function updateGauge(value) {
       gaugeValue.innerText = value + "%";
       const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
@@ -506,8 +500,6 @@
       gaugeCircle.style.stroke = color;
       gaugeValue.style.color = color;
     }
-
-    // Színátmenet meghatározása a kör értéke alapján (piros->barna->zöld)
     function getGradientColor(value) {
       let r, g, b;
       if (value <= 50) {
@@ -523,24 +515,16 @@
       }
       return `rgb(${r},${g},${b})`;
     }
-
-    // Új fiók hozzáadása gombhoz esemény
     addAccountBtn.addEventListener("click", () => {
       modal.style.display = "flex";
       addAccountStatus.innerText = "";
     });
-
-    // Modal bezárása gomb esemény
     modalCloseBtn.addEventListener("click", () => {
       modal.style.display = "none";
     });
-
-    // Modal háttérre kattintás esemény
     window.addEventListener("click", (e) => {
       if (e.target === modal) modal.style.display = "none";
     });
-
-    // Új fiók hozzáadás esemény
     addNewAccountForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = newAccountEmail.value.trim();
@@ -575,8 +559,6 @@
         }
       }
     });
-
-    // Fiók eltávolítása a képernyőről és localStorage-ból
     function removeAccount(uid) {
       if (accounts.has(uid)) {
         accounts.get(uid).card.remove();
@@ -587,8 +569,6 @@
         showLoginScreen();
       }
     }
-
-    // Fiók törlésének megerősítése modalban
     let confirmResolve = null;
     function showConfirmModal(message) {
       return new Promise((resolve) => {
@@ -624,7 +604,7 @@
       });
     });
 
-    // Fiók kártya létrehozása az adatok alapján (több fiók megjelenítése)
+    // LEGÚJABB KIEGÉSZÍTÉS: LED SLIDER
     function addAccountCard(user, email, auth, isMain=false) {
       const card = document.createElement("div");
       card.className = "card accountCard";
@@ -638,13 +618,24 @@
           </svg>
           <div class="gauge-value">0%</div>
         </div>
+        <!-- LED fényerő csúszka -->
+        <div class="slider-container">
+          <input type="range" min="0" max="100" step="25" value="0" class="led-slider" />
+          <div class="slider-labels">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
+        </div>
         ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
       `;
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
 
-      // Kör értékének frissítése az adott fiókhoz
+      // Kör frissítése
       function updateAccountGauge(value) {
         gaugeValue.innerText = value + "%";
         const offset = 2 * Math.PI * 80 - (value / 100) * 2 * Math.PI * 80;
@@ -654,13 +645,15 @@
         gaugeValue.style.color = color;
       }
 
-      // Adatok lekérése Firebase-ből minden kártyánál, függetlenül Auth sessiontől (szabályok engedik)
+      // Adatok lekérése Firebase-ből fiókoknak + LED slider működés
       (async () => {
         const devicesRef = ref(db, `users/${user.uid}/devices`);
         const snapshot = await get(devicesRef);
         if (snapshot.exists()) {
           const devicesData = snapshot.val();
           const firstDeviceId = Object.keys(devicesData)[0];
+
+          // Nedvesség adatfigyelő
           const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
           onValue(soilRef, (snap) => {
             if (snap.exists()) {
@@ -678,10 +671,27 @@
               }
             }
           });
+
+          // LED slider inicializálása és Firebase-vel szinkron
+          const slider = card.querySelector('.led-slider');
+
+          // Firebase 'ledLevel' értékének lekérése és slider értékének frissítése
+          const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
+          onValue(ledLevelRef, (snap) => {
+            if (snap.exists()) {
+              slider.value = snap.val();
+            }
+          });
+
+          // Slider érték változtatására: Firebase-be írás
+          slider.addEventListener('input', async (e) => {
+            const newValue = parseInt(e.target.value);
+            await set(ledLevelRef, newValue);
+          });
         }
       })();
 
-      // Fiók törlése gomb
+      // Fióktörlés és kijelentkezés
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -691,7 +701,6 @@
         }
       });
 
-      // Fő fióknál kijelentkezés gomb esemény
       if (isMain) {
         const logoutBtnMain = card.querySelector(".logoutBtn");
         logoutBtnMain.addEventListener("click", async () => {
@@ -700,7 +709,7 @@
         });
       }
 
-      // Kártya hozzáadása UI-hoz és Map tárolás
+      // Kártya megjelenítése
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
     }
