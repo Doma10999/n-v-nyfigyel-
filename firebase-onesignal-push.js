@@ -26,6 +26,11 @@ const sensorsToWatch = [
   { uid: "vt6FC8pB7VDt74vTaBBhLafoSn2", device: "esp32_003" },
 ];
 
+console.log(JSON.stringify(firebaseConfig, null, 2));
+console.log("DatabaseURL:", firebaseConfig.databaseURL);
+console.log("Paths:", sensorsToWatch.map(s => `users/${s.uid}/devices/${s.device}/sensorValue`));
+
+
 const lastValues = {};
 
 for (const sensor of sensorsToWatch) {
