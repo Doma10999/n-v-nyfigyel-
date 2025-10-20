@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Növényfigyelő</title>
   <style>
+    /* Marad minden a régiben, teljes style átvéve */
     body {
       font-family: Arial, sans-serif;
       background: #f0f8ff;
@@ -262,7 +263,6 @@
     .confirm-igen:hover { background: #388e3c; }
     .confirm-nem        { background: #eee; color: #222; }
     .confirm-nem:hover  { background: #dadada; }
-    /* Slider: csak akkor lesz látható, ha a JS előhozza! */
     .slider-container {
       margin-top: 16px;
       display: none;
@@ -322,56 +322,96 @@
       height: 16px;
     }
 
-    /* További stílusok változatlanul */
+    /* --- Növény típus választó szebb stílusban --- */
+    .card select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background-color: #f7fafc;
+      border: 2px solid #a8d5b5;
+      border-radius: 10px;
+      padding: 10px 40px 10px 14px;
+      font-size: 15px;
+      font-weight: 500;
+      color: #2e7d32;
+      cursor: pointer;
+      outline: none;
+      box-shadow: 0 2px 5px rgba(76,175,80,0.15);
+      transition: all 0.25s ease;
+      background-image: linear-gradient(45deg, transparent 50%, #4caf50 50%),
+                        linear-gradient(135deg, #4caf50 50%, transparent 50%);
+      background-position: calc(100% - 25px) center, calc(100% - 20px) center;
+      background-size: 5px 5px, 5px 5px;
+      background-repeat: no-repeat;
+    }
+
+    .card select:hover {
+      background-color: #eaffea;
+      border-color: #4caf50;
+      box-shadow: 0 3px 8px rgba(76,175,80,0.25);
+    }
+
+    .card select:focus {
+      border-color: #43a047;
+      box-shadow: 0 0 0 3px rgba(76,175,80,0.25);
+      background-color: #ffffff;
+    }
+
+    .card label {
+      font-weight: 600;
+      color: #2e7d32;
+      margin-bottom: 6px;
+      display: block;
+      font-size: 15px;
+    }
+
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-
-
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
       authDomain: "plant-monitor-3976f.firebaseapp.com",
       databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
       projectId: "plant-monitor-3976f",
-      storageBucket: "plant-monitor-3976f.firebasestorage.app",
+      storageBucket: "plant-monitor-3976f.appspot.com",
       messagingSenderId: "705425147510",
       appId: "1:705425147510:web:71f15bde879f3672df8157",
       measurementId: "G-890H6FDBYE"
     };
-
-
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth();
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
-
-
+    const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
     function getStoredAccounts() {
-      try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
-      } catch { return []; }
+      try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
     }
-    function setStoredAccounts(accs) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
-    }
+    function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
     function addStoredAccount(email, uid) {
       const accs = getStoredAccounts();
-      if (!accs.some(a => a.uid === uid)) {
-        accs.push({ email, uid });
-        setStoredAccounts(accs);
-      }
+      if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
     }
     function removeStoredAccount(uid) {
       const accs = getStoredAccounts().filter(a => a.uid !== uid);
       setStoredAccounts(accs);
+      const plantTypesDict = getPlantTypeAll();
+      delete plantTypesDict[uid];
+      savePlantTypeAll(plantTypesDict);
     }
-
-
+    function getPlantTypeAll() {
+      try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+    }
+    function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
+    function getPlantType(uid) {
+      const d = getPlantTypeAll(); return d[uid] || '';
+    }
+    function setPlantType(uid, value) {
+      const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
+    }
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -388,13 +428,20 @@
     const newAccountPass = document.getElementById("newAccountPass");
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
-
-
+    const plantCategories = {
+      "🌵Szárazkedvelő": { min: 10, max: 40 },
+      "🌾Mérsékelten száraz": { min: 20, max: 45 },
+      "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
+      "🌱Nedvességkedvelő": { min: 50, max: 80 },
+      "💧Vízigényes": { min: 70, max: 100 }
+    };
+    function normalizeToCategory(value, min, max) {
+      let norm = (value - min) / (max - min);
+      return Math.max(0, Math.min(1, norm));
+    }
     const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
     let firstUser = null;
-
-
     window.addEventListener('load', () => {
       const stored = getStoredAccounts();
       if (stored.length > 0) {
@@ -406,8 +453,6 @@
         showLoginScreen();
       }
     });
-
-
     onAuthStateChanged(auth, (user) => {
       if (user) {
         if(!accounts.has(user.uid)) {
@@ -421,8 +466,6 @@
         }
       }
     });
-
-
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       statusDiv.style.color = "green";
@@ -448,16 +491,12 @@
         }
       }
     });
-
-
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
       await signOut(auth);
       removeAccount(firstUser.uid);
       showLoginScreen();
     });
-
-
     function showLoginScreen() {
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
@@ -587,12 +626,29 @@
         }
       });
     });
-
-
-    // Fő: CARD generálás, slider csak ha van ledLevel
     function addAccountCard(user, email, auth, isMain=false) {
+      const plantTypes = [
+        "🌵Szárazkedvelő",
+        "🌾Mérsékelten száraz",
+        "🌿Kiegyensúlyozott vízigényű",
+        "🌱Nedvességkedvelő",
+        "💧Vízigényes"
+      ];
       const card = document.createElement("div");
       card.className = "card accountCard";
+      const selectId = `plantTypeSelect-${user.uid}`;
+      const optionsHtml = plantTypes.map(typ =>
+        `<option value="${typ}">${typ}</option>`
+      ).join("");
+      const plantTypeSelectHtml = `
+        <div style="margin-top:20px; margin-bottom:15px;">
+          <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
+          <div class="select-wrap">
+            <select id="${selectId}" class="plant-type-select">
+              <option value="">Válassz kategóriát</option>
+              ${optionsHtml}
+          </select>
+        </div>`;
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>${email}</h3>
@@ -605,27 +661,36 @@
         </div>
         <div class="slider-container">
           <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
-          <div class="slider-labels">
-            <span>Fény erő</span>
-          </div>
+          <div class="slider-labels"><span>Fény erő</span></div>
         </div>
+        ${plantTypeSelectHtml}
         ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
       `;
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
-
-
-      function updateAccountGauge(value) {
-        gaugeValue.innerText = value + "%";
-        const offset = 2 * Math.PI * 80 - (value / 100) * 2 * Math.PI * 80;
-        gaugeCircle.style.strokeDashoffset = offset;
-        const color = getGradientColor(value);
-        gaugeCircle.style.stroke = color;
-        gaugeValue.style.color = color;
+      let currPercent = 0;
+      let currCat = "";
+      function updateAccountGauge(realPercent, cat) {
+        if (plantCategories[cat]) {
+          let { min, max } = plantCategories[cat];
+          let normalized = normalizeToCategory(realPercent, min, max);
+          let display = Math.round(normalized * 100);
+          gaugeValue.innerText = display + "%";
+          const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
+          gaugeCircle.style.strokeDashoffset = offset;
+          const color = getGradientColor(display);
+          gaugeCircle.style.stroke = color;
+          gaugeValue.style.color = color;
+        } else {
+          gaugeValue.innerText = realPercent + "%";
+          const offset = 2 * Math.PI * 80 - (realPercent / 100) * 2 * Math.PI * 80;
+          gaugeCircle.style.strokeDashoffset = offset;
+          const color = getGradientColor(realPercent);
+          gaugeCircle.style.stroke = color;
+          gaugeValue.style.color = color;
+        }
       }
-
-
       (async () => {
         const devicesRef = ref(db, `users/${user.uid}/devices`);
         const snapshot = await get(devicesRef);
@@ -633,14 +698,13 @@
           const devicesData = snapshot.val();
           const firstDeviceId = Object.keys(devicesData)[0];
           const deviceObj = devicesData[firstDeviceId];
-
-
           const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
           onValue(soilRef, (snap) => {
             if (snap.exists()) {
-              updateAccountGauge(snap.val());
-              if (isMain && snap.val() < 35) {
-                OneSignal.push(function() {
+              currPercent = snap.val();
+              updateAccountGauge(currPercent, currCat);
+              if (isMain && currPercent < 35) {
+                OneSignal.push(function () {
                   OneSignal.sendSelfNotification(
                     "Növényfigyelő",
                     "A növény szomjas! Locsold meg! 🌱💧",
@@ -652,18 +716,13 @@
               }
             }
           });
-
-
-          // Itt ellenőrzi a device-ot, hogy van-e ledLevel!
           const sliderContainer = card.querySelector('.slider-container');
           if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
             sliderContainer.style.display = "block";
             const slider = card.querySelector('.led-slider');
             const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
             onValue(ledLevelRef, (snap) => {
-              if (snap.exists()) {
-                slider.value = snap.val();
-              }
+              if (snap.exists()) slider.value = snap.val();
             });
             slider.addEventListener('input', async (e) => {
               const newValue = parseInt(e.target.value);
@@ -674,8 +733,20 @@
           }
         }
       })();
-
-
+      const selectElem = card.querySelector(`#${selectId}`);
+      setTimeout(() => {
+        const saved = getPlantType(user.uid);
+        if (saved) {
+          selectElem.value = saved;
+          currCat = saved;
+          updateAccountGauge(currPercent, currCat);
+        }
+      }, 10);
+      selectElem.addEventListener('change', (e) => {
+        setPlantType(user.uid, e.target.value);
+        currCat = e.target.value;
+        updateAccountGauge(currPercent, currCat);
+      });
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -684,8 +755,6 @@
           removeAccount(user.uid);
         }
       });
-
-
       if (isMain) {
         const logoutBtnMain = card.querySelector(".logoutBtn");
         logoutBtnMain.addEventListener("click", async () => {
@@ -693,8 +762,6 @@
           removeAccount(user.uid);
         });
       }
-
-
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
     }
