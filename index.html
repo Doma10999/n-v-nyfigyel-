@@ -675,7 +675,10 @@
         if (plantCategories[cat]) {
           let { min, max } = plantCategories[cat];
           let normalized = normalizeToCategory(realPercent, min, max);
-          let display = Math.round(normalized * 100);
+          let display;
+          if (value < min) display = 0;
+          else if (value > max) display = 100;
+          else display = Math.round(((value - min) / (max - min)) * 100);
           gaugeValue.innerText = display + "%";
           const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
           gaugeCircle.style.strokeDashoffset = offset;
