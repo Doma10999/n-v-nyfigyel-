@@ -429,11 +429,11 @@
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
     const plantCategories = {
-      "🌵Szárazkedvelő": { min: 10, max: 40 },
-      "🌾Mérsékelten száraz": { min: 20, max: 45 },
-      "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
-      "🌱Nedvességkedvelő": { min: 50, max: 80 },
-      "💧Vízigényes": { min: 70, max: 100 }
+      "🌵Szárazkedvelő": { min: 0, max: 25 },
+      "🌾Mérsékelten száraz": { min: 26, max: 45 },
+      "🌿Kiegyensúlyozott vízigényű": { min: 46, max: 65 },
+      "🌱Nedvességkedvelő": { min: 66, max: 85 },
+      "💧Vízigényes": { min: 86, max: 100 }
     };
     function normalizeToCategory(value, min, max) {
       let norm = (value - min) / (max - min);
