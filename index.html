@@ -5,781 +5,633 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Növényfigyelő</title>
   <style>
-    /* Marad minden a régiben, teljes style átvéve */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: Arial, sans-serif;
-      background: #f0f8ff;
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+      overflow-x: hidden;
+      color: #1b3a2a;
       text-align: center;
       padding: 20px;
     }
     h1 {
-      margin-top: 10px;
-      margin-bottom: 30px;
-      font-size: 2.2em;
-      font-weight: bold;
+      text-align: center;
+      font-size: 2.8em;
+      margin: 25px 0;
+      color: #0d3b23;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 5px rgba(0,0,0,0.05);
     }
     .card {
-      background: white;
-      border-radius: 15px;
-      padding: 20px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.2);
-      margin: 20px auto;
-      max-width: 400px;
       position: relative;
+      background: rgba(255,255,255,0.9);
+      border-radius: 30px;
+      padding: 30px 25px;
+      margin: 25px auto;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
     }
-    .accountCard {
-      margin-bottom: 30px;
+    .card::before, .card::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: float 12s infinite linear;
     }
-    input {
-      width: 100%;
-      padding: 10px;
-      margin: 10px 0;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      font-size: 16px;
-      background: #f7fafc;
-      box-shadow: none;
-      box-sizing: border-box;
-    }
-    button {
-      padding: 10px 20px;
-      border-radius: 10px;
-      border: none;
-      background: #4CAF50;
-      color: white;
-      cursor: pointer;
-      font-size: 16px;
-      margin-top: 8px;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    #logout { display: none; margin-top: 20px; }
-    #plantData { display: block; }
-    .gauge-container {
-      position: relative;
+    .card::before {
       width: 200px;
       height: 200px;
-      margin: 20px auto;
+      background: #66bb6a;
+      top: -50px;
+      right: -80px;
     }
+    .card::after {
+      width: 150px;
+      height: 150px;
+      background: #43a047;
+      bottom: -60px;
+      left: -50px;
+      animation-duration: 16s;
+    }
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+      100% { transform: translateY(0) rotate(360deg); }
+    }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 28px 48px rgba(0,0,0,0.15); }
+    input, select, button {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    input { background: #f0f7f3; }
+    input:focus { box-shadow: 0 0 0 4px rgba(102,187,106,0.25); }
+    select {
+      background: #f0f7f3;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    button {
+      background: linear-gradient(145deg, #66bb6a, #43a047);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    button:hover {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      transform: scale(1.03);
+    }
+    #logout { background: #ef5350; }
+    #logout:hover { background: #d32f2f; }
+    .gauge-container {
+        position: relative;
+        width: 220px;
+        height: 220px;
+        margin: 30px auto;
+      }
+      @media (max-width: 480px) {
+        .gauge-container {
+          width: 180px;
+          height: 180px;
+        }
+      }
     .gauge-svg {
-      transform: rotate(-90deg);
-    }
-    .gauge-bg {
-      fill: none;
-      stroke: #eee;
-      stroke-width: 15;
-    }
-    .gauge-fill {
-      fill: none;
-      stroke-width: 15;
-      stroke-linecap: round;
-      transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
-    }
+        transform: rotate(-90deg);
+        width: 100%;
+        height: 100%;
+      }
+    .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18; }
+    .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
     .gauge-value {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 28px;
-      font-weight: bold;
-    }
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 32px;
+        font-weight: bold;
+        color: #1b3a2a;
+        text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+        line-height: 1;
+        white-space: nowrap;
+      }
+      @media (max-width: 480px) {
+        .gauge-value {
+          font-size: 24px;
+        }
+      }
     #addAccountBtn {
       position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 60px;
-      height: 60px;
-      background-color: #28a745;
+      bottom: 25px;
+      right: 25px;
+      width: 65px;
+      height: 65px;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
       border-radius: 50%;
       color: white;
-      font-size: 36px;
+      font-size: 38px;
       border: none;
       cursor: pointer;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      display: flex;
       align-items: center;
       justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
       z-index: 1000;
-      display: none;
     }
+    #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
     .deleteBtn {
       position: absolute;
-      top: 12px;
-      right: 12px;
-      font-size: 22px;
-      background: transparent;
+      top: 18px;
+      right: 18px;
+      width: 40px;
+      height: 40px;
+      background: #fff;
       border: none;
-      color: #8e24aa;
+      border-radius: 50%;
+      box-shadow: 0 2px 10px rgba(220,0,60,0.10), 0 1.5px 4px rgba(0,0,0,0.09);
+      color: #d32f2f;
+      font-weight: bold;
+      font-size: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       cursor: pointer;
-      padding: 0;
-      margin: 0;
-      line-height: 1;
-      width: auto;
-      height: auto;
-      box-shadow: none;
-      transition: color 0.2s;
+      transition: background 0.22s, color 0.22s, transform 0.14s;
+      z-index: 5;
     }
     .deleteBtn:hover {
-      color: #d32f2f;
-      background: none;
+      background: #ffe3e3;
+      color: #b71c1c;
+      transform: scale(1.125);
+      box-shadow: 0 6px 16px rgba(220,0,60,0.19);
     }
-    .card h3 {
-      margin-top: 40px;
-      margin-bottom: 10px;
-    }
-    #modal {
+    #modal, #confirmModal {
       display: none;
       position: fixed;
-      z-index: 1100;
       left: 0;
       top: 0;
       width: 100vw;
       height: 100vh;
-      background: rgba(0,0,0,0.42);
-      justify-content: center;
-      align-items: center;
-    }
-    #modalContent {
-      background: #fff;
-      padding: 32px 24px 24px 24px;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-      width: 350px;
-      max-width: 90vw;
-      text-align: center;
-      position: relative;
-      animation: popIn 0.2s;
-    }
-    @keyframes popIn {
-      from { transform: scale(0.94); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-    #modalClose {
-      position: absolute;
-      top: 16px;
-      right: 18px;
-      font-size: 26px;
-      font-weight: bold;
-      color: #aaa;
-      cursor: pointer;
-      z-index: 5;
-      user-select: none;
-      transition: color 0.2s;
-    }
-    #modalClose:hover {
-      color: #111;
-    }
-    #modalContent h3 {
-      font-size: 1.36em;
-      font-weight: bold;
-      margin-bottom: 18px;
-      margin-top: 6px;
-    }
-    #modalContent input {
-      width: 90%;
-      padding: 12px;
-      margin: 10px 0;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      font-size: 16px;
-      background: #f7fafc;
-      box-shadow: none;
-    }
-    #modalContent button[type="submit"] {
-      background: #4CAF50;
-      color: white;
-      border: none;
-      padding: 12px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      margin-top: 10px;
-      font-size: 18px;
-      width: 100%;
-      font-weight: 500;
-      box-shadow: 0 2px 10px rgba(76,175,80,0.12);
-      transition: background 0.2s;
-    }
-    #modalContent button[type="submit"]:hover {
-      background: #43a047;
-    }
-    #addAccountStatus {
-      color: red;
-      margin-top: 10px;
-      min-height: 20px;
-    }
-    #accountsContainer {
-      margin-top: 30px;
-      margin-bottom: 40px;
-      display: none;
-    }
-    #confirmModal {
-      display: none;
-      position: fixed;
-      z-index: 1300;
-      left: 0; top: 0; width: 100vw; height: 100vh;
       background: rgba(0,0,0,0.45);
       justify-content: center;
       align-items: center;
+      z-index: 1100;
     }
-    #confirmModalContent {
-      background: #fff;
-      padding: 30px 24px 20px 24px;
-      border-radius: 16px;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.18);
-      width: 350px;
-      max-width: 96vw;
-      text-align: center;
-      position: relative;
-      animation: popIn 0.18s;
+    #modalContent, #confirmModalContent {
+      background: #ffffffee; padding: 36px 28px;
+      border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 380px; max-width: 92vw; text-align: center; position: relative;
+      animation: popIn 0.3s ease-out;
     }
-    #confirmClose {
-      position: absolute;
-      top: 16px;
-      right: 20px;
-      font-size: 25px;
-      font-weight: bold;
-      color: #bbb;
-      cursor: pointer;
-      user-select: none;
-      transition: color 0.2s;
+    @keyframes popIn { from { transform: scale(0.9); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    #modalClose, #confirmClose {
+      position: absolute; top: 18px; right: 20px;
+      font-size: 28px; color: #aaa; cursor: pointer;
+      transition: color 0.25s ease;
     }
-    #confirmClose:hover { color: #111; }
-    .confirm-btn-group {
-      margin-top: 18px;
-      display: flex;
-      justify-content: space-between;
-      gap: 25px;
-    }
-    .confirm-btn {
-      flex: 1;
-      padding: 9px 0;
-      border-radius: 8px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: bold;
-      border: none;
-      transition: background 0.13s, color 0.13s;
-    }
-    .confirm-igen       { background: #4CAF50; color: #fff; }
-    .confirm-igen:hover { background: #388e3c; }
-    .confirm-nem        { background: #eee; color: #222; }
-    .confirm-nem:hover  { background: #dadada; }
-    .slider-container {
-      margin-top: 16px;
-      display: none;
-    }
+    #modalClose:hover, #confirmClose:hover { color: #111; }
+    label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block; }
     .led-slider {
-      width: 92%;
-      margin: 12px auto 0 auto;
-      display: block;
-      appearance: none;
-      background: #e0e0e0;
-      height: 16px;
-      border-radius: 12px;
-      outline: none;
-      box-shadow: 0 2px 6px rgba(44,124,54,0.10);
+      width: 92%; margin: 14px auto; display: block;
+      appearance: none; height: 18px; border-radius: 12px;
+      background: linear-gradient(90deg, #e7ffe0 0%, #4caf50 100%);
+      outline: none; transition: all 0.25s ease;
     }
     .led-slider::-webkit-slider-thumb {
-      appearance: none;
-      width: 26px;
-      height: 26px;
-      margin-top: -5px;
-      background: #4CAF50;
-      border-radius: 50%;
-      border: 3px solid #fff;
-      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
-      cursor: pointer;
-      transition: background 0.19s;
+      appearance: none; width: 28px; height: 28px; border-radius: 50%;
+      background: #66bb6a; border: 3px solid #fff; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
-    .led-slider::-webkit-slider-runnable-track {
-      height: 16px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, #e7ffe0 0%, #4CAF50 100%);
+    .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
+    @media (max-width: 480px) {
+      h1 { font-size: 2.2em; margin: 20px 0; }
+      .card { margin: 20px 10px; padding: 25px; }
+      .gauge-container { width: 180px; height: 180px; }
     }
-    .led-slider::-moz-range-thumb {
-      width: 26px;
-      height: 26px;
-      background: #4CAF50;
-      border-radius: 50%;
-      border: 3px solid #fff;
-      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
-      cursor: pointer;
-    }
-    .led-slider::-moz-range-track {
-      height: 16px;
-      border-radius: 12px;
-      background: linear-gradient(90deg, #e7ffe0 0%, #4CAF50 100%);
-    }
-    .led-slider::-ms-thumb {
-      width: 26px;
-      height: 26px;
-      background: #4CAF50;
-      border-radius: 50%;
-      border: 3px solid #fff;
-      box-shadow: 0 4px 10px rgba(76,175,80,0.11);
-      cursor: pointer;
-    }
-    .led-slider::-ms-fill-lower, .led-slider::-ms-fill-upper {
-      height: 16px;
-    }
-
-    /* --- Növény típus választó szebb stílusban --- */
-    .card select {
-      appearance: none;
-      -webkit-appearance: none;
-      -moz-appearance: none;
-      background-color: #f7fafc;
-      border: 2px solid #a8d5b5;
-      border-radius: 10px;
-      padding: 10px 40px 10px 14px;
-      font-size: 15px;
-      font-weight: 500;
-      color: #2e7d32;
-      cursor: pointer;
-      outline: none;
-      box-shadow: 0 2px 5px rgba(76,175,80,0.15);
-      transition: all 0.25s ease;
-      background-image: linear-gradient(45deg, transparent 50%, #4caf50 50%),
-                        linear-gradient(135deg, #4caf50 50%, transparent 50%);
-      background-position: calc(100% - 25px) center, calc(100% - 20px) center;
-      background-size: 5px 5px, 5px 5px;
-      background-repeat: no-repeat;
-    }
-
-    .card select:hover {
-      background-color: #eaffea;
-      border-color: #4caf50;
-      box-shadow: 0 3px 8px rgba(76,175,80,0.25);
-    }
-
-    .card select:focus {
-      border-color: #43a047;
-      box-shadow: 0 0 0 3px rgba(76,175,80,0.25);
-      background-color: #ffffff;
-    }
-
-    .card label {
-      font-weight: 600;
-      color: #2e7d32;
-      margin-bottom: 6px;
-      display: block;
-      font-size: 15px;
-    }
-
   </style>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-    const firebaseConfig = {
-      apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
-      authDomain: "plant-monitor-3976f.firebaseapp.com",
-      databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
-      projectId: "plant-monitor-3976f",
-      storageBucket: "plant-monitor-3976f.appspot.com",
-      messagingSenderId: "705425147510",
-      appId: "1:705425147510:web:71f15bde879f3672df8157",
-      measurementId: "G-890H6FDBYE"
-    };
-    const app = initializeApp(firebaseConfig);
-    const db = getDatabase(app);
-    const auth = getAuth();
-    const accounts = new Map();
-    const STORAGE_KEY = 'storedAccounts';
-    const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
-    function getStoredAccounts() {
-      try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
-    }
-    function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
-    function addStoredAccount(email, uid) {
-      const accs = getStoredAccounts();
-      if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
-    }
-    function removeStoredAccount(uid) {
-      const accs = getStoredAccounts().filter(a => a.uid !== uid);
-      setStoredAccounts(accs);
-      const plantTypesDict = getPlantTypeAll();
-      delete plantTypesDict[uid];
-      savePlantTypeAll(plantTypesDict);
-    }
-    function getPlantTypeAll() {
-      try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
-    }
-    function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
-    function getPlantType(uid) {
-      const d = getPlantTypeAll(); return d[uid] || '';
-    }
-    function setPlantType(uid, value) {
-      const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
-    }
-    const loginForm = document.getElementById("loginForm");
-    const emailInput = document.getElementById("email");
-    const passInput = document.getElementById("password");
-    const statusDiv = document.getElementById("status");
-    const gaugeValue = document.getElementById("gauge-value");
-    const gaugeCircle = document.querySelector(".gauge-fill");
-    const logoutBtn = document.getElementById("logout");
-    const plantDataCard = document.getElementById("plantData");
-    const addAccountBtn = document.getElementById("addAccountBtn");
-    const modal = document.getElementById("modal");
-    const modalCloseBtn = document.getElementById("modalClose");
-    const addNewAccountForm = document.getElementById("addNewAccountForm");
-    const newAccountEmail = document.getElementById("newAccountEmail");
-    const newAccountPass = document.getElementById("newAccountPass");
-    const addAccountStatus = document.getElementById("addAccountStatus");
-    const accountsContainer = document.getElementById("accountsContainer");
-    const plantCategories = {
-      "🌵Szárazkedvelő": { min: 10, max: 40 },
-      "🌾Mérsékelten száraz": { min: 20, max: 45 },
-      "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
-      "🌱Nedvességkedvelő": { min: 50, max: 80 },
-      "💧Vízigényes": { min: 70, max: 100 }
-    };
-    function normalizeToCategory(value, min, max) {
-      let norm = (value - min) / (max - min);
-      return Math.max(0, Math.min(1, norm));
-    }
-    const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-    gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
-    let firstUser = null;
-    window.addEventListener('load', () => {
-      const stored = getStoredAccounts();
-      if (stored.length > 0) {
-        stored.forEach(acc => {
-          addAccountCard({ uid: acc.uid }, acc.email, auth, false);
-        });
-        hideLoginScreen();
-      } else {
-        showLoginScreen();
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+      const firebaseConfig = {
+        apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
+        authDomain: "plant-monitor-3976f.firebaseapp.com",
+        databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
+        projectId: "plant-monitor-3976f",
+        storageBucket: "plant-monitor-3976f.appspot.com",
+        messagingSenderId: "705425147510",
+        appId: "1:705425147510:web:71f15bde879f3672df8157",
+        measurementId: "G-890H6FDBYE"
+      };
+      const app = initializeApp(firebaseConfig);
+      const db = getDatabase(app);
+      const auth = getAuth();
+      const accounts = new Map();
+      const STORAGE_KEY = 'storedAccounts';
+      const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
+      function getStoredAccounts() {
+        try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
       }
-    });
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if(!accounts.has(user.uid)) {
-          addAccountCard(user, user.email, auth, true);
-          addStoredAccount(user.email, user.uid);
+      function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
+      function addStoredAccount(email, uid) {
+        const accs = getStoredAccounts();
+        if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
+      }
+      function removeStoredAccount(uid) {
+        const accs = getStoredAccounts().filter(a => a.uid !== uid);
+        setStoredAccounts(accs);
+        const plantTypesDict = getPlantTypeAll();
+        delete plantTypesDict[uid];
+        savePlantTypeAll(plantTypesDict);
+      }
+      function getPlantTypeAll() {
+        try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+      }
+      function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
+      function getPlantType(uid) {
+        const d = getPlantTypeAll(); return d[uid] || '';
+      }
+      function setPlantType(uid, value) {
+        const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
+      }
+      const loginForm = document.getElementById("loginForm");
+      const emailInput = document.getElementById("email");
+      const passInput = document.getElementById("password");
+      const statusDiv = document.getElementById("status");
+      const gaugeValue = document.getElementById("gauge-value");
+      const gaugeCircle = document.querySelector(".gauge-fill");
+      const logoutBtn = document.getElementById("logout");
+      const plantDataCard = document.getElementById("plantData");
+      const addAccountBtn = document.getElementById("addAccountBtn");
+      const modal = document.getElementById("modal");
+      const modalCloseBtn = document.getElementById("modalClose");
+      const addNewAccountForm = document.getElementById("addNewAccountForm");
+      const newAccountEmail = document.getElementById("newAccountEmail");
+      const newAccountPass = document.getElementById("newAccountPass");
+      const addAccountStatus = document.getElementById("addAccountStatus");
+      const accountsContainer = document.getElementById("accountsContainer");
+      const plantCategories = {
+        "🌵Szárazkedvelő": { min: 10, max: 40 },
+        "🌾Mérsékelten száraz": { min: 20, max: 45 },
+        "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
+        "🌱Nedvességkedvelő": { min: 50, max: 80 },
+        "💧Vízigényes": { min: 70, max: 100 }
+      };
+      function normalizeToCategory(value, min, max) {
+        let norm = (value - min) / (max - min);
+        return Math.max(0, Math.min(1, norm));
+      }
+      const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+      gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
+      let firstUser = null;
+      window.addEventListener('load', () => {
+        const stored = getStoredAccounts();
+        if (stored.length > 0) {
+          stored.forEach(acc => {
+            addAccountCard({ uid: acc.uid }, acc.email, auth, false);
+          });
           hideLoginScreen();
+        } else {
+          showLoginScreen();
         }
-      } else {
-        if(accounts.size === 0){
+      });
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          if(!accounts.has(user.uid)) {
+            addAccountCard(user, user.email, auth, true);
+            addStoredAccount(user.email, user.uid);
+            hideLoginScreen();
+          }
+        } else {
+          if(accounts.size === 0){
+            showLoginScreen();
+          }
+        }
+      });
+      loginForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        statusDiv.style.color = "green";
+        statusDiv.innerText = "Bejelentkezés...";
+        try {
+          const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
+          const user = userCred.user;
+          if (accounts.has(user.uid)) {
+            statusDiv.style.color = "red";
+            statusDiv.innerText = "Ez a fiók már hozzá van adva!";
+            modal.style.display = "none";
+            return;
+          }
+          addAccountCard(user, emailInput.value, auth, accounts.size === 0);
+          addStoredAccount(emailInput.value, user.uid);
+          hideLoginScreen();
+        } catch (err) {
+          statusDiv.style.color = "red";
+          if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
+            statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
+          } else {
+            statusDiv.innerText = "Hiba: " + err.message;
+          }
+        }
+      });
+      logoutBtn.addEventListener("click", async () => {
+        if (!firstUser) return;
+        await signOut(auth);
+        removeAccount(firstUser.uid);
+        showLoginScreen();
+      });
+      function showLoginScreen() {
+        loginForm.style.display = "block";
+        statusDiv.style.display = "block";
+        logoutBtn.style.display = "none";
+        plantDataCard.style.display = "block";
+        accountsContainer.style.display = "none";
+        addAccountBtn.style.display = "none";
+        updateGauge(0);
+        firstUser = null;
+      }
+      function hideLoginScreen() {
+        loginForm.style.display = "none";
+        statusDiv.style.display = "none";
+        logoutBtn.style.display = "block";
+        plantDataCard.style.display = "none";
+        accountsContainer.style.display = "block";
+        addAccountBtn.style.display = "flex";
+      }
+      function updateGauge(value) {
+        gaugeValue.innerText = value + "%";
+        const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
+        gaugeCircle.style.strokeDashoffset = offset;
+        const color = getGradientColor(value);
+        gaugeCircle.style.stroke = color;
+        gaugeValue.style.color = color;
+      }
+      function getGradientColor(value) {
+        let r, g, b;
+        if (value <= 50) {
+          const ratio = value / 50;
+          r = 255;
+          g = Math.round(69 + (215 - 69) * ratio);
+          b = 0;
+        } else {
+          const ratio = (value - 50) / 50;
+          r = Math.round(255 + (76 - 255) * ratio);
+          g = Math.round(215 + (175 - 215) * ratio);
+          b = Math.round(0 + (80 - 0) * ratio);
+        }
+        return `rgb(${r},${g},${b})`;
+      }
+      addAccountBtn.addEventListener("click", () => {
+        modal.style.display = "flex";
+        addAccountStatus.innerText = "";
+      });
+      modalCloseBtn.addEventListener("click", () => {
+        modal.style.display = "none";
+      });
+      window.addEventListener("click", (e) => {
+        if (e.target === modal) modal.style.display = "none";
+      });
+      addNewAccountForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = newAccountEmail.value.trim();
+        const pass = newAccountPass.value.trim();
+        if (!email || !pass) {
+          addAccountStatus.style.color = "red";
+          addAccountStatus.innerText = "Kérlek, töltsd ki mindkét mezőt!";
+          return;
+        }
+        addAccountStatus.style.color = "green";
+        addAccountStatus.innerText = "Bejelentkezés folyamatban...";
+        try {
+          const userCred = await signInWithEmailAndPassword(auth, email, pass);
+          const user = userCred.user;
+          if (accounts.has(user.uid)) {
+            addAccountStatus.style.color = "red";
+            addAccountStatus.innerText = "Ez a fiók már hozzá van adva!";
+            modal.style.display = "none";
+            return;
+          }
+          addAccountCard(user, email, auth);
+          addStoredAccount(email, user.uid);
+          modal.style.display = "none";
+          newAccountEmail.value = "";
+          newAccountPass.value = "";
+        } catch (err) {
+          addAccountStatus.style.color = "red";
+          if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
+            addAccountStatus.innerText = "Hibás felhasználónév vagy jelszó!";
+          } else {
+            addAccountStatus.innerText = "Hiba: " + err.message;
+          }
+        }
+      });
+      function removeAccount(uid) {
+        if (accounts.has(uid)) {
+          accounts.get(uid).card.remove();
+          accounts.delete(uid);
+        }
+        removeStoredAccount(uid);
+        if (accounts.size === 0) {
           showLoginScreen();
         }
       }
-    });
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusDiv.style.color = "green";
-      statusDiv.innerText = "Bejelentkezés...";
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-        const user = userCred.user;
-        if (accounts.has(user.uid)) {
-          statusDiv.style.color = "red";
-          statusDiv.innerText = "Ez a fiók már hozzá van adva!";
-          modal.style.display = "none";
-          return;
-        }
-        addAccountCard(user, emailInput.value, auth, accounts.size === 0);
-        addStoredAccount(emailInput.value, user.uid);
-        hideLoginScreen();
-      } catch (err) {
-        statusDiv.style.color = "red";
-        if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
-          statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
-        } else {
-          statusDiv.innerText = "Hiba: " + err.message;
-        }
-      }
-    });
-    logoutBtn.addEventListener("click", async () => {
-      if (!firstUser) return;
-      await signOut(auth);
-      removeAccount(firstUser.uid);
-      showLoginScreen();
-    });
-    function showLoginScreen() {
-      loginForm.style.display = "block";
-      statusDiv.style.display = "block";
-      logoutBtn.style.display = "none";
-      plantDataCard.style.display = "block";
-      accountsContainer.style.display = "none";
-      addAccountBtn.style.display = "none";
-      updateGauge(0);
-      firstUser = null;
-    }
-    function hideLoginScreen() {
-      loginForm.style.display = "none";
-      statusDiv.style.display = "none";
-      logoutBtn.style.display = "block";
-      plantDataCard.style.display = "none";
-      accountsContainer.style.display = "block";
-      addAccountBtn.style.display = "flex";
-    }
-    function updateGauge(value) {
-      gaugeValue.innerText = value + "%";
-      const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
-      gaugeCircle.style.strokeDashoffset = offset;
-      const color = getGradientColor(value);
-      gaugeCircle.style.stroke = color;
-      gaugeValue.style.color = color;
-    }
-    function getGradientColor(value) {
-      let r, g, b;
-      if (value <= 50) {
-        const ratio = value / 50;
-        r = 255;
-        g = Math.round(69 + (215 - 69) * ratio);
-        b = 0;
-      } else {
-        const ratio = (value - 50) / 50;
-        r = Math.round(255 + (76 - 255) * ratio);
-        g = Math.round(215 + (175 - 215) * ratio);
-        b = Math.round(0 + (80 - 0) * ratio);
-      }
-      return `rgb(${r},${g},${b})`;
-    }
-    addAccountBtn.addEventListener("click", () => {
-      modal.style.display = "flex";
-      addAccountStatus.innerText = "";
-    });
-    modalCloseBtn.addEventListener("click", () => {
-      modal.style.display = "none";
-    });
-    window.addEventListener("click", (e) => {
-      if (e.target === modal) modal.style.display = "none";
-    });
-    addNewAccountForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = newAccountEmail.value.trim();
-      const pass = newAccountPass.value.trim();
-      if (!email || !pass) {
-        addAccountStatus.style.color = "red";
-        addAccountStatus.innerText = "Kérlek, töltsd ki mindkét mezőt!";
-        return;
-      }
-      addAccountStatus.style.color = "green";
-      addAccountStatus.innerText = "Bejelentkezés folyamatban...";
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, email, pass);
-        const user = userCred.user;
-        if (accounts.has(user.uid)) {
-          addAccountStatus.style.color = "red";
-          addAccountStatus.innerText = "Ez a fiók már hozzá van adva!";
-          modal.style.display = "none";
-          return;
-        }
-        addAccountCard(user, email, auth);
-        addStoredAccount(email, user.uid);
-        modal.style.display = "none";
-        newAccountEmail.value = "";
-        newAccountPass.value = "";
-      } catch (err) {
-        addAccountStatus.style.color = "red";
-        if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
-          addAccountStatus.innerText = "Hibás felhasználónév vagy jelszó!";
-        } else {
-          addAccountStatus.innerText = "Hiba: " + err.message;
-        }
-      }
-    });
-    function removeAccount(uid) {
-      if (accounts.has(uid)) {
-        accounts.get(uid).card.remove();
-        accounts.delete(uid);
-      }
-      removeStoredAccount(uid);
-      if (accounts.size === 0) {
-        showLoginScreen();
-      }
-    }
-    let confirmResolve = null;
-    function showConfirmModal(message) {
-      return new Promise((resolve) => {
-        const modal = document.getElementById("confirmModal");
-        document.getElementById("confirmText").innerText = message;
-        modal.style.display = "flex";
-        confirmResolve = resolve;
-      });
-    }
-    function hideConfirmModal() {
-      const modal = document.getElementById("confirmModal");
-      modal.style.display = "none";
-      if (confirmResolve) confirmResolve(false);
-      confirmResolve = null;
-    }
-    window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("confirmIgenBtn").addEventListener("click", () => {
-        const modal = document.getElementById("confirmModal");
-        modal.style.display = "none";
-        if (confirmResolve) confirmResolve(true);
-        confirmResolve = null;
-      });
-      document.getElementById("confirmNemBtn").addEventListener("click", () => {
-        hideConfirmModal();
-      });
-      document.getElementById("confirmClose").addEventListener("click", () => {
-        hideConfirmModal();
-      });
-      window.addEventListener("keydown", (e) => {
-        if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
-          hideConfirmModal();
-        }
-      });
-    });
-    function addAccountCard(user, email, auth, isMain=false) {
-      const plantTypes = [
-        "🌵Szárazkedvelő",
-        "🌾Mérsékelten száraz",
-        "🌿Kiegyensúlyozott vízigényű",
-        "🌱Nedvességkedvelő",
-        "💧Vízigényes"
-      ];
-      const card = document.createElement("div");
-      card.className = "card accountCard";
-      const selectId = `plantTypeSelect-${user.uid}`;
-      const optionsHtml = plantTypes.map(typ =>
-        `<option value="${typ}">${typ}</option>`
-      ).join("");
-      const plantTypeSelectHtml = `
-        <div style="margin-top:20px; margin-bottom:15px;">
-          <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
-          <div class="select-wrap">
-            <select id="${selectId}" class="plant-type-select">
-              <option value="">Válassz kategóriát</option>
-              ${optionsHtml}
-          </select>
-        </div>`;
-      card.innerHTML = `
-        <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
-        <h3>${email}</h3>
-        <div class="gauge-container">
-          <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
-            <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
-            <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
-          </svg>
-          <div class="gauge-value">0%</div>
-        </div>
-        <div class="slider-container">
-          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
-          <div class="slider-labels"><span>Fény erő</span></div>
-        </div>
-        ${plantTypeSelectHtml}
-        ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
-      `;
-      const gaugeValue = card.querySelector(".gauge-value");
-      const gaugeCircle = card.querySelector(".gauge-fill");
-      gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
-      let currPercent = 0;
-      let currCat = "";
-      function updateAccountGauge(realPercent, cat) {
-        if (plantCategories[cat]) {
-          let { min, max } = plantCategories[cat];
-          let display;
-          if (realPercent <= min) display = 0;
-          else if (realPercent >= max) display = 100;
-          else display = Math.round(((realPercent - min) / (max - min)) * 100);
-          gaugeValue.innerText = display + "%";
-          const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
-          gaugeCircle.style.strokeDashoffset = offset;
-          const color = getGradientColor(display);
-          gaugeCircle.style.stroke = color;
-          gaugeValue.style.color = color;
-        } else {
-          gaugeValue.innerText = realPercent + "%";
-          const offset = 2 * Math.PI * 80 - (realPercent / 100) * 2 * Math.PI * 80;
-          gaugeCircle.style.strokeDashoffset = offset;
-          const color = getGradientColor(realPercent);
-          gaugeCircle.style.stroke = color;
-          gaugeValue.style.color = color;
-        }
-      }
-
-      (async () => {
-        const devicesRef = ref(db, `users/${user.uid}/devices`);
-        const snapshot = await get(devicesRef);
-        if (snapshot.exists()) {
-          const devicesData = snapshot.val();
-          const firstDeviceId = Object.keys(devicesData)[0];
-          const deviceObj = devicesData[firstDeviceId];
-          const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
-          onValue(soilRef, (snap) => {
-            if (snap.exists()) {
-              currPercent = snap.val();
-              updateAccountGauge(currPercent, currCat);
-              if (isMain && currPercent < 35) {
-                OneSignal.push(function () {
-                  OneSignal.sendSelfNotification(
-                    "Növényfigyelő",
-                    "A növény szomjas! Locsold meg! 🌱💧",
-                    'https://novenyfigyelo.netlify.app',
-                    null,
-                    { notificationType: 'moistureAlert' }
-                  );
-                });
-              }
-            }
-          });
-          const sliderContainer = card.querySelector('.slider-container');
-          if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
-            sliderContainer.style.display = "block";
-            const slider = card.querySelector('.led-slider');
-            const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
-            onValue(ledLevelRef, (snap) => {
-              if (snap.exists()) slider.value = snap.val();
-            });
-            slider.addEventListener('input', async (e) => {
-              const newValue = parseInt(e.target.value);
-              await set(ledLevelRef, newValue);
-            });
-          } else {
-            sliderContainer.style.display = "none";
-          }
-        }
-      })();
-      const selectElem = card.querySelector(`#${selectId}`);
-      setTimeout(() => {
-        const saved = getPlantType(user.uid);
-        if (saved) {
-          selectElem.value = saved;
-          currCat = saved;
-          updateAccountGauge(currPercent, currCat);
-        }
-      }, 10);
-      selectElem.addEventListener('change', (e) => {
-        setPlantType(user.uid, e.target.value);
-        currCat = e.target.value;
-        updateAccountGauge(currPercent, currCat);
-      });
-      const deleteBtn = card.querySelector(".deleteBtn");
-      deleteBtn.addEventListener("click", async () => {
-        const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
-        if (confirmed) {
-          await signOut(auth);
-          removeAccount(user.uid);
-        }
-      });
-      if (isMain) {
-        const logoutBtnMain = card.querySelector(".logoutBtn");
-        logoutBtnMain.addEventListener("click", async () => {
-          await signOut(auth);
-          removeAccount(user.uid);
+      let confirmResolve = null;
+      function showConfirmModal(message) {
+        return new Promise((resolve) => {
+          const modal = document.getElementById("confirmModal");
+          document.getElementById("confirmText").innerText = message;
+          modal.style.display = "flex";
+          confirmResolve = resolve;
         });
       }
-      accountsContainer.appendChild(card);
-      accounts.set(user.uid, { user, auth, card });
-    }
-  </script>
-  <script>
-    window.OneSignal = window.OneSignal || [];
-    OneSignal.push(function() {
-      OneSignal.init({
-        appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
-        notifyButton: { enable: true },
-        allowLocalhostAsSecureOrigin: true,
-        serviceWorkerPath: 'OneSignalSDKWorker.js',
-        serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
+      function hideConfirmModal() {
+        const modal = document.getElementById("confirmModal");
+        modal.style.display = "none";
+        if (confirmResolve) confirmResolve(false);
+        confirmResolve = null;
+      }
+      window.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("confirmIgenBtn").addEventListener("click", () => {
+          const modal = document.getElementById("confirmModal");
+          modal.style.display = "none";
+          if (confirmResolve) confirmResolve(true);
+          confirmResolve = null;
+        });
+        document.getElementById("confirmNemBtn").addEventListener("click", () => {
+          hideConfirmModal();
+        });
+        document.getElementById("confirmClose").addEventListener("click", () => {
+          hideConfirmModal();
+        });
+        window.addEventListener("keydown", (e) => {
+          if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
+            hideConfirmModal();
+          }
+        });
       });
-    });
+      function addAccountCard(user, email, auth, isMain=false) {
+        const plantTypes = [
+          "🌵Szárazkedvelő",
+          "🌾Mérsékelten száraz",
+          "🌿Kiegyensúlyozott vízigényű",
+          "🌱Nedvességkedvelő",
+          "💧Vízigényes"
+        ];
+        const card = document.createElement("div");
+        card.className = "card accountCard";
+        const selectId = `plantTypeSelect-${user.uid}`;
+        const optionsHtml = plantTypes.map(typ =>
+          `<option value="${typ}">${typ}</option>`
+        ).join("");
+        const plantTypeSelectHtml = `
+          <div style="margin-top:20px; margin-bottom:15px;">
+            <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
+            <div class="select-wrap">
+              <select id="${selectId}" class="plant-type-select">
+                <option value="">Válassz kategóriát</option>
+                ${optionsHtml}
+            </select>
+          </div>`;
+        card.innerHTML = `
+          <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
+          <h3>${email}</h3>
+          <div class="gauge-container">
+            <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
+              <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+              <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
+            </svg>
+            <div class="gauge-value">0%</div>
+          </div>
+          <div class="slider-container">
+            <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
+            <div class="slider-labels"><span>Fény erő</span></div>
+          </div>
+          ${plantTypeSelectHtml}
+          ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
+        `;
+        const gaugeValue = card.querySelector(".gauge-value");
+        const gaugeCircle = card.querySelector(".gauge-fill");
+        gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
+        let currPercent = 0;
+        let currCat = "";
+        function updateAccountGauge(realPercent, cat) {
+          if (plantCategories[cat]) {
+            let { min, max } = plantCategories[cat];
+            let display;
+            if (realPercent <= min) display = 0;
+            else if (realPercent >= max) display = 100;
+            else display = Math.round(((realPercent - min) / (max - min)) * 100);
+            gaugeValue.innerText = display + "%";
+            const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
+            gaugeCircle.style.strokeDashoffset = offset;
+            const color = getGradientColor(display);
+            gaugeCircle.style.stroke = color;
+            gaugeValue.style.color = color;
+          } else {
+            gaugeValue.innerText = realPercent + "%";
+            const offset = 2 * Math.PI * 80 - (realPercent / 100) * 2 * Math.PI * 80;
+            gaugeCircle.style.strokeDashoffset = offset;
+            const color = getGradientColor(realPercent);
+            gaugeCircle.style.stroke = color;
+            gaugeValue.style.color = color;
+          }
+        }
+
+        (async () => {
+          const devicesRef = ref(db, `users/${user.uid}/devices`);
+          const snapshot = await get(devicesRef);
+          if (snapshot.exists()) {
+            const devicesData = snapshot.val();
+            const firstDeviceId = Object.keys(devicesData)[0];
+            const deviceObj = devicesData[firstDeviceId];
+            const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
+            onValue(soilRef, (snap) => {
+              if (snap.exists()) {
+                currPercent = snap.val();
+                updateAccountGauge(currPercent, currCat);
+                if (isMain && currPercent < 35) {
+                  OneSignal.push(function () {
+                    OneSignal.sendSelfNotification(
+                      "Növényfigyelő",
+                      "A növény szomjas! Locsold meg! 🌱💧",
+                      'https://novenyfigyelo.netlify.app',
+                      null,
+                      { notificationType: 'moistureAlert' }
+                    );
+                  });
+                }
+              }
+            });
+            const sliderContainer = card.querySelector('.slider-container');
+            if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
+              sliderContainer.style.display = "block";
+              const slider = card.querySelector('.led-slider');
+              const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
+              onValue(ledLevelRef, (snap) => {
+                if (snap.exists()) slider.value = snap.val();
+              });
+              slider.addEventListener('input', async (e) => {
+                const newValue = parseInt(e.target.value);
+                await set(ledLevelRef, newValue);
+              });
+            } else {
+              sliderContainer.style.display = "none";
+            }
+          }
+        })();
+        const selectElem = card.querySelector(`#${selectId}`);
+        setTimeout(() => {
+          const saved = getPlantType(user.uid);
+          if (saved) {
+            selectElem.value = saved;
+            currCat = saved;
+            updateAccountGauge(currPercent, currCat);
+          }
+        }, 10);
+        selectElem.addEventListener('change', (e) => {
+          setPlantType(user.uid, e.target.value);
+          currCat = e.target.value;
+          updateAccountGauge(currPercent, currCat);
+        });
+        const deleteBtn = card.querySelector(".deleteBtn");
+        deleteBtn.addEventListener("click", async () => {
+          const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
+          if (confirmed) {
+            await signOut(auth);
+            removeAccount(user.uid);
+          }
+        });
+        if (isMain) {
+          const logoutBtnMain = card.querySelector(".logoutBtn");
+          logoutBtnMain.addEventListener("click", async () => {
+            await signOut(auth);
+            removeAccount(user.uid);
+          });
+        }
+        accountsContainer.appendChild(card);
+        accounts.set(user.uid, { user, auth, card });
+      }
+    </script>
+    <script>
+      window.OneSignal = window.OneSignal || [];
+      OneSignal.push(function() {
+        OneSignal.init({
+          appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
+          notifyButton: { enable: true },
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: 'OneSignalSDKWorker.js',
+          serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
+        });
+      });
   </script>
 </head>
 <body>
@@ -794,9 +646,9 @@
     <button id="logout">Kijelentkezés</button>
     <p id="status">Nincs bejelentkezve</p>
     <div class="gauge-container">
-      <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
-        <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
-        <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
+      <svg class="gauge-svg" width="220" height="220" viewBox="0 0 220 220">
+        <circle class="gauge-bg" cx="110" cy="110" r="90"></circle>
+        <circle class="gauge-fill" cx="110" cy="110" r="90"></circle>
       </svg>
       <div class="gauge-value" id="gauge-value">0%</div>
     </div>
