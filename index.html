@@ -218,420 +218,470 @@
       .gauge-container { width: 180px; height: 180px; }
     }
   </style>
-    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-    <script type="module">
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-      import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
-      const firebaseConfig = {
-        apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
-        authDomain: "plant-monitor-3976f.firebaseapp.com",
-        databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
-        projectId: "plant-monitor-3976f",
-        storageBucket: "plant-monitor-3976f.appspot.com",
-        messagingSenderId: "705425147510",
-        appId: "1:705425147510:web:71f15bde879f3672df8157",
-        measurementId: "G-890H6FDBYE"
-      };
-      const app = initializeApp(firebaseConfig);
-      const db = getDatabase(app);
-      const auth = getAuth();
-      const accounts = new Map();
-      const STORAGE_KEY = 'storedAccounts';
-      const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
-      function getStoredAccounts() {
-        try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
+      authDomain: "plant-monitor-3976f.firebaseapp.com",
+      databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "plant-monitor-3976f",
+      storageBucket: "plant-monitor-3976f.appspot.com",
+      messagingSenderId: "705425147510",
+      appId: "1:705425147510:web:71f15bde879f3672df8157",
+      measurementId: "G-890H6FDBYE"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+    const auth = getAuth();
+    const accounts = new Map();
+    const STORAGE_KEY = 'storedAccounts';
+    const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
+    function getStoredAccounts() {
+      try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
+    }
+    function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
+    function addStoredAccount(email, uid) {
+      const accs = getStoredAccounts();
+      if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
+    }
+    function removeStoredAccount(uid) {
+      const accs = getStoredAccounts().filter(a => a.uid !== uid);
+      setStoredAccounts(accs);
+      const plantTypesDict = getPlantTypeAll();
+      delete plantTypesDict[uid];
+      savePlantTypeAll(plantTypesDict);
+    }
+    function getPlantTypeAll() {
+      try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+    }
+    function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
+    function getPlantType(uid) {
+      const d = getPlantTypeAll(); return d[uid] || '';
+    }
+    function setPlantType(uid, value) {
+      const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
+    }
+    const loginForm = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passInput = document.getElementById("password");
+    const statusDiv = document.getElementById("status");
+    const gaugeValue = document.getElementById("gauge-value");
+    const gaugeCircle = document.querySelector(".gauge-fill");
+    const logoutBtn = document.getElementById("logout");
+    const plantDataCard = document.getElementById("plantData");
+    const addAccountBtn = document.getElementById("addAccountBtn");
+    const modal = document.getElementById("modal");
+    const modalCloseBtn = document.getElementById("modalClose");
+    const addNewAccountForm = document.getElementById("addNewAccountForm");
+    const newAccountEmail = document.getElementById("newAccountEmail");
+    const newAccountPass = document.getElementById("newAccountPass");
+    const newAccountToken = document.getElementById("newAccountToken");
+    const addAccountStatus = document.getElementById("addAccountStatus");
+    const accountsContainer = document.getElementById("accountsContainer");
+    const plantCategories = {
+      "🌵Szárazkedvelő": { min: 10, max: 40 },
+      "🌾Mérsékelten száraz": { min: 20, max: 45 },
+      "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
+      "🌱Nedvességkedvelő": { min: 50, max: 80 },
+      "💧Vízigényes": { min: 70, max: 100 }
+    };
+    function normalizeToCategory(value, min, max) {
+      let norm = (value - min) / (max - min);
+      return Math.max(0, Math.min(1, norm));
+    }
+    const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+    gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
+    let firstUser = null;
+    window.addEventListener('load', () => {
+      const stored = getStoredAccounts();
+      if (stored.length > 0) {
+        stored.forEach(acc => {
+          addAccountCard({ uid: acc.uid }, acc.email, auth, false);
+        });
+        hideLoginScreen();
+      } else {
+        showLoginScreen();
       }
-      function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
-      function addStoredAccount(email, uid) {
-        const accs = getStoredAccounts();
-        if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
-      }
-      function removeStoredAccount(uid) {
-        const accs = getStoredAccounts().filter(a => a.uid !== uid);
-        setStoredAccounts(accs);
-        const plantTypesDict = getPlantTypeAll();
-        delete plantTypesDict[uid];
-        savePlantTypeAll(plantTypesDict);
-      }
-      function getPlantTypeAll() {
-        try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
-      }
-      function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
-      function getPlantType(uid) {
-        const d = getPlantTypeAll(); return d[uid] || '';
-      }
-      function setPlantType(uid, value) {
-        const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
-      }
-      const loginForm = document.getElementById("loginForm");
-      const emailInput = document.getElementById("email");
-      const passInput = document.getElementById("password");
-      const statusDiv = document.getElementById("status");
-      const gaugeValue = document.getElementById("gauge-value");
-      const gaugeCircle = document.querySelector(".gauge-fill");
-      const logoutBtn = document.getElementById("logout");
-      const plantDataCard = document.getElementById("plantData");
-      const addAccountBtn = document.getElementById("addAccountBtn");
-      const modal = document.getElementById("modal");
-      const modalCloseBtn = document.getElementById("modalClose");
-      const addNewAccountForm = document.getElementById("addNewAccountForm");
-      const newAccountEmail = document.getElementById("newAccountEmail");
-      const newAccountPass = document.getElementById("newAccountPass");
-      const addAccountStatus = document.getElementById("addAccountStatus");
-      const accountsContainer = document.getElementById("accountsContainer");
-      const plantCategories = {
-        "🌵Szárazkedvelő": { min: 10, max: 40 },
-        "🌾Mérsékelten száraz": { min: 20, max: 45 },
-        "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
-        "🌱Nedvességkedvelő": { min: 50, max: 80 },
-        "💧Vízigényes": { min: 70, max: 100 }
-      };
-      function normalizeToCategory(value, min, max) {
-        let norm = (value - min) / (max - min);
-        return Math.max(0, Math.min(1, norm));
-      }
-      const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-      gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
-      let firstUser = null;
-      window.addEventListener('load', () => {
-        const stored = getStoredAccounts();
-        if (stored.length > 0) {
-          stored.forEach(acc => {
-            addAccountCard({ uid: acc.uid }, acc.email, auth, false);
-          });
+    });
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        if(!accounts.has(user.uid)) {
+          addAccountCard(user, user.email, auth, true);
+          addStoredAccount(user.email, user.uid);
           hideLoginScreen();
-        } else {
+        }
+      } else {
+        if(accounts.size === 0){
           showLoginScreen();
         }
-      });
-      onAuthStateChanged(auth, (user) => {
-        if (user) {
-          if(!accounts.has(user.uid)) {
-            addAccountCard(user, user.email, auth, true);
-            addStoredAccount(user.email, user.uid);
-            hideLoginScreen();
-          }
-        } else {
-          if(accounts.size === 0){
-            showLoginScreen();
-          }
-        }
-      });
-      loginForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        statusDiv.style.color = "green";
-        statusDiv.innerText = "Bejelentkezés...";
-        try {
-          const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-          const user = userCred.user;
-          if (accounts.has(user.uid)) {
-            statusDiv.style.color = "red";
-            statusDiv.innerText = "Ez a fiók már hozzá van adva!";
-            modal.style.display = "none";
-            return;
-          }
-          addAccountCard(user, emailInput.value, auth, accounts.size === 0);
-          addStoredAccount(emailInput.value, user.uid);
-          hideLoginScreen();
-        } catch (err) {
+      }
+    });
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusDiv.style.color = "green";
+      statusDiv.innerText = "Bejelentkezés...";
+      try {
+        const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
+        const user = userCred.user;
+        if (accounts.has(user.uid)) {
           statusDiv.style.color = "red";
-          if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
-            statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
-          } else {
-            statusDiv.innerText = "Hiba: " + err.message;
-          }
-        }
-      });
-      logoutBtn.addEventListener("click", async () => {
-        if (!firstUser) return;
-        await signOut(auth);
-        removeAccount(firstUser.uid);
-        showLoginScreen();
-      });
-      function showLoginScreen() {
-        loginForm.style.display = "block";
-        statusDiv.style.display = "block";
-        logoutBtn.style.display = "none";
-        plantDataCard.style.display = "block";
-        accountsContainer.style.display = "none";
-        addAccountBtn.style.display = "none";
-        updateGauge(0);
-        firstUser = null;
-      }
-      function hideLoginScreen() {
-        loginForm.style.display = "none";
-        statusDiv.style.display = "none";
-        logoutBtn.style.display = "block";
-        plantDataCard.style.display = "none";
-        accountsContainer.style.display = "block";
-        addAccountBtn.style.display = "flex";
-      }
-      function updateGauge(value) {
-        gaugeValue.innerText = value + "%";
-        const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
-        gaugeCircle.style.strokeDashoffset = offset;
-        const color = getGradientColor(value);
-        gaugeCircle.style.stroke = color;
-        gaugeValue.style.color = color;
-      }
-      function getGradientColor(value) {
-        let r, g, b;
-        if (value <= 50) {
-          const ratio = value / 50;
-          r = 255;
-          g = Math.round(69 + (215 - 69) * ratio);
-          b = 0;
-        } else {
-          const ratio = (value - 50) / 50;
-          r = Math.round(255 + (76 - 255) * ratio);
-          g = Math.round(215 + (175 - 215) * ratio);
-          b = Math.round(0 + (80 - 0) * ratio);
-        }
-        return `rgb(${r},${g},${b})`;
-      }
-      addAccountBtn.addEventListener("click", () => {
-        modal.style.display = "flex";
-        addAccountStatus.innerText = "";
-      });
-      modalCloseBtn.addEventListener("click", () => {
-        modal.style.display = "none";
-      });
-      window.addEventListener("click", (e) => {
-        if (e.target === modal) modal.style.display = "none";
-      });
-      addNewAccountForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        const email = newAccountEmail.value.trim();
-        const pass = newAccountPass.value.trim();
-        if (!email || !pass) {
-          addAccountStatus.style.color = "red";
-          addAccountStatus.innerText = "Kérlek, töltsd ki mindkét mezőt!";
+          statusDiv.innerText = "Ez a fiók már hozzá van adva!";
+          modal.style.display = "none";
           return;
         }
-        addAccountStatus.style.color = "green";
-        addAccountStatus.innerText = "Bejelentkezés folyamatban...";
-        try {
+        addAccountCard(user, emailInput.value, auth, accounts.size === 0);
+        addStoredAccount(emailInput.value, user.uid);
+        hideLoginScreen();
+      } catch (err) {
+        statusDiv.style.color = "red";
+        if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
+          statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
+        } else {
+          statusDiv.innerText = "Hiba: " + err.message;
+        }
+      }
+    });
+    logoutBtn.addEventListener("click", async () => {
+      if (!firstUser) return;
+      await signOut(auth);
+      removeAccount(firstUser.uid);
+      showLoginScreen();
+    });
+    function showLoginScreen() {
+      loginForm.style.display = "block";
+      statusDiv.style.display = "block";
+      logoutBtn.style.display = "none";
+      plantDataCard.style.display = "block";
+      accountsContainer.style.display = "none";
+      addAccountBtn.style.display = "none";
+      updateGauge(0);
+      firstUser = null;
+    }
+    function hideLoginScreen() {
+      loginForm.style.display = "none";
+      statusDiv.style.display = "none";
+      logoutBtn.style.display = "block";
+      plantDataCard.style.display = "none";
+      accountsContainer.style.display = "block";
+      addAccountBtn.style.display = "flex";
+    }
+    function updateGauge(value) {
+      gaugeValue.innerText = value + "%";
+      const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
+      gaugeCircle.style.strokeDashoffset = offset;
+      const color = getGradientColor(value);
+      gaugeCircle.style.stroke = color;
+      gaugeValue.style.color = color;
+    }
+    function getGradientColor(value) {
+      let r, g, b;
+      if (value <= 50) {
+        const ratio = value / 50;
+        r = 255;
+        g = Math.round(69 + (215 - 69) * ratio);
+        b = 0;
+      } else {
+        const ratio = (value - 50) / 50;
+        r = Math.round(255 + (76 - 255) * ratio);
+        g = Math.round(215 + (175 - 215) * ratio);
+        b = Math.round(0 + (80 - 0) * ratio);
+      }
+      return `rgb(${r},${g},${b})`;
+    }
+    addAccountBtn.addEventListener("click", () => {
+      modal.style.display = "flex";
+      addAccountStatus.innerText = "";
+    });
+    modalCloseBtn.addEventListener("click", () => {
+      modal.style.display = "none";
+    });
+    window.addEventListener("click", (e) => {
+      if (e.target === modal) modal.style.display = "none";
+    });
+    addNewAccountForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = newAccountEmail.value.trim();
+      const pass = newAccountPass.value.trim();
+      const token = newAccountToken.value.trim();
+      if ((!email || !pass) && !token) {
+        addAccountStatus.style.color = "red";
+        addAccountStatus.innerText = "Töltsd ki az email+jelszó mezőket vagy az azonosítót!";
+        return;
+      }
+      addAccountStatus.style.color = "green";
+      addAccountStatus.innerText = "Bejelentkezés folyamatban...";
+      try {
+        let user = null;
+        if (token) {
+          const userData = { uid: token, email: "Ismeretlen (azonosítóval)" };
+          if (accounts.has(token)) {
+            throw { code: "auth/already-added" };
+          }
+          addAccountCard(userData, userData.email, auth);
+          addStoredAccount(userData.email, userData.uid);
+          modal.style.display = "none";
+          newAccountToken.value = "";
+          return;
+        } else {
           const userCred = await signInWithEmailAndPassword(auth, email, pass);
-          const user = userCred.user;
+          user = userCred.user;
           if (accounts.has(user.uid)) {
-            addAccountStatus.style.color = "red";
-            addAccountStatus.innerText = "Ez a fiók már hozzá van adva!";
-            modal.style.display = "none";
-            return;
+            throw { code: "auth/already-added" };
           }
           addAccountCard(user, email, auth);
           addStoredAccount(email, user.uid);
           modal.style.display = "none";
           newAccountEmail.value = "";
           newAccountPass.value = "";
-        } catch (err) {
-          addAccountStatus.style.color = "red";
-          if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
-            addAccountStatus.innerText = "Hibás felhasználónév vagy jelszó!";
-          } else {
-            addAccountStatus.innerText = "Hiba: " + err.message;
-          }
+          return;
         }
+      } catch (err) {
+        addAccountStatus.style.color = "red";
+        if (err.code === "auth/already-added") {
+          addAccountStatus.innerText = "Ez a fiók már hozzá van adva!";
+        } else if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
+          addAccountStatus.innerText = "Hibás felhasználónév vagy jelszó!";
+        } else {
+          addAccountStatus.innerText = "Hiba: " + err.message;
+        }
+      }
+    });
+    function removeAccount(uid) {
+      if (accounts.has(uid)) {
+        accounts.get(uid).card.remove();
+        accounts.delete(uid);
+      }
+      removeStoredAccount(uid);
+      if (accounts.size === 0) {
+        showLoginScreen();
+      }
+    }
+    let confirmResolve = null;
+    function showConfirmModal(message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("confirmModal");
+        document.getElementById("confirmText").innerText = message;
+        modal.style.display = "flex";
+        confirmResolve = resolve;
       });
-      function removeAccount(uid) {
-        if (accounts.has(uid)) {
-          accounts.get(uid).card.remove();
-          accounts.delete(uid);
-        }
-        removeStoredAccount(uid);
-        if (accounts.size === 0) {
-          showLoginScreen();
-        }
-      }
-      let confirmResolve = null;
-      function showConfirmModal(message) {
-        return new Promise((resolve) => {
-          const modal = document.getElementById("confirmModal");
-          document.getElementById("confirmText").innerText = message;
-          modal.style.display = "flex";
-          confirmResolve = resolve;
-        });
-      }
-      function hideConfirmModal() {
+    }
+    function hideConfirmModal() {
+      const modal = document.getElementById("confirmModal");
+      modal.style.display = "none";
+      if (confirmResolve) confirmResolve(false);
+      confirmResolve = null;
+    }
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("confirmIgenBtn").addEventListener("click", () => {
         const modal = document.getElementById("confirmModal");
         modal.style.display = "none";
-        if (confirmResolve) confirmResolve(false);
+        if (confirmResolve) confirmResolve(true);
         confirmResolve = null;
-      }
-      window.addEventListener("DOMContentLoaded", () => {
-        document.getElementById("confirmIgenBtn").addEventListener("click", () => {
-          const modal = document.getElementById("confirmModal");
-          modal.style.display = "none";
-          if (confirmResolve) confirmResolve(true);
-          confirmResolve = null;
-        });
-        document.getElementById("confirmNemBtn").addEventListener("click", () => {
-          hideConfirmModal();
-        });
-        document.getElementById("confirmClose").addEventListener("click", () => {
-          hideConfirmModal();
-        });
-        window.addEventListener("keydown", (e) => {
-          if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
-            hideConfirmModal();
-          }
-        });
       });
-      function addAccountCard(user, email, auth, isMain=false) {
-        const plantTypes = [
-          "🌵Szárazkedvelő",
-          "🌾Mérsékelten száraz",
-          "🌿Kiegyensúlyozott vízigényű",
-          "🌱Nedvességkedvelő",
-          "💧Vízigényes"
-        ];
-        const card = document.createElement("div");
-        card.className = "card accountCard";
-        const selectId = `plantTypeSelect-${user.uid}`;
-        const optionsHtml = plantTypes.map(typ =>
-          `<option value="${typ}">${typ}</option>`
-        ).join("");
-        const plantTypeSelectHtml = `
-          <div style="margin-top:20px; margin-bottom:15px;">
-            <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
-            <div class="select-wrap">
-              <select id="${selectId}" class="plant-type-select">
-                <option value="">Válassz kategóriát</option>
-                ${optionsHtml}
-            </select>
-          </div>`;
-        card.innerHTML = `
-          <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
-          <h3>${email}</h3>
-          <div class="gauge-container">
-            <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
-              <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
-              <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
-            </svg>
-            <div class="gauge-value">0%</div>
-          </div>
-          <div class="slider-container">
-            <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
-            <div class="slider-labels"><span>Fény erő</span></div>
-          </div>
-          ${plantTypeSelectHtml}
-          ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
-        `;
-        const gaugeValue = card.querySelector(".gauge-value");
-        const gaugeCircle = card.querySelector(".gauge-fill");
-        gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
-        let currPercent = 0;
-        let currCat = "";
-        function updateAccountGauge(realPercent, cat) {
-          if (plantCategories[cat]) {
-            let { min, max } = plantCategories[cat];
-            let display;
-            if (realPercent <= min) display = 0;
-            else if (realPercent >= max) display = 100;
-            else display = Math.round(((realPercent - min) / (max - min)) * 100);
-            gaugeValue.innerText = display + "%";
-            const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
-            gaugeCircle.style.strokeDashoffset = offset;
-            const color = getGradientColor(display);
-            gaugeCircle.style.stroke = color;
-            gaugeValue.style.color = color;
-          } else {
-            gaugeValue.innerText = realPercent + "%";
-            const offset = 2 * Math.PI * 80 - (realPercent / 100) * 2 * Math.PI * 80;
-            gaugeCircle.style.strokeDashoffset = offset;
-            const color = getGradientColor(realPercent);
-            gaugeCircle.style.stroke = color;
-            gaugeValue.style.color = color;
-          }
+      document.getElementById("confirmNemBtn").addEventListener("click", () => {
+        hideConfirmModal();
+      });
+      document.getElementById("confirmClose").addEventListener("click", () => {
+        hideConfirmModal();
+      });
+      window.addEventListener("keydown", (e) => {
+        if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
+          hideConfirmModal();
         }
-
-        (async () => {
-          const devicesRef = ref(db, `users/${user.uid}/devices`);
-          const snapshot = await get(devicesRef);
-          if (snapshot.exists()) {
-            const devicesData = snapshot.val();
-            const firstDeviceId = Object.keys(devicesData)[0];
-            const deviceObj = devicesData[firstDeviceId];
-            const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
-            onValue(soilRef, (snap) => {
-              if (snap.exists()) {
-                currPercent = snap.val();
-                updateAccountGauge(currPercent, currCat);
-                if (isMain && currPercent < 35) {
-                  OneSignal.push(function () {
-                    OneSignal.sendSelfNotification(
-                      "Növényfigyelő",
-                      "A növény szomjas! Locsold meg! 🌱💧",
-                      'https://novenyfigyelo.netlify.app',
-                      null,
-                      { notificationType: 'moistureAlert' }
-                    );
-                  });
-                }
-              }
-            });
-            const sliderContainer = card.querySelector('.slider-container');
-            if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
-              sliderContainer.style.display = "block";
-              const slider = card.querySelector('.led-slider');
-              const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
-              onValue(ledLevelRef, (snap) => {
-                if (snap.exists()) slider.value = snap.val();
-              });
-              slider.addEventListener('input', async (e) => {
-                const newValue = parseInt(e.target.value);
-                await set(ledLevelRef, newValue);
-              });
-            } else {
-              sliderContainer.style.display = "none";
+      });
+    });
+    function addAccountCard(user, email, auth, isMain=false) {
+      const plantTypes = [
+        "🌵Szárazkedvelő",
+        "🌾Mérsékelten száraz",
+        "🌿Kiegyensúlyozott vízigényű",
+        "🌱Nedvességkedvelő",
+        "💧Vízigényes"
+      ];
+      const card = document.createElement("div");
+      card.className = "card accountCard";
+      const selectId = `plantTypeSelect-${user.uid}`;
+      const optionsHtml = plantTypes.map(typ =>
+        `<option value="${typ}">${typ}</option>`
+      ).join("");
+      const plantTypeSelectHtml = `
+        <div style="margin-top:20px; margin-bottom:15px;">
+          <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
+          <div class="select-wrap">
+            <select id="${selectId}" class="plant-type-select">
+              <option value="">Válassz kategóriát</option>
+              ${optionsHtml}
+          </select>
+        </div>`;
+      card.innerHTML = `
+        <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
+        <h3>
+          <span class="displayNameSpan">${email}</span>
+          <button class="editNameBtn" aria-label="Név szerkesztése" style="background:none;border:none;cursor:pointer;margin-left:3px;font-size:15px;">✏️</button>
+        </h3>
+        <input type="text" class="editNameInput" style="display:none;width:75%;margin:0 auto 7px auto;padding:8px;" maxlength="50"/>
+        <button class="saveNameBtn" style="display:none;background:#43a047;color:#fff;margin-bottom:10px;border-radius:9px;padding:8px 16px;border:none;font-size:15px;cursor:pointer;">Mentés</button>
+        <div class="gauge-container">
+          <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
+            <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+            <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
+          </svg>
+          <div class="gauge-value">0%</div>
+        </div>
+        <div class="slider-container">
+          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
+          <div class="slider-labels"><span>Fény erő</span></div>
+        </div>
+        ${plantTypeSelectHtml}
+        ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
+      `;
+      const gaugeValue = card.querySelector(".gauge-value");
+      const gaugeCircle = card.querySelector(".gauge-fill");
+      const displayNameSpan = card.querySelector(".displayNameSpan");
+      const editBtn = card.querySelector(".editNameBtn");
+      const editInput = card.querySelector(".editNameInput");
+      const saveBtn = card.querySelector(".saveNameBtn");
+      gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
+      let currPercent = 0;
+      let currCat = "";
+      (async () => {
+        if (user.uid) {
+          try {
+            const nameSnap = await get(ref(db, `users/${user.uid}/displayName`));
+            if (nameSnap.exists() && nameSnap.val()) {
+              displayNameSpan.textContent = nameSnap.val();
             }
-          }
-        })();
-        const selectElem = card.querySelector(`#${selectId}`);
-        setTimeout(() => {
-          const saved = getPlantType(user.uid);
-          if (saved) {
-            selectElem.value = saved;
-            currCat = saved;
-            updateAccountGauge(currPercent, currCat);
-          }
-        }, 10);
-        selectElem.addEventListener('change', (e) => {
-          setPlantType(user.uid, e.target.value);
-          currCat = e.target.value;
-          updateAccountGauge(currPercent, currCat);
-        });
-        const deleteBtn = card.querySelector(".deleteBtn");
-        deleteBtn.addEventListener("click", async () => {
-          const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
-          if (confirmed) {
-            await signOut(auth);
-            removeAccount(user.uid);
-          }
-        });
-        if (isMain) {
-          const logoutBtnMain = card.querySelector(".logoutBtn");
-          logoutBtnMain.addEventListener("click", async () => {
-            await signOut(auth);
-            removeAccount(user.uid);
-          });
+          } catch {}
         }
-        accountsContainer.appendChild(card);
-        accounts.set(user.uid, { user, auth, card });
-      }
-    </script>
-    <script>
-      window.OneSignal = window.OneSignal || [];
-      OneSignal.push(function() {
-        OneSignal.init({
-          appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
-          notifyButton: { enable: true },
-          allowLocalhostAsSecureOrigin: true,
-          serviceWorkerPath: 'OneSignalSDKWorker.js',
-          serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
-        });
+      })();
+      editBtn.addEventListener("click", () => {
+        editInput.value = displayNameSpan.textContent;
+        displayNameSpan.style.display = "none";
+        editBtn.style.display = "none";
+        editInput.style.display = "inline-block";
+        saveBtn.style.display = "inline-block";
+        editInput.focus();
       });
+      saveBtn.addEventListener("click", async () => {
+        const newName = editInput.value.trim();
+        if (!newName) return;
+        displayNameSpan.textContent = newName;
+        displayNameSpan.style.display = "inline-block";
+        editBtn.style.display = "inline-block";
+        editInput.style.display = "none";
+        saveBtn.style.display = "none";
+        if (user.uid) {
+          await set(ref(db, `users/${user.uid}/displayName`), newName);
+        }
+      });
+      function updateAccountGauge(realPercent, cat) {
+        let display = 0;
+        if (plantCategories[cat]) {
+          const { min, max } = plantCategories[cat];
+          display = Math.round(
+            ((realPercent - min) / (max - min)) * 100
+          );
+          if (display < 0) display = 0;
+          if (display > 100) display = 100;
+        } else {
+          display = realPercent;
+        }
+        gaugeValue.innerText = display + "%";
+        const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
+        gaugeCircle.style.strokeDashoffset = offset;
+        const color = getGradientColor(display);
+        gaugeCircle.style.stroke = color;
+        gaugeValue.style.color = color;
+      }
+      (async () => {
+        const devicesRef = ref(db, `users/${user.uid}/devices`);
+        const snapshot = await get(devicesRef);
+        if (snapshot.exists()) {
+          const devicesData = snapshot.val();
+          const firstDeviceId = Object.keys(devicesData)[0];
+          const deviceObj = devicesData[firstDeviceId];
+          const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
+          onValue(soilRef, (snap) => {
+            if (snap.exists()) {
+              currPercent = snap.val();
+              updateAccountGauge(currPercent, currCat);
+              if (isMain && currPercent < 35) {
+                OneSignal.push(function () {
+                  OneSignal.sendSelfNotification(
+                    "Növényfigyelő",
+                    "A növény szomjas! Locsold meg! 🌱💧",
+                    'https://novenyfigyelo.netlify.app',
+                    null,
+                    { notificationType: 'moistureAlert' }
+                  );
+                });
+              }
+            }
+          });
+          const sliderContainer = card.querySelector('.slider-container');
+          if (deviceObj && deviceObj.hasOwnProperty('ledLevel')) {
+            sliderContainer.style.display = "block";
+            const slider = card.querySelector('.led-slider');
+            const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
+            onValue(ledLevelRef, (snap) => {
+              if (snap.exists()) slider.value = snap.val();
+            });
+            slider.addEventListener('input', async (e) => {
+              const newValue = parseInt(e.target.value);
+              await set(ledLevelRef, newValue);
+            });
+          } else {
+            sliderContainer.style.display = "none";
+          }
+        }
+      })();
+      const selectElem = card.querySelector(`#${selectId}`);
+      setTimeout(() => {
+        const saved = getPlantType(user.uid);
+        if (saved) {
+          selectElem.value = saved;
+          currCat = saved;
+          updateAccountGauge(currPercent, currCat);
+        }
+      }, 10);
+      selectElem.addEventListener('change', (e) => {
+        setPlantType(user.uid, e.target.value);
+        currCat = e.target.value;
+        updateAccountGauge(currPercent, currCat);
+      });
+      const deleteBtn = card.querySelector(".deleteBtn");
+      deleteBtn.addEventListener("click", async () => {
+        const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
+        if (confirmed) {
+          await signOut(auth);
+          removeAccount(user.uid);
+        }
+      });
+      if (isMain) {
+        const logoutBtnMain = card.querySelector(".logoutBtn");
+        logoutBtnMain.addEventListener("click", async () => {
+          await signOut(auth);
+          removeAccount(user.uid);
+        });
+      }
+      accountsContainer.appendChild(card);
+      accounts.set(user.uid, { user, auth, card });
+    }
+  </script>
+  <script>
+    window.OneSignal = window.OneSignal || [];
+    OneSignal.push(function() {
+      OneSignal.init({
+        appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
+        notifyButton: { enable: true },
+        allowLocalhostAsSecureOrigin: true,
+        serviceWorkerPath: 'OneSignalSDKWorker.js',
+        serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
+      });
+    });
   </script>
 </head>
 <body>
@@ -660,8 +710,10 @@
       <span id="modalClose">&times;</span>
       <h3>Bejelentkezés</h3>
       <form id="addNewAccountForm">
-        <input type="email" id="newAccountEmail" placeholder="Email" required /><br />
-        <input type="password" id="newAccountPass" placeholder="Jelszó" required /><br />
+        <input type="email" id="newAccountEmail" placeholder="Email" /><br />
+        <input type="password" id="newAccountPass" placeholder="Jelszó" /><br />
+        <div style="text-align:center; margin: 10px 0; font-weight:600;">vagy</div>
+        <input type="text" id="newAccountToken" placeholder="Azonosító" /><br />
         <button type="submit">Belépés</button>
       </form>
       <p id="addAccountStatus"></p>
