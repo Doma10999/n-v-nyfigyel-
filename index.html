@@ -212,10 +212,52 @@
       box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
     .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
-    @media (max-width: 480px) {
-      h1 { font-size: 2.2em; margin: 20px 0; }
-      .card { margin: 20px 10px; padding: 25px; }
-      .gauge-container { width: 180px; height: 180px; }
+    .toggle-switch {
+      position: relative;
+      width: 60px;
+      height: 30px;
+      margin: 0 auto 12px;
+    }
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      background-color: #ccc;
+      border-radius: 30px;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      transition: 0.4s;
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: 0.4s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: #43a047;
+    }
+    input:checked + .slider:before {
+      transform: translateX(30px);
+    }
+    .toggle-label {
+      font-weight: 600;
+      color: #1b3a2a;
+      margin: 0 10px;
+      user-select: none;
+      display: inline-block;
+      vertical-align: middle;
     }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -515,7 +557,15 @@
               <option value="">Válassz kategóriát</option>
               ${optionsHtml}
             </select>
-          </div>`;
+          </div>
+        </div>`;
+      const notifyToggleHtml = `
+        <label class="toggle-switch">
+          <input type="checkbox" id="notifyToggle-${user.uid}">
+          <span class="slider"></span>
+        </label>
+        <div class="toggle-label">Értesítés, ha száraz a növény</div>
+      `;
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>
@@ -536,18 +586,16 @@
           <div class="slider-labels"><span>Fény erő</span></div>
         </div>
         ${plantTypeSelectHtml}
-        <button id="notifyBtn-${user.uid}" style="margin-top:10px; background:#43a047; color:white; border:none; border-radius:14px; padding:10px; cursor:pointer;">
-          Értesítést kérek erről a növényről
-        </button>
-        </div>
+        ${notifyToggleHtml}
         ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
-        `;
+      `;
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
       const displayNameSpan = card.querySelector(".displayNameSpan");
       const editBtn = card.querySelector(".editNameBtn");
       const editInput = card.querySelector(".editNameInput");
       const saveBtn = card.querySelector(".saveNameBtn");
+      const notifyToggle = card.querySelector(`#notifyToggle-${user.uid}`);
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
       let currPercent = 0;
       let currCat = "";
@@ -612,7 +660,7 @@
             if (snap.exists()) {
               currPercent = snap.val();
               updateAccountGauge(currPercent, currCat);
-              if (isMain && currPercent < 35) {
+              if (isMain && currPercent < 35 && notifyToggle.checked) {
                 OneSignal.push(function () {
                   OneSignal.sendSelfNotification(
                     "Növényfigyelő",
@@ -656,6 +704,24 @@
         currCat = e.target.value;
         updateAccountGauge(currPercent, currCat);
       });
+      notifyToggle.addEventListener('change', () => {
+        if (!currCat && notifyToggle.checked) {
+          alert('Kérlek, válassz növénytípust az értesítéshez!');
+          notifyToggle.checked = false;
+          return;
+        }
+        if (notifyToggle.checked) {
+          OneSignal.push(() => {
+            OneSignal.sendTag('plantCategory', currCat);
+          });
+          alert(`Értesítés bekapcsolva a(z) ${currCat} növényhez!`);
+        } else {
+          OneSignal.push(() => {
+            OneSignal.deleteTag('plantCategory');
+          });
+          alert(`Értesítés kikapcsolva a növényhez.`);
+        }
+      });
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -673,17 +739,6 @@
       }
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
-      const notifyBtn = card.querySelector(`#notifyBtn-${user.uid}`);
-      notifyBtn.addEventListener('click', () => {
-        if (!currCat) {
-          alert('Kérlek, válassz növénytípust az értesítéshez!');
-          return;
-        }
-        OneSignal.push(() => {
-          OneSignal.sendTag('plantCategory', currCat);
-        });
-        alert(`Értesítés bekapcsolva a(z) ${currCat} növényhez!`);
-      });
     }
   </script>
   <script>
