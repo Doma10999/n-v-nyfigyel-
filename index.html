@@ -281,6 +281,7 @@
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
     const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
+    const NOTIFY_STATE_KEY = 'notifyToggleState_v1';
     function getStoredAccounts() {
       try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
     }
@@ -295,6 +296,12 @@
       const plantTypesDict = getPlantTypeAll();
       delete plantTypesDict[uid];
       savePlantTypeAll(plantTypesDict);
+      // Remove notify state if exists
+      let notifyStates = getNotifyStates();
+      if (notifyStates[uid]) {
+        delete notifyStates[uid];
+        saveNotifyStates(notifyStates);
+      }
     }
     function getPlantTypeAll() {
       try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
@@ -306,6 +313,10 @@
     function setPlantType(uid, value) {
       const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
     }
+    function getNotifyStates() {
+      try { const d = localStorage.getItem(NOTIFY_STATE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+    }
+    function saveNotifyStates(obj) { localStorage.setItem(NOTIFY_STATE_KEY, JSON.stringify(obj)); }
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -560,7 +571,7 @@
           </div>
         </div>`;
       const notifyToggleHtml = `
-        <label class="toggle-switch">
+        <label class="toggle-switch" for="notifyToggle-${user.uid}">
           <input type="checkbox" id="notifyToggle-${user.uid}">
           <span class="slider"></span>
         </label>
@@ -599,6 +610,10 @@
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
       let currPercent = 0;
       let currCat = "";
+      const notifyStates = getNotifyStates();
+      if (notifyStates[user.uid]) {
+        notifyToggle.checked = true;
+      }
       (async () => {
         if (user.uid) {
           try {
@@ -703,8 +718,15 @@
         setPlantType(user.uid, e.target.value);
         currCat = e.target.value;
         updateAccountGauge(currPercent, currCat);
+        // If toggle enabled, update OneSignal tag to new category
+        if (notifyToggle.checked) {
+          OneSignal.push(() => {
+            OneSignal.sendTag('plantCategory', currCat);
+          });
+        }
       });
       notifyToggle.addEventListener('change', () => {
+        let notifyStates = getNotifyStates();
         if (!currCat && notifyToggle.checked) {
           alert('Kérlek, válassz növénytípust az értesítéshez!');
           notifyToggle.checked = false;
@@ -714,11 +736,15 @@
           OneSignal.push(() => {
             OneSignal.sendTag('plantCategory', currCat);
           });
+          notifyStates[user.uid] = true;
+          saveNotifyStates(notifyStates);
           alert(`Értesítés bekapcsolva a(z) ${currCat} növényhez!`);
         } else {
           OneSignal.push(() => {
             OneSignal.deleteTag('plantCategory');
           });
+          delete notifyStates[user.uid];
+          saveNotifyStates(notifyStates);
           alert(`Értesítés kikapcsolva a növényhez.`);
         }
       });
