@@ -514,8 +514,8 @@
             <select id="${selectId}" class="plant-type-select">
               <option value="">Válassz kategóriát</option>
               ${optionsHtml}
-          </select>
-        </div>`;
+            </select>
+          </div>`;
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>
@@ -536,8 +536,12 @@
           <div class="slider-labels"><span>Fény erő</span></div>
         </div>
         ${plantTypeSelectHtml}
+        <button id="notifyBtn-${user.uid}" style="margin-top:10px; background:#43a047; color:white; border:none; border-radius:14px; padding:10px; cursor:pointer;">
+          Értesítést kérek erről a növényről
+        </button>
+        </div>
         ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
-      `;
+        `;
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
       const displayNameSpan = card.querySelector(".displayNameSpan");
@@ -669,6 +673,17 @@
       }
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
+      const notifyBtn = card.querySelector(`#notifyBtn-${user.uid}`);
+      notifyBtn.addEventListener('click', () => {
+        if (!currCat) {
+          alert('Kérlek, válassz növénytípust az értesítéshez!');
+          return;
+        }
+        OneSignal.push(() => {
+          OneSignal.sendTag('plantCategory', currCat);
+        });
+        alert(`Értesítés bekapcsolva a(z) ${currCat} növényhez!`);
+      });
     }
   </script>
   <script>
