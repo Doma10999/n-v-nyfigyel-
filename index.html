@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Növényfigyelő</title>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
@@ -93,41 +93,41 @@
     #logout { background: #ef5350; }
     #logout:hover { background: #d32f2f; }
     .gauge-container {
-        position: relative;
-        width: 220px;
-        height: 220px;
-        margin: 30px auto;
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 30px auto;
+    }
+    @media (max-width: 480px) {
+      .gauge-container {
+        width: 180px;
+        height: 180px;
       }
-      @media (max-width: 480px) {
-        .gauge-container {
-          width: 180px;
-          height: 180px;
-        }
-      }
+    }
     .gauge-svg {
-        transform: rotate(-90deg);
-        width: 100%;
-        height: 100%;
-      }
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
     .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18; }
     .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
     .gauge-value {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 32px;
-        font-weight: bold;
-        color: #1b3a2a;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
-        line-height: 1;
-        white-space: nowrap;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: #1b3a2a;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      .gauge-value {
+        font-size: 24px;
       }
-      @media (max-width: 480px) {
-        .gauge-value {
-          font-size: 24px;
-        }
-      }
+    }
     #addAccountBtn {
       position: fixed;
       bottom: 25px;
@@ -212,52 +212,10 @@
       box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
     .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
-    .toggle-switch {
-      position: relative;
-      width: 60px;
-      height: 30px;
-      margin: 0 auto 12px;
-    }
-    .toggle-switch input {
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
-    .slider {
-      position: absolute;
-      cursor: pointer;
-      background-color: #ccc;
-      border-radius: 30px;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      transition: 0.4s;
-    }
-    .slider:before {
-      position: absolute;
-      content: "";
-      height: 22px;
-      width: 22px;
-      left: 4px;
-      bottom: 4px;
-      background-color: white;
-      transition: 0.4s;
-      border-radius: 50%;
-    }
-    input:checked + .slider {
-      background-color: #43a047;
-    }
-    input:checked + .slider:before {
-      transform: translateX(30px);
-    }
-    .toggle-label {
-      font-weight: 600;
-      color: #1b3a2a;
-      margin: 0 10px;
-      user-select: none;
-      display: inline-block;
-      vertical-align: middle;
+    @media (max-width: 480px) {
+      h1 { font-size: 2.2em; margin: 20px 0; }
+      .card { margin: 20px 10px; padding: 25px; }
+      .gauge-container { width: 180px; height: 180px; }
     }
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
@@ -281,7 +239,6 @@
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
     const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
-    const NOTIFY_STATE_KEY = 'notifyToggleState_v1';
     function getStoredAccounts() {
       try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
     }
@@ -296,12 +253,6 @@
       const plantTypesDict = getPlantTypeAll();
       delete plantTypesDict[uid];
       savePlantTypeAll(plantTypesDict);
-      // Remove notify state if exists
-      let notifyStates = getNotifyStates();
-      if (notifyStates[uid]) {
-        delete notifyStates[uid];
-        saveNotifyStates(notifyStates);
-      }
     }
     function getPlantTypeAll() {
       try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
@@ -313,10 +264,6 @@
     function setPlantType(uid, value) {
       const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
     }
-    function getNotifyStates() {
-      try { const d = localStorage.getItem(NOTIFY_STATE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
-    }
-    function saveNotifyStates(obj) { localStorage.setItem(NOTIFY_STATE_KEY, JSON.stringify(obj)); }
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -397,12 +344,16 @@
         }
       }
     });
+
+    logoutBtn.style.display = "none";
+
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
       await signOut(auth);
       removeAccount(firstUser.uid);
       showLoginScreen();
     });
+
     function showLoginScreen() {
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
@@ -416,7 +367,7 @@
     function hideLoginScreen() {
       loginForm.style.display = "none";
       statusDiv.style.display = "none";
-      logoutBtn.style.display = "block";
+      logoutBtn.style.display = "none";
       plantDataCard.style.display = "none";
       accountsContainer.style.display = "block";
       addAccountBtn.style.display = "flex";
@@ -570,13 +521,6 @@
             </select>
           </div>
         </div>`;
-      const notifyToggleHtml = `
-        <label class="toggle-switch" for="notifyToggle-${user.uid}">
-          <input type="checkbox" id="notifyToggle-${user.uid}">
-          <span class="slider"></span>
-        </label>
-        <div class="toggle-label">Értesítés, ha száraz a növény</div>
-      `;
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>
@@ -597,8 +541,6 @@
           <div class="slider-labels"><span>Fény erő</span></div>
         </div>
         ${plantTypeSelectHtml}
-        ${notifyToggleHtml}
-        ${isMain ? `<button class="logoutBtn">Kijelentkezés</button>` : ""}
       `;
       const gaugeValue = card.querySelector(".gauge-value");
       const gaugeCircle = card.querySelector(".gauge-fill");
@@ -606,24 +548,34 @@
       const editBtn = card.querySelector(".editNameBtn");
       const editInput = card.querySelector(".editNameInput");
       const saveBtn = card.querySelector(".saveNameBtn");
-      const notifyToggle = card.querySelector(`#notifyToggle-${user.uid}`);
       gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
       let currPercent = 0;
       let currCat = "";
-      const notifyStates = getNotifyStates();
-      if (notifyStates[user.uid]) {
-        notifyToggle.checked = true;
-      }
+      let firstDeviceId = null;
+
       (async () => {
         if (user.uid) {
           try {
-            const nameSnap = await get(ref(db, `users/${user.uid}/displayName`));
-            if (nameSnap.exists() && nameSnap.val()) {
-              displayNameSpan.textContent = nameSnap.val();
+            const devicesSnap = await get(ref(db, `users/${user.uid}/devices`));
+            if (devicesSnap.exists()) {
+              const devicesData = devicesSnap.val();
+              firstDeviceId = Object.keys(devicesData)[0];
+              const nameSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`));
+              if (nameSnap.exists() && nameSnap.val()) {
+                displayNameSpan.textContent = nameSnap.val();
+              }
+              const catSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`));
+              if (catSnap.exists() && catSnap.val()) {
+                currCat = catSnap.val();
+                const selectElem = card.querySelector(`#${selectId}`);
+                selectElem.value = currCat;
+                updateAccountGauge(currPercent, currCat);
+              }
             }
           } catch {}
         }
       })();
+
       editBtn.addEventListener("click", () => {
         editInput.value = displayNameSpan.textContent;
         displayNameSpan.style.display = "none";
@@ -640,10 +592,11 @@
         editBtn.style.display = "inline-block";
         editInput.style.display = "none";
         saveBtn.style.display = "none";
-        if (user.uid) {
-          await set(ref(db, `users/${user.uid}/displayName`), newName);
+        if (user.uid && firstDeviceId) {
+          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`), newName);
         }
       });
+
       function updateAccountGauge(realPercent, cat) {
         let display = 0;
         if (plantCategories[cat]) {
@@ -668,14 +621,14 @@
         const snapshot = await get(devicesRef);
         if (snapshot.exists()) {
           const devicesData = snapshot.val();
-          const firstDeviceId = Object.keys(devicesData)[0];
+          firstDeviceId = Object.keys(devicesData)[0];
           const deviceObj = devicesData[firstDeviceId];
           const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
           onValue(soilRef, (snap) => {
             if (snap.exists()) {
               currPercent = snap.val();
               updateAccountGauge(currPercent, currCat);
-              if (isMain && currPercent < 35 && notifyToggle.checked) {
+              if (isMain && currPercent < 35) {
                 OneSignal.push(function () {
                   OneSignal.sendSelfNotification(
                     "Növényfigyelő",
@@ -705,49 +658,33 @@
           }
         }
       })();
+
       const selectElem = card.querySelector(`#${selectId}`);
-      setTimeout(() => {
-        const saved = getPlantType(user.uid);
+      setTimeout(async () => {
+        let saved = '';
+        if (user.uid && firstDeviceId) {
+          const catSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`));
+          if (catSnap.exists() && catSnap.val()) {
+            saved = catSnap.val();
+          }
+        }
+        if (!saved) saved = getPlantType(user.uid);
         if (saved) {
           selectElem.value = saved;
           currCat = saved;
           updateAccountGauge(currPercent, currCat);
         }
       }, 10);
-      selectElem.addEventListener('change', (e) => {
+
+      selectElem.addEventListener('change', async (e) => {
         setPlantType(user.uid, e.target.value);
         currCat = e.target.value;
         updateAccountGauge(currPercent, currCat);
-        // If toggle enabled, update OneSignal tag to new category
-        if (notifyToggle.checked) {
-          OneSignal.push(() => {
-            OneSignal.sendTag('plantCategory', currCat);
-          });
+        if (user.uid && firstDeviceId) {
+          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), currCat);
         }
       });
-      notifyToggle.addEventListener('change', () => {
-        let notifyStates = getNotifyStates();
-        if (!currCat && notifyToggle.checked) {
-          alert('Kérlek, válassz növénytípust az értesítéshez!');
-          notifyToggle.checked = false;
-          return;
-        }
-        if (notifyToggle.checked) {
-          OneSignal.push(() => {
-            OneSignal.sendTag('plantCategory', currCat);
-          });
-          notifyStates[user.uid] = true;
-          saveNotifyStates(notifyStates);
-          alert(`Értesítés bekapcsolva a(z) ${currCat} növényhez!`);
-        } else {
-          OneSignal.push(() => {
-            OneSignal.deleteTag('plantCategory');
-          });
-          delete notifyStates[user.uid];
-          saveNotifyStates(notifyStates);
-          alert(`Értesítés kikapcsolva a növényhez.`);
-        }
-      });
+
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -756,13 +693,7 @@
           removeAccount(user.uid);
         }
       });
-      if (isMain) {
-        const logoutBtnMain = card.querySelector(".logoutBtn");
-        logoutBtnMain.addEventListener("click", async () => {
-          await signOut(auth);
-          removeAccount(user.uid);
-        });
-      }
+
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
     }
@@ -785,8 +716,8 @@
   <div class="card" id="plantData">
     <form id="loginForm">
       <h3>Bejelentkezés</h3>
-      <input type="email" id="email" placeholder="Email" required /><br />
-      <input type="password" id="password" placeholder="Jelszó" required /><br />
+      <input type="email" id="email" placeholder="Email" required><br>
+      <input type="password" id="password" placeholder="Jelszó" required><br>
       <button type="submit">Belépés</button>
     </form>
     <button id="logout">Kijelentkezés</button>
@@ -806,10 +737,10 @@
       <span id="modalClose">&times;</span>
       <h3>Bejelentkezés</h3>
       <form id="addNewAccountForm">
-        <input type="email" id="newAccountEmail" placeholder="Email" /><br />
-        <input type="password" id="newAccountPass" placeholder="Jelszó" /><br />
+        <input type="email" id="newAccountEmail" placeholder="Email"><br>
+        <input type="password" id="newAccountPass" placeholder="Jelszó"><br>
         <div style="text-align:center; margin: 10px 0; font-weight:600;">vagy</div>
-        <input type="text" id="newAccountToken" placeholder="Azonosító" /><br />
+        <input type="text" id="newAccountToken" placeholder="Azonosító"><br>
         <button type="submit">Belépés</button>
       </form>
       <p id="addAccountStatus"></p>
