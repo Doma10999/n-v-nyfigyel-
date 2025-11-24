@@ -728,6 +728,26 @@
       });
       updateBellStyle();
     });
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) {
+          console.log('Service Worker regisztrálva');
+        })
+        .catch(function(err) {
+          console.log('Service Worker hiba:', err);
+        });
+    }
+
+    Notification.requestPermission().then(function(permission) {
+      if (permission === "granted") {
+        console.log("Push értesítés engedélyezve");
+        // Itt jönne később a feliratkozás endpoint backendnek!
+      } else {
+        console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
+      }
+    });
+    
   </script>
 </head>
 <body>
