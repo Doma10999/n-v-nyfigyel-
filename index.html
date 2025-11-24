@@ -705,6 +705,8 @@
           bellBtn.classList.add("inactive");
         }
       }
+      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+      updateBellStyle();
       bellBtn.addEventListener('click', function(){
         notifModal.style.display = 'flex';
       });
@@ -713,11 +715,20 @@
       });
       yesBtn.addEventListener('click', function(){
         notifEnabled = true;
+        localStorage.setItem('notifEnabled', 'true');
         notifModal.style.display = 'none';
         updateBellStyle();
+        Notification.requestPermission().then(function(permission) {
+          if (permission === "granted") {
+            console.log("Push értesítés engedélyezve");
+          } else {
+            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
+          }
+        });
       });
       noBtn.addEventListener('click', function(){
         notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
         notifModal.style.display = 'none';
         updateBellStyle();
       });
@@ -726,9 +737,7 @@
           notifModal.style.display = 'none';
         }
       });
-      updateBellStyle();
     });
-
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then(function(reg) {
@@ -738,16 +747,6 @@
           console.log('Service Worker hiba:', err);
         });
     }
-
-    Notification.requestPermission().then(function(permission) {
-      if (permission === "granted") {
-        console.log("Push értesítés engedélyezve");
-        // Itt jönne később a feliratkozás endpoint backendnek!
-      } else {
-        console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
-      }
-    });
-    
   </script>
 </head>
 <body>
