@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Növényfigyelő</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
     * { box-sizing: border-box; margin: 0; padding: 0;}
@@ -127,6 +128,23 @@
       z-index: 1000;
     }
     #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25);}
+    #notifBellBtn {
+      position: fixed;
+      bottom: 115px; right: 25px;
+      width: 65px; height: 65px;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      border-radius: 50%;
+      color: white; font-size: 34px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      z-index: 1001;
+    }
+    #notifBellBtn.inactive {
+      background: linear-gradient(145deg, #b0c4b1, #d0e6cd);
+      color: #7e917c;
+    }
+    #notifBellBtn:hover { transform: scale(1.08);}
     .deleteBtn {
       position: absolute;
       top: 18px; right: 18px;
@@ -182,7 +200,26 @@
       h1 { font-size: 2.2em; margin: 20px 0;}
       .card { margin: 20px 10px; padding: 25px;}
       .gauge-container { width: 180px; height: 180px;}
+      #notifBellBtn, #addAccountBtn { width: 46px; height: 46px; font-size: 22px;}
+      #notifModalContent { padding: 22px 8px;}
     }
+    #notifModal {
+      display: none;
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center; align-items: center; z-index: 1101;
+    }
+    #notifModalContent {
+      background: #fff; padding: 34px 23px;
+      border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 360px; max-width: 90vw; text-align: center; position: relative;
+      animation: popIn 0.3s ease-out;
+    }
+    #notifModalClose {
+      position: absolute; top: 18px; right: 20px;
+      font-size: 28px; color: #aaa; cursor: pointer; transition: color 0.22s;
+    }
+    #notifModalClose:hover { color: #111;}
   </style>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
   <script type="module">
@@ -310,16 +347,13 @@
         }
       }
     });
-
     logoutBtn.style.display = "none";
-
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
       await signOut(auth);
       removeAccount(firstUser.uid);
       showLoginScreen();
     });
-
     function showLoginScreen() {
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
@@ -657,6 +691,43 @@
         serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
       });
     });
+    let notifEnabled = false;
+    window.addEventListener('DOMContentLoaded', function(){
+      const bellBtn = document.getElementById('notifBellBtn');
+      const notifModal = document.getElementById('notifModal');
+      const closeBtn = document.getElementById('notifModalClose');
+      const yesBtn = document.getElementById('notifYes');
+      const noBtn = document.getElementById('notifNo');
+      function updateBellStyle(){
+        if(notifEnabled){
+          bellBtn.classList.remove("inactive");
+        }else{
+          bellBtn.classList.add("inactive");
+        }
+      }
+      bellBtn.addEventListener('click', function(){
+        notifModal.style.display = 'flex';
+      });
+      closeBtn.addEventListener('click', function(){
+        notifModal.style.display = 'none';
+      });
+      yesBtn.addEventListener('click', function(){
+        notifEnabled = true;
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+      window.addEventListener('click', function(e){
+        if(e.target === notifModal){
+          notifModal.style.display = 'none';
+        }
+      });
+      updateBellStyle();
+    });
   </script>
 </head>
 <body>
@@ -680,6 +751,24 @@
   </div>
   <div id="accountsContainer"></div>
   <button id="addAccountBtn">+</button>
+  <button id="notifBellBtn" aria-label="Push értesítés">
+    <i class="fa-solid fa-bell"></i>
+  </button>
+  <div id="notifModal">
+    <div id="notifModalContent">
+      <span id="notifModalClose">&times;</span>
+      <h3>Push értesítés beállítás</h3>
+      <p>Szeretnél értesítést kapni, ha a növény vízszintje 35% alá esik?</p>
+      <div style="margin-top:28px;">
+        <button id="notifYes" style="background:linear-gradient(145deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-size:17px;cursor:pointer;margin:0 9px;">
+          Igen
+        </button>
+        <button id="notifNo" style="background:#e0e8e5;color:#888;border:none;border-radius:12px;padding:10px 20px;font-size:17px;cursor:pointer;margin:0 9px;">
+          Nem
+        </button>
+      </div>
+    </div>
+  </div>
   <div id="modal">
     <div id="modalContent">
       <span id="modalClose">&times;</span>
