@@ -721,11 +721,41 @@
         Notification.requestPermission().then(function(permission) {
           if (permission === "granted") {
             console.log("Push értesítés engedélyezve");
+            subscribeUserToPush();
           } else {
             console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
           }
         });
       });
+
+      // ...valahol a JS-ben (fő scriptben)
+      function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+      }
+
+      function subscribeUserToPush() {
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          navigator.serviceWorker.ready.then(function(reg) {
+            reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array("BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE")
+            }).then(function(sub) {
+              fetch('/.netlify/functions/registerPush', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(sub)
+              });
+              console.log("Feliratkozás elküldve backendnek");
+            });
+          });
+        }
+      }
+
       noBtn.addEventListener('click', function(){
         notifEnabled = false;
         localStorage.setItem('notifEnabled', 'false');
