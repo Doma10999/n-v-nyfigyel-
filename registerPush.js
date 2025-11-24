@@ -1,8 +1,14 @@
+// Ideiglenes tároló (újraindítás után elveszik, éles rendszerhez adatbázis kellene!)
+let subscriptions = [];
+
 exports.handler = async function(event, context) {
-  const subscription = JSON.parse(event.body);
-  // Ezt mentheted adatbázisba, vagy fájlba, vagy csak kipróbálsz egy push küldést
-  console.log("Új subscription:", subscription);
-  // Itt indulhatna a push küldése, ha az érték < 35
+  const data = JSON.parse(event.body);
+  // Például: {subscription: {...}, plantType: "🌿Kiegyensúlyozott vízigényű"}
+  // Eltároljuk tömbben (vagy menthető fájlba/adatbázisba is)
+  subscriptions.push(data);
+
+  console.log("Új feliratkozás:", data);
+
   return {
     statusCode: 200,
     body: "Feliratkozás sikeres"
