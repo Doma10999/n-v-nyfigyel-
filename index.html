@@ -661,13 +661,16 @@
         }
       }, 10);
       selectElem.addEventListener('change', async (e) => {
-        setPlantType(user.uid, e.target.value);
-        currCat = e.target.value;
+        const newCat = e.target.value;
+        jelenlegiKategoria = newCat;       // <-- ÚJ SOR
+        setPlantType(user.uid, newCat);
+        currCat = newCat;
         updateAccountGauge(currPercent, currCat);
         if (user.uid && firstDeviceId) {
           await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), currCat);
         }
       });
+
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
         const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
@@ -692,6 +695,7 @@
       });
     });
     let notifEnabled = false;
+    let jelenlegiKategoria = "";   
     window.addEventListener('DOMContentLoaded', function(){
       const bellBtn = document.getElementById('notifBellBtn');
       const notifModal = document.getElementById('notifModal');
@@ -747,9 +751,13 @@
             }).then(function(sub) {
               fetch('/.netlify/functions/registerPush', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(sub)
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  subscription: sub,
+                  plantType: jelenlegiKategoria,      // pl. "🌿Kiegyensúlyozott vízigényű"
+                })
               });
+
               console.log("Feliratkozás elküldve backendnek");
             });
           });
