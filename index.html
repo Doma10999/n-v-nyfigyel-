@@ -221,11 +221,12 @@
     }
     #notifModalClose:hover { color: #111;}
   </style>
-  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
       authDomain: "plant-monitor-3976f.firebaseapp.com",
@@ -236,12 +237,15 @@
       appId: "1:705425147510:web:71f15bde879f3672df8157",
       measurementId: "G-890H6FDBYE"
     };
+
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
     const auth = getAuth();
+
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
     const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
+
     function getStoredAccounts() {
       try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
     }
@@ -267,6 +271,7 @@
     function setPlantType(uid, value) {
       const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
     }
+
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
     const passInput = document.getElementById("password");
@@ -284,6 +289,7 @@
     const newAccountToken = document.getElementById("newAccountToken");
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
+
     const plantCategories = {
       "🌵Szárazkedvelő": { min: 10, max: 40 },
       "🌾Mérsékelten száraz": { min: 20, max: 45 },
@@ -291,13 +297,17 @@
       "🌱Nedvességkedvelő": { min: 50, max: 80 },
       "💧Vízigényes": { min: 70, max: 100 }
     };
+
     function normalizeToCategory(value, min, max) {
       let norm = (value - min) / (max - min);
       return Math.max(0, Math.min(1, norm));
     }
-    const RADIUS = 80, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+
+    const RADIUS = 90, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
+
     let firstUser = null;
+
     window.addEventListener('load', () => {
       const stored = getStoredAccounts();
       if (stored.length > 0) {
@@ -309,32 +319,23 @@
         showLoginScreen();
       }
     });
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        if(!accounts.has(user.uid)) {
-          addAccountCard(user, user.email, auth, true);
-          addStoredAccount(user.email, user.uid);
-          hideLoginScreen();
-        }
-      } else {
-        if(accounts.size === 0){
-          showLoginScreen();
-        }
-      }
-    });
+
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       statusDiv.style.color = "green";
       statusDiv.innerText = "Bejelentkezés...";
+
       try {
         const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
         const user = userCred.user;
+
         if (accounts.has(user.uid)) {
           statusDiv.style.color = "red";
           statusDiv.innerText = "Ez a fiók már hozzá van adva!";
           modal.style.display = "none";
           return;
         }
+
         addAccountCard(user, emailInput.value, auth, accounts.size === 0);
         addStoredAccount(emailInput.value, user.uid);
         hideLoginScreen();
@@ -347,6 +348,7 @@
         }
       }
     });
+
     logoutBtn.style.display = "none";
     logoutBtn.addEventListener("click", async () => {
       if (!firstUser) return;
@@ -354,6 +356,7 @@
       removeAccount(firstUser.uid);
       showLoginScreen();
     });
+
     function showLoginScreen() {
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
@@ -364,6 +367,7 @@
       updateGauge(0);
       firstUser = null;
     }
+
     function hideLoginScreen() {
       loginForm.style.display = "none";
       statusDiv.style.display = "none";
@@ -372,6 +376,7 @@
       accountsContainer.style.display = "block";
       addAccountBtn.style.display = "flex";
     }
+
     function updateGauge(value) {
       gaugeValue.innerText = value + "%";
       const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
@@ -380,6 +385,7 @@
       gaugeCircle.style.stroke = color;
       gaugeValue.style.color = color;
     }
+
     function getGradientColor(value) {
       let r, g, b;
       if (value <= 50) {
@@ -395,64 +401,58 @@
       }
       return `rgb(${r},${g},${b})`;
     }
+
     addAccountBtn.addEventListener("click", () => {
       modal.style.display = "flex";
       addAccountStatus.innerText = "";
     });
+
     modalCloseBtn.addEventListener("click", () => {
       modal.style.display = "none";
     });
+
     window.addEventListener("click", (e) => {
       if (e.target === modal) modal.style.display = "none";
     });
+
     addNewAccountForm.addEventListener("submit", async (e) => {
       e.preventDefault();
+
       const email = newAccountEmail.value.trim();
       const pass = newAccountPass.value.trim();
-      const token = newAccountToken.value.trim();
-      if ((!email || !pass) && !token) {
+
+      addAccountStatus.textContent = "";
+
+      const stored = getStoredAccounts();
+      if (stored.some(acc => acc.email === email)) {
         addAccountStatus.style.color = "red";
-        addAccountStatus.innerText = "Töltsd ki az email+jelszó mezőket vagy az azonosítót!";
+        addAccountStatus.textContent = "Ez a fiók már hozzá van adva!";
         return;
       }
-      addAccountStatus.style.color = "green";
-      addAccountStatus.innerText = "Bejelentkezés folyamatban...";
+
       try {
-        let user = null;
-        if (token) {
-          const userData = { uid: token, email: "Ismeretlen (azonosítóval)" };
-          if (accounts.has(token)) {
-            throw { code: "auth/already-added" };
-          }
-          addAccountCard(userData, userData.email, auth);
-          addStoredAccount(userData.email, userData.uid);
-          modal.style.display = "none";
-          newAccountToken.value = "";
-          return;
-        } else {
-          const userCred = await signInWithEmailAndPassword(auth, email, pass);
-          user = userCred.user;
-          if (accounts.has(user.uid)) {
-            throw { code: "auth/already-added" };
-          }
-          addAccountCard(user, email, auth);
-          addStoredAccount(email, user.uid);
-          modal.style.display = "none";
-          newAccountEmail.value = "";
-          newAccountPass.value = "";
-          return;
-        }
+        const userCred = await signInWithEmailAndPassword(auth, email, pass);
+        const uid = userCred.user.uid;
+
+        addStoredAccount(email, uid);
+        addAccountCard({ uid }, email, auth, true);
+
+        modal.style.display = "none";
+        newAccountEmail.value = "";
+        newAccountPass.value = "";
+        addAccountStatus.textContent = "";
+
       } catch (err) {
         addAccountStatus.style.color = "red";
-        if (err.code === "auth/already-added") {
-          addAccountStatus.innerText = "Ez a fiók már hozzá van adva!";
-        } else if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
-          addAccountStatus.innerText = "Hibás felhasználónév vagy jelszó!";
+
+        if (err.code === "auth/invalid-credential") {
+          addAccountStatus.textContent = "Hibás email vagy jelszó.";
         } else {
-          addAccountStatus.innerText = "Hiba: " + err.message;
+          addAccountStatus.textContent = "Hiba történt: " + err.message;
         }
       }
     });
+
     function removeAccount(uid) {
       if (accounts.has(uid)) {
         accounts.get(uid).card.remove();
@@ -463,6 +463,7 @@
         showLoginScreen();
       }
     }
+
     let confirmResolve = null;
     function showConfirmModal(message) {
       return new Promise((resolve) => {
@@ -472,12 +473,14 @@
         confirmResolve = resolve;
       });
     }
+
     function hideConfirmModal() {
       const modal = document.getElementById("confirmModal");
       modal.style.display = "none";
       if (confirmResolve) confirmResolve(false);
       confirmResolve = null;
     }
+
     window.addEventListener("DOMContentLoaded", () => {
       document.getElementById("confirmIgenBtn").addEventListener("click", () => {
         const modal = document.getElementById("confirmModal");
@@ -497,7 +500,9 @@
         }
       });
     });
+
     function addAccountCard(user, email, auth, isMain=false) {
+
       const plantTypes = [
         "🌵Szárazkedvelő",
         "🌾Mérsékelten száraz",
@@ -505,12 +510,15 @@
         "🌱Nedvességkedvelő",
         "💧Vízigényes"
       ];
+
       const card = document.createElement("div");
       card.className = "card accountCard";
+
       const selectId = `plantTypeSelect-${user.uid}`;
       const optionsHtml = plantTypes.map(typ =>
         `<option value="${typ}">${typ}</option>`
       ).join("");
+
       const plantTypeSelectHtml = `
         <div style="margin-top:20px; margin-bottom:15px;">
           <label for="${selectId}" class="plant-type-label">Növény típusa:</label>
@@ -521,6 +529,7 @@
             </select>
           </div>
         </div>`;
+
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>
@@ -542,26 +551,32 @@
         </div>
         ${plantTypeSelectHtml}
       `;
-      const gaugeValue = card.querySelector(".gauge-value");
-      const gaugeCircle = card.querySelector(".gauge-fill");
+
+      const gaugeValueEl = card.querySelector(".gauge-value");
+      const gaugeCircleEl = card.querySelector(".gauge-fill");
       const displayNameSpan = card.querySelector(".displayNameSpan");
       const editBtn = card.querySelector(".editNameBtn");
       const editInput = card.querySelector(".editNameInput");
       const saveBtn = card.querySelector(".saveNameBtn");
-      gaugeCircle.style.strokeDasharray = 2 * Math.PI * 80;
+
+      gaugeCircleEl.style.strokeDasharray = 2 * Math.PI * 80;
+
       let currPercent = 0;
       let currCat = "";
       let firstDeviceId = null;
+
       (async () => {
         if (user.uid) {
           const devicesSnap = await get(ref(db, `users/${user.uid}/devices`));
           if (devicesSnap.exists()) {
             const devicesData = devicesSnap.val();
             firstDeviceId = Object.keys(devicesData)[0];
+
             const nameSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`));
             if (nameSnap.exists() && nameSnap.val()) {
               displayNameSpan.textContent = nameSnap.val();
             }
+
             const catSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`));
             if (catSnap.exists() && catSnap.val()) {
               currCat = catSnap.val();
@@ -569,6 +584,7 @@
               selectElem.value = currCat;
               updateAccountGauge(currPercent, currCat);
             }
+
             const sliderContainer = card.querySelector('.slider-container');
             if (devicesData[firstDeviceId] && devicesData[firstDeviceId].hasOwnProperty('ledLevel')) {
               sliderContainer.style.display = "block";
@@ -584,27 +600,18 @@
             } else {
               sliderContainer.style.display = "none";
             }
+
             const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
             onValue(soilRef, (snap) => {
               if (snap.exists()) {
                 currPercent = snap.val();
                 updateAccountGauge(currPercent, currCat);
-                if (isMain && currPercent < 35) {
-                  OneSignal.push(function () {
-                    OneSignal.sendSelfNotification(
-                      "Növényfigyelő",
-                      "A növény szomjas! Locsold meg! 🌱💧",
-                      'https://novenyfigyelo.netlify.app',
-                      null,
-                      { notificationType: 'moistureAlert' }
-                    );
-                  });
-                }
               }
             });
           }
         }
       })();
+
       editBtn.addEventListener("click", () => {
         editInput.value = displayNameSpan.textContent;
         displayNameSpan.style.display = "none";
@@ -613,6 +620,7 @@
         saveBtn.style.display = "inline-block";
         editInput.focus();
       });
+
       saveBtn.addEventListener("click", async () => {
         const newName = editInput.value.trim();
         if (!newName) return;
@@ -625,25 +633,25 @@
           await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`), newName);
         }
       });
+
       function updateAccountGauge(realPercent, cat) {
         let display = 0;
         if (plantCategories[cat]) {
           const { min, max } = plantCategories[cat];
-          display = Math.round(
-            ((realPercent - min) / (max - min)) * 100
-          );
+          display = Math.round(((realPercent - min) / (max - min)) * 100);
           if (display < 0) display = 0;
           if (display > 100) display = 100;
         } else {
           display = realPercent;
         }
-        gaugeValue.innerText = display + "%";
+        gaugeValueEl.innerText = display + "%";
         const offset = 2 * Math.PI * 80 - (display / 100) * 2 * Math.PI * 80;
-        gaugeCircle.style.strokeDashoffset = offset;
+        gaugeCircleEl.style.strokeDashoffset = offset;
         const color = getGradientColor(display);
-        gaugeCircle.style.stroke = color;
-        gaugeValue.style.color = color;
+        gaugeCircleEl.style.stroke = color;
+        gaugeValueEl.style.color = color;
       }
+
       const selectElem = card.querySelector(`#${selectId}`);
       setTimeout(async () => {
         let saved = '';
@@ -660,16 +668,6 @@
           updateAccountGauge(currPercent, currCat);
         }
       }, 10);
-      selectElem.addEventListener('change', async (e) => {
-        const newCat = e.target.value;
-        jelenlegiKategoria = newCat;       // <-- ÚJ SOR
-        setPlantType(user.uid, newCat);
-        currCat = newCat;
-        updateAccountGauge(currPercent, currCat);
-        if (user.uid && firstDeviceId) {
-          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), currCat);
-        }
-      });
 
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
@@ -679,29 +677,34 @@
           removeAccount(user.uid);
         }
       });
+
+      selectElem.addEventListener("change", async (e) => {
+        const value = e.target.value;
+        currCat = value;
+        setPlantType(user.uid, value);
+        updateAccountGauge(currPercent, currCat);
+        if (user.uid && firstDeviceId) {
+          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), value);
+        }
+      });
+
       accountsContainer.appendChild(card);
       accounts.set(user.uid, { user, auth, card });
+      if (!firstUser) firstUser = user;
     }
   </script>
+
   <script>
-    window.OneSignal = window.OneSignal || [];
-    OneSignal.push(function() {
-      OneSignal.init({
-        appId: "9083ca92-fe8b-460c-8591-3430a5a17fb2",
-        notifyButton: { enable: true },
-        allowLocalhostAsSecureOrigin: true,
-        serviceWorkerPath: 'OneSignalSDKWorker.js',
-        serviceWorkerUpdaterPath: 'OneSignalSDKUpdaterWorker.js',
-      });
-    });
     let notifEnabled = false;
-    let jelenlegiKategoria = "";   
+    let jelenlegiKategoria = "";
+
     window.addEventListener('DOMContentLoaded', function(){
       const bellBtn = document.getElementById('notifBellBtn');
       const notifModal = document.getElementById('notifModal');
       const closeBtn = document.getElementById('notifModalClose');
       const yesBtn = document.getElementById('notifYes');
       const noBtn = document.getElementById('notifNo');
+
       function updateBellStyle(){
         if(notifEnabled){
           bellBtn.classList.remove("inactive");
@@ -709,14 +712,18 @@
           bellBtn.classList.add("inactive");
         }
       }
+
       notifEnabled = localStorage.getItem('notifEnabled') === 'true';
       updateBellStyle();
+
       bellBtn.addEventListener('click', function(){
         notifModal.style.display = 'flex';
       });
+
       closeBtn.addEventListener('click', function(){
         notifModal.style.display = 'none';
       });
+
       yesBtn.addEventListener('click', function(){
         notifEnabled = true;
         localStorage.setItem('notifEnabled', 'true');
@@ -725,14 +732,27 @@
         Notification.requestPermission().then(function(permission) {
           if (permission === "granted") {
             console.log("Push értesítés engedélyezve");
-            subscribeUserToPush();
+            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
+            subscribeUserToPush(null);
           } else {
             console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
           }
         });
       });
 
-      // ...valahol a JS-ben (fő scriptben)
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+
+      window.addEventListener('click', function(e){
+        if(e.target === notifModal){
+          notifModal.style.display = 'none';
+        }
+      });
+
       function urlBase64ToUint8Array(base64String) {
         const padding = '='.repeat((4 - base64String.length % 4) % 4);
         const base64 = (base64String + padding)
@@ -742,40 +762,25 @@
         return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
       }
 
-      function subscribeUserToPush() {
+      function subscribeUserToPush(plantType) {
+        if (!notifEnabled) return;
         if ('serviceWorker' in navigator && 'PushManager' in window) {
-          navigator.serviceWorker.ready.then(function(reg) {
+          navigator.serviceWorker.ready.then((reg) => {
             reg.pushManager.subscribe({
               userVisibleOnly: true,
               applicationServerKey: urlBase64ToUint8Array("BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE")
-            }).then(function(sub) {
+            }).then((sub) => {
               fetch('/.netlify/functions/registerPush', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  subscription: sub,
-                  plantType: jelenlegiKategoria,      // pl. "🌿Kiegyensúlyozott vízigényű"
-                })
+                body: JSON.stringify({ subscription: sub, plantType })
               });
-
-              console.log("Feliratkozás elküldve backendnek");
             });
           });
         }
       }
-
-      noBtn.addEventListener('click', function(){
-        notifEnabled = false;
-        localStorage.setItem('notifEnabled', 'false');
-        notifModal.style.display = 'none';
-        updateBellStyle();
-      });
-      window.addEventListener('click', function(e){
-        if(e.target === notifModal){
-          notifModal.style.display = 'none';
-        }
-      });
     });
+
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
         .then(function(reg) {
@@ -789,6 +794,7 @@
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>
+
   <div class="card" id="plantData">
     <form id="loginForm">
       <h3>Bejelentkezés</h3>
@@ -806,11 +812,15 @@
       <div class="gauge-value" id="gauge-value">0%</div>
     </div>
   </div>
+
   <div id="accountsContainer"></div>
+
   <button id="addAccountBtn">+</button>
+
   <button id="notifBellBtn" aria-label="Push értesítés">
     <i class="fa-solid fa-bell"></i>
   </button>
+
   <div id="notifModal">
     <div id="notifModalContent">
       <span id="notifModalClose">&times;</span>
@@ -826,6 +836,7 @@
       </div>
     </div>
   </div>
+
   <div id="modal">
     <div id="modalContent">
       <span id="modalClose">&times;</span>
@@ -840,6 +851,7 @@
       <p id="addAccountStatus"></p>
     </div>
   </div>
+
   <div id="confirmModal">
     <div id="confirmModalContent">
       <span id="confirmClose">&times;</span>
