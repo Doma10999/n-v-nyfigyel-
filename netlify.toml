@@ -1,0 +1,7 @@
+[functions]
+  directory = "netlify/functions"
+
+[[scheduled]]
+name = "checkMoisture"
+path = "/.netlify/functions/checkMoisture"
+schedule = "*/1 * * * *" # minden 1 perc
