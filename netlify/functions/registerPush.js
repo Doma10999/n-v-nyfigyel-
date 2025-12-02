@@ -7,14 +7,25 @@ if (!admin.apps.length) {
     databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app"
   });
 }
+
 const db = admin.firestore();
 
 exports.handler = async function (event, context) {
-  const data = JSON.parse(event.body);
-  // Például: {subscription: {...}, plantType: "..."}
+
+  // 1) GET kérés – böngészőben tesztelés
+  if (event.httpMethod === "GET") {
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ error: "POST method only" })
+    };
+  }
+
+  // 2) POST kérés – valódi push feliratkozás
   try {
+    const data = JSON.parse(event.body);
+
     await db.collection("push_subscriptions").add(data);
-    console.log("Új feliratkozás:", data);
+
     return {
       statusCode: 200,
       body: "Feliratkozás sikeres"
@@ -22,7 +33,7 @@ exports.handler = async function (event, context) {
   } catch (error) {
     return {
       statusCode: 500,
-      body: "Hiba történt:" + error.toString()
-    }
+      body: "Hiba történt: " + error.toString()
+    };
   }
 };
