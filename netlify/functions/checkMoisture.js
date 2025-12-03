@@ -13,51 +13,57 @@ const db = admin.firestore();
 const realtime = admin.database();
 
 exports.handler = async (event, context) => {
-
   try {
-    // 1) Lekérjük az összes push feliratkozást
+    // 1) Feliratkozások lekérése Firestore-ból
     const subscriptionsSnapshot = await db.collection("push_subscriptions").get();
 
     if (subscriptionsSnapshot.empty) {
       return { statusCode: 200, body: "No subscriptions found." };
     }
 
-    // 2) Lekérjük az összes ESP-t a Firebase Realtime Database-ből
-    const devices = (await realtime.ref("/devices").get()).val();
+    // 2) Összes user lekérése
+    const allUsers = (await realtime.ref("/").get()).val();
 
-    if (!devices) {
-      return { statusCode: 200, body: "No devices found." };
+    if (!allUsers) {
+      return { statusCode: 200, body: "No users found." };
     }
 
-    // 3) Végigmegyünk minden ESP-n
-    for (const deviceId in devices) {
-      const sensorValue = devices[deviceId].sensorValue;
-      const displayName = devices[deviceId].displayName;
+    // 3) Végigmegyünk minden user -> device útvonalon
+    for (const userId in allUsers) {
+      const userData = allUsers[userId];
 
-      // 4) Ha a szenzor érték <= 35%
-      if (sensorValue <= 35) {
+      if (!userData.devices) continue;
 
-        // 5) Minden feliratkozónak küldünk push értesítést
-        subscriptionsSnapshot.forEach(doc => {
-          const subscription = doc.data().subscription;
+      const devices = userData.devices;
 
-          const payload = JSON.stringify({
-            title: `${displayName} - Alacsony vízszint!`,
-            body: `A vízszint ${sensorValue}% - ideje megöntözni.`,
-            icon: "/icon.png"
+      for (const deviceId in devices) {
+        const device = devices[deviceId];
+
+        const sensorValue = device.sensorValue;
+        const displayName = device.displayName;
+
+        // 4) Ha az érték <= 35% → push értesítés
+        if (sensorValue <= 35) {
+
+          subscriptionsSnapshot.forEach(doc => {
+            const subscription = doc.data().subscription;
+
+            const payload = JSON.stringify({
+              title: `${displayName} - Alacsony vízszint!`,
+              body: `A vízszint ${sensorValue}% - ideje megöntözni.`,
+              icon: "/icon.png"
+            });
+
+            webpush.sendNotification(subscription, payload).catch(err => {
+              console.error("Push error:", err);
+            });
           });
 
-          webpush.sendNotification(subscription, payload).catch(err => {
-            console.error("Push error:", err);
-          });
-        });
+        }
       }
     }
 
-    return {
-      statusCode: 200,
-      body: "Moisture check completed."
-    };
+    return { statusCode: 200, body: "Moisture check completed." };
 
   } catch (error) {
     return {
