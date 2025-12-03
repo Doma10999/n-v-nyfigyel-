@@ -89,6 +89,7 @@
     }
     #logout { background: #ef5350;}
     #logout:hover { background: #d32f2f;}
+
     .gauge-container {
       position: relative;
       width: 220px;
@@ -115,6 +116,7 @@
     @media (max-width: 480px) {
       .gauge-value { font-size: 24px;}
     }
+
     #addAccountBtn {
       position: fixed;
       bottom: 25px; right: 25px;
@@ -128,6 +130,7 @@
       z-index: 1000;
     }
     #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25);}
+
     #notifBellBtn {
       position: fixed;
       bottom: 115px; right: 25px;
@@ -145,6 +148,7 @@
       color: #7e917c;
     }
     #notifBellBtn:hover { transform: scale(1.08);}
+
     .deleteBtn {
       position: absolute;
       top: 18px; right: 18px;
@@ -165,6 +169,7 @@
       transform: scale(1.125);
       box-shadow: 0 6px 16px rgba(220,0,60,0.19);
     }
+
     #modal, #confirmModal {
       display: none;
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -184,6 +189,7 @@
     }
     #modalClose:hover, #confirmClose:hover { color: #111;}
     label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block;}
+
     .led-slider {
       width: 92%; margin: 14px auto; display: block;
       appearance: none; height: 18px; border-radius: 12px;
@@ -196,6 +202,7 @@
       box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
     .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1);}
+
     @media (max-width: 480px) {
       h1 { font-size: 2.2em; margin: 20px 0;}
       .card { margin: 20px 10px; padding: 25px;}
@@ -203,6 +210,7 @@
       #notifBellBtn, #addAccountBtn { width: 46px; height: 46px; font-size: 22px;}
       #notifModalContent { padding: 22px 8px;}
     }
+
     #notifModal {
       display: none;
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -222,6 +230,7 @@
     #notifModalClose:hover { color: #111;}
   </style>
 
+  <!-- Firebase + app logika -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -297,11 +306,6 @@
       "🌱Nedvességkedvelő": { min: 50, max: 80 },
       "💧Vízigényes": { min: 70, max: 100 }
     };
-
-    function normalizeToCategory(value, min, max) {
-      let norm = (value - min) / (max - min);
-      return Math.max(0, Math.min(1, norm));
-    }
 
     const RADIUS = 90, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
@@ -693,168 +697,124 @@
       if (!firstUser) firstUser = user;
     }
   </script>
+
+  <!-- Push értesítés + harang + modal -->
   <script>
-  // VAPID kulcs
-  const publicVapidKey = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
+    // VAPID kulcs
+    const publicVapidKey = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
 
-  // base64 → Uint8Array (kötelező Web Push-hoz)
-  function urlBase64ToUint8Array(base64String) {
-    const padding = "=".repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, "+")
-      .replace(/_/g, "/");
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4) % 4));
+      const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
 
-    const rawData = window.atob(base64);
-    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
-  }
-
-  // FELIRATKOZÁS PUSHRA
-  async function subscribeUserToPush() {
-
-    // Engedély elkérése
-    const permission = await Notification.requestPermission();
-    if (permission !== "granted") {
-      alert("A push értesítés nincs engedélyezve.");
-      return;
+      const rawData = window.atob(base64);
+      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
     }
 
-    // Service worker kész
-    const registration = await navigator.serviceWorker.ready;
+    // Először kiválasztott növény típus lekérése az oldalról
+    function getSelectedPlantType() {
+      const select = document.querySelector(".plant-type-select");
+      if (!select) return null;
+      const val = select.value;
+      return val && val.trim() !== "" ? val : null;
+    }
 
-    // Feliratkozás
-    const subscription = await registration.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-    });
+    // Feliratkozás pushra
+    async function subscribeUserToPush(plantType) {
+      try {
+        if (!plantType) {
+          alert("Először válaszd ki a növény típusát a kártyán!");
+          return;
+        }
 
-    console.log("SUBSCRIPTION:", subscription);
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          alert("A push értesítésekhez engedélyezni kell az értesítéseket a böngészőben.");
+          return;
+        }
 
-    // Felküldés Netlify function-nek
-    await fetch("/.netlify/functions/registerPush", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        subscription: subscription,
-        plantType: null
-      })
-    });
+        const registration = await navigator.serviceWorker.ready;
 
-    alert("Push értesítés bekapcsolva!");
-  }
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        });
 
-  // Bell ikon → Feliratkozás
-  document.addEventListener("DOMContentLoaded", () => {
-    const bell = document.getElementById("notifBellBtn");
-    bell.addEventListener("click", () => {
-      subscribeUserToPush();
-    });
-  });
+        await fetch("/.netlify/functions/registerPush", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: subscription,
+            plantType: plantType
+          })
+        });
 
-  // Service Worker regisztráció
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/sw.js")
-      .then(() => console.log("SW regisztrálva"))
-      .catch(err => console.error("SW hiba:", err));
-  }
-  </script>
+        alert("Push értesítés bekapcsolva erre a növény típusra: " + plantType);
+      } catch (err) {
+        console.error("Push feliratkozás hiba:", err);
+        alert("Hiba történt a push feliratkozás során.");
+      }
+    }
 
-
-
-  <script>
     let notifEnabled = false;
-    let jelenlegiKategoria = "";
 
-    window.addEventListener('DOMContentLoaded', function(){
-      const bellBtn = document.getElementById('notifBellBtn');
-      const notifModal = document.getElementById('notifModal');
-      const closeBtn = document.getElementById('notifModalClose');
-      const yesBtn = document.getElementById('notifYes');
-      const noBtn = document.getElementById('notifNo');
+    document.addEventListener("DOMContentLoaded", () => {
+      const bellBtn = document.getElementById("notifBellBtn");
+      const notifModal = document.getElementById("notifModal");
+      const notifModalClose = document.getElementById("notifModalClose");
+      const yesBtn = document.getElementById("notifYes");
+      const noBtn = document.getElementById("notifNo");
 
-      function updateBellStyle(){
-        if(notifEnabled){
+      function updateBellStyle() {
+        if (notifEnabled) {
           bellBtn.classList.remove("inactive");
-        }else{
+        } else {
           bellBtn.classList.add("inactive");
         }
       }
 
-      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+      notifEnabled = localStorage.getItem("notifEnabled") === "true";
       updateBellStyle();
 
-      bellBtn.addEventListener('click', function(){
-        notifModal.style.display = 'flex';
+      bellBtn.addEventListener("click", () => {
+        notifModal.style.display = "flex";
       });
 
-      closeBtn.addEventListener('click', function(){
-        notifModal.style.display = 'none';
+      notifModalClose.addEventListener("click", () => {
+        notifModal.style.display = "none";
       });
 
-      yesBtn.addEventListener('click', function(){
+      window.addEventListener("click", (e) => {
+        if (e.target === notifModal) {
+          notifModal.style.display = "none";
+        }
+      });
+
+      yesBtn.addEventListener("click", async () => {
         notifEnabled = true;
-        localStorage.setItem('notifEnabled', 'true');
-        notifModal.style.display = 'none';
+        localStorage.setItem("notifEnabled", "true");
         updateBellStyle();
-        Notification.requestPermission().then(function(permission) {
-          if (permission === "granted") {
-            console.log("Push értesítés engedélyezve");
-            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
-            subscribeUserToPush(null);
-          } else {
-            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
-          }
-        });
+        notifModal.style.display = "none";
+
+        const plantType = getSelectedPlantType();
+        await subscribeUserToPush(plantType);
       });
 
-      noBtn.addEventListener('click', function(){
+      noBtn.addEventListener("click", () => {
         notifEnabled = false;
-        localStorage.setItem('notifEnabled', 'false');
-        notifModal.style.display = 'none';
+        localStorage.setItem("notifEnabled", "false");
         updateBellStyle();
+        notifModal.style.display = "none";
       });
-
-      window.addEventListener('click', function(e){
-        if(e.target === notifModal){
-          notifModal.style.display = 'none';
-        }
-      });
-
-      function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-          .replace(/\-/g, '+')
-          .replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
-      }
-
-      function subscribeUserToPush(plantType) {
-        if (!notifEnabled) return;
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array("BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0")
-            }).then((sub) => {
-              fetch('/.netlify/functions/registerPush', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription: sub, plantType })
-              });
-            });
-          });
-        }
-      }
     });
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(reg) {
-          console.log('Service Worker regisztrálva');
-        })
-        .catch(function(err) {
-          console.log('Service Worker hiba:', err);
-        });
+    // Service Worker regisztráció
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .then(() => console.log("Service Worker regisztrálva"))
+        .catch(err => console.error("Service Worker hiba:", err));
     }
   </script>
 </head>
@@ -883,7 +843,7 @@
 
   <button id="addAccountBtn">+</button>
 
-  <button id="notifBellBtn" aria-label="Push értesítés">
+  <button id="notifBellBtn" aria-label="Push értesítés" class="inactive">
     <i class="fa-solid fa-bell"></i>
   </button>
 
