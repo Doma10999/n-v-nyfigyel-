@@ -694,46 +694,70 @@
     }
   </script>
   <script>
-  // Itt a helyes VAPID kulcs
+  // VAPID kulcs
   const publicVapidKey = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
 
-  // Kötelező függvény a kulcs konvertálásához
+  // base64 → Uint8Array (kötelező Web Push-hoz)
   function urlBase64ToUint8Array(base64String) {
-      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding)
-          .replace(/-/g, "+")
-          .replace(/_/g, "/");
+    const padding = "=".repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding)
+      .replace(/-/g, "+")
+      .replace(/_/g, "/");
 
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-
-      for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
+    const rawData = window.atob(base64);
+    return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
   }
 
-  // Push engedélyezése
+  // FELIRATKOZÁS PUSHRA
   async function subscribeUserToPush() {
-      const registration = await navigator.serviceWorker.ready;
 
-      const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      });
+    // Engedély elkérése
+    const permission = await Notification.requestPermission();
+    if (permission !== "granted") {
+      alert("A push értesítés nincs engedélyezve.");
+      return;
+    }
 
-      console.log("Feliratkozási token:", subscription);
+    // Service worker kész
+    const registration = await navigator.serviceWorker.ready;
 
-      // Elküldés Netlify felé
-      await fetch("/.netlify/functions/registerPush", {
-          method: "POST",
-          body: JSON.stringify(subscription),
-          headers: { "Content-Type": "application/json" }
-      });
+    // Feliratkozás
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+    });
 
-      alert("Push értesítés bekapcsolva!");
+    console.log("SUBSCRIPTION:", subscription);
+
+    // Felküldés Netlify function-nek
+    await fetch("/.netlify/functions/registerPush", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        subscription: subscription,
+        plantType: null
+      })
+    });
+
+    alert("Push értesítés bekapcsolva!");
+  }
+
+  // Bell ikon → Feliratkozás
+  document.addEventListener("DOMContentLoaded", () => {
+    const bell = document.getElementById("notifBellBtn");
+    bell.addEventListener("click", () => {
+      subscribeUserToPush();
+    });
+  });
+
+  // Service Worker regisztráció
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js")
+      .then(() => console.log("SW regisztrálva"))
+      .catch(err => console.error("SW hiba:", err));
   }
   </script>
+
 
 
   <script>
