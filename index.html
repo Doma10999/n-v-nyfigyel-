@@ -810,7 +810,7 @@
           navigator.serviceWorker.ready.then((reg) => {
             reg.pushManager.subscribe({
               userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array("BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE")
+              applicationServerKey: urlBase64ToUint8Array("BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0")
             }).then((sub) => {
               fetch('/.netlify/functions/registerPush', {
                 method: 'POST',
