@@ -1,39 +1,41 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app"
-  });
-}
-
-const db = admin.firestore();
-
-exports.handler = async function (event, context) {
-
-  // 1) GET kérés – böngészőben tesztelés
-  if (event.httpMethod === "GET") {
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
     return {
-      statusCode: 200,
+      statusCode: 405,
       body: JSON.stringify({ error: "POST method only" })
     };
   }
 
-  // 2) POST kérés – valódi push feliratkozás
   try {
-    const data = JSON.parse(event.body);
+    const body = JSON.parse(event.body);
 
-    await db.collection("push_subscriptions").add(data);
+    // Itt a subscription objektumot külön vesszük ki
+    const subscription = body.subscription;
+    const plantType = body.plantType || null;
 
+    if (!subscription) {
+      return {
+        statusCode: 400,
+        body: JSON.stringify({ error: "Missing subscription object" })
+      };
+    }
+
+    console.log("Subscription saved:", subscription);
+
+    // Tárolhatod később adatbázisba is…
     return {
       statusCode: 200,
-      body: "Feliratkozás sikeres"
+      body: JSON.stringify({
+        message: "Subscription OK",
+        plantType: plantType
+      })
     };
-  } catch (error) {
+
+  } catch (err) {
+    console.error("Push registration error:", err);
     return {
       statusCode: 500,
-      body: "Hiba történt: " + error.toString()
+      body: JSON.stringify({ error: "Internal Server Error", details: err.message })
     };
   }
 };
