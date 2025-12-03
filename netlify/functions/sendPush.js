@@ -10,8 +10,8 @@ const { getDatabase, ref, get } = require("firebase/database");
 
 // VAPID kulcsok!
 const vapidKeys = {
-  publicKey: "BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE",
-  privateKey: "W8LR0MvwPf4fzFMAUx8pfI6y9Bn2rU4PE2zVpgDtPA_Q"
+  publicKey: "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0",
+  privateKey: "jJBhNNKGzBXdIzpobGozkkVQdCc4RVHcfMBwr02vIjo"
 };
 webpush.setVapidDetails('mailto:email@domain.hu', vapidKeys.publicKey, vapidKeys.privateKey);
 
