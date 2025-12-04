@@ -1,3 +1,4 @@
+// netlify/functions/sendPush.js
 const admin = require("firebase-admin");
 const webpush = require("web-push");
 const serviceAccount = require("./serviceAccountKey.json");
@@ -9,48 +10,55 @@ if (!admin.apps.length) {
   });
 }
 
-const realtime = admin.database();
+const db = admin.database();
 
-exports.handler = async () => {
+const publicVapidKey  = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
+const privateVapidKey = "KYg1qLt02ykW_Cfom9Cl4KoIFBW_aXCvITyX7G_OAOQ";
+
+webpush.setVapidDetails(
+  "mailto:teszt@example.com",
+  publicVapidKey,
+  privateVapidKey
+);
+
+exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+
   try {
-    // Feliratkozások lekérése Realtime DB-ből
-    const subsSnap = await realtime.ref("push_subscriptions").get();
-    if (!subsSnap.exists()) return { statusCode: 200, body: "No subs" };
-
-    const subscriptions = subsSnap.val();
-
-    // Összes user eszköz lekérése
-    const allUsers = (await realtime.ref("users").get()).val();
-    if (!allUsers) return { statusCode: 200, body: "No users" };
-
-    for (const userId in allUsers) {
-      const devices = allUsers[userId].devices;
-      if (!devices) continue;
-
-      for (const devId in devices) {
-        const dev = devices[devId];
-
-        if (dev.sensorValue <= 35) {
-          const payload = JSON.stringify({
-            title: `${dev.displayName} - Alacsony vízszint!`,
-            body: `Csak ${dev.sensorValue}% maradt.`,
-            icon: "/icon.png"
-          });
-
-          // Minden feliratkozásnak elküldjük
-          for (const key in subscriptions) {
-            const sub = subscriptions[key].subscription;
-            webpush.sendNotification(sub, payload).catch(err => {
-              console.log("Push error:", err);
-            });
-          }
-        }
-      }
+    const subsSnap = await db.ref("pushSubscriptions").once("value");
+    if (!subsSnap.exists()) {
+      return { statusCode: 200, body: "Nincsenek feliratkozók." };
     }
 
-    return { statusCode: 200, body: "Push sent OK" };
+    const subs = subsSnap.val();
+    const sendPromises = [];
 
+    for (const key of Object.keys(subs)) {
+      const subData = subs[key];
+      const subscription = subData.subscription;
+      if (!subscription) continue;
+
+      const payload = JSON.stringify({
+        title: "Növényfigyelő teszt 🌱",
+        body: "Ez egy teszt push értesítés.",
+        icon: "/icon.png"
+      });
+
+      sendPromises.push(
+        webpush.sendNotification(subscription, payload).catch(err => {
+          console.error("Push hiba:", err);
+        })
+      );
+    }
+
+    await Promise.all(sendPromises);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: `Teszt értesítés elküldve: ${sendPromises.length} feliratkozónak.` })
+    };
   } catch (err) {
-    return { statusCode: 500, body: "Error: " + err.toString() };
+    console.error("sendPush error:", err);
+    return { statusCode: 500, body: "Server error" };
   }
 };
