@@ -1,6 +1,5 @@
+// netlify/functions/registerPush.js
 const admin = require("firebase-admin");
-const webpush = require("web-push");
-
 const serviceAccount = require("./serviceAccountKey.json");
 
 if (!admin.apps.length) {
@@ -10,31 +9,40 @@ if (!admin.apps.length) {
   });
 }
 
-const realtime = admin.database();
+const db = admin.database();
 
 exports.handler = async (event, context) => {
-  try {
-    const body = JSON.parse(event.body);
+  context.callbackWaitsForEmptyEventLoop = false;
 
-    if (!body.subscription) {
+  if (event.httpMethod !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
+  }
+
+  try {
+    const body = JSON.parse(event.body || "{}");
+    const subscription = body.subscription;
+
+    if (!subscription) {
       return { statusCode: 400, body: "Missing subscription" };
     }
 
-    // Subscription mentése Realtime DB-be
-    await realtime.ref("push_subscriptions").push({
-      subscription: body.subscription,
+    // Itt tároljuk Realtime DB-be
+    // /pushSubscriptions/<randomId>
+    await db.ref("pushSubscriptions").push({
+      subscription,
+      plantType: body.plantType || null,
       createdAt: Date.now()
     });
 
     return {
       statusCode: 200,
-      body: "Subscription stored"
+      body: JSON.stringify({ ok: true })
     };
-
   } catch (err) {
+    console.error("registerPush error:", err);
     return {
       statusCode: 500,
-      body: "Error: " + err.toString()
+      body: JSON.stringify({ error: "Server error" })
     };
   }
 };

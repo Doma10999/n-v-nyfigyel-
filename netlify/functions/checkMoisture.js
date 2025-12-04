@@ -1,3 +1,4 @@
+// netlify/functions/checkMoisture.js
 const admin = require("firebase-admin");
 const webpush = require("web-push");
 const serviceAccount = require("./serviceAccountKey.json");
@@ -9,66 +10,89 @@ if (!admin.apps.length) {
   });
 }
 
-const db = admin.firestore();
-const realtime = admin.database();
+const db = admin.database();
+
+// A SAJÁT VAPID kulcsaid, amiket már használtál:
+const publicVapidKey  = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
+const privateVapidKey = "KYg1qLt02ykW_Cfom9Cl4KoIFBW_aXCvITyX7G_OAOQ"; // a mostani sendPush.js-ből
+
+webpush.setVapidDetails(
+  "mailto:teszt@example.com",   // ide bármilyen emailt írhatsz
+  publicVapidKey,
+  privateVapidKey
+);
 
 exports.handler = async (event, context) => {
+  context.callbackWaitsForEmptyEventLoop = false;
+
   try {
-    // 1) Feliratkozások lekérése Firestore-ból
-    const subscriptionsSnapshot = await db.collection("push_subscriptions").get();
+    // 1) ÖSSZES növény lekérése: users/{uid}/devices/{deviceId}/sensorValue
+    const usersSnap = await db.ref("users").once("value");
 
-    if (subscriptionsSnapshot.empty) {
-      return { statusCode: 200, body: "No subscriptions found." };
+    let kellErtesites = false;
+
+    if (usersSnap.exists()) {
+      usersSnap.forEach(userSnap => {
+        const devicesSnap = userSnap.child("devices");
+        devicesSnap.forEach(deviceSnap => {
+          const sensorValue = deviceSnap.child("sensorValue").val();
+          if (typeof sensorValue === "number" && sensorValue <= 35) {
+            kellErtesites = true;
+          }
+        });
+      });
     }
 
-    // 2) Összes user lekérése
-    const allUsers = (await realtime.ref("/").get()).val();
-
-    if (!allUsers) {
-      return { statusCode: 200, body: "No users found." };
+    if (!kellErtesites) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Minden növény 35% felett van, nincs értesítés." })
+      };
     }
 
-    // 3) Végigmegyünk minden user -> device útvonalon
-    for (const userId in allUsers) {
-      const userData = allUsers[userId];
-
-      if (!userData.devices) continue;
-
-      const devices = userData.devices;
-
-      for (const deviceId in devices) {
-        const device = devices[deviceId];
-
-        const sensorValue = device.sensorValue;
-        const displayName = device.displayName;
-
-        // 4) Ha az érték <= 35% → push értesítés
-        if (sensorValue <= 35) {
-
-          subscriptionsSnapshot.forEach(doc => {
-            const subscription = doc.data().subscription;
-
-            const payload = JSON.stringify({
-              title: `${displayName} - Alacsony vízszint!`,
-              body: `A vízszint ${sensorValue}% - ideje megöntözni.`,
-              icon: "/icon.png"
-            });
-
-            webpush.sendNotification(subscription, payload).catch(err => {
-              console.error("Push error:", err);
-            });
-          });
-
-        }
-      }
+    // 2) Feliratkozások lekérése: /pushSubscriptions
+    const subsSnap = await db.ref("pushSubscriptions").once("value");
+    if (!subsSnap.exists()) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Nincsenek feliratkozók." })
+      };
     }
 
-    return { statusCode: 200, body: "Moisture check completed." };
+    const subs = subsSnap.val();
+    const sendPromises = [];
 
-  } catch (error) {
+    for (const key of Object.keys(subs)) {
+      const subData = subs[key];
+      const subscription = subData.subscription;
+      if (!subscription) continue;
+
+      const payload = JSON.stringify({
+        title: "Növényfigyelő 🌱",
+        body: "Az egyik növényed vízszintje 35% alá esett. Nézd meg az alkalmazásban!",
+        icon: "/icon.png"
+      });
+
+      sendPromises.push(
+        webpush
+          .sendNotification(subscription, payload)
+          .catch(err => {
+            console.error("Push küldési hiba:", err);
+          })
+      );
+    }
+
+    await Promise.all(sendPromises);
+
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ message: `Értesítések elküldve: ${sendPromises.length} feliratkozónak.` })
+    };
+  } catch (err) {
+    console.error("checkMoisture error:", err);
     return {
       statusCode: 500,
-      body: "Error: " + error.toString()
+      body: JSON.stringify({ error: "Server error" })
     };
   }
 };
