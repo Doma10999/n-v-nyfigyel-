@@ -1,46 +1,39 @@
-// netlify/functions/registerPush.js
 const { admin } = require("./pushCommon");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Csak POST engedélyezett" };
+    return { statusCode: 405, body: "Method not allowed" };
   }
 
   try {
     const body = JSON.parse(event.body || "{}");
     const { uid, subscription } = body;
 
-    if (!uid) {
-      return { statusCode: 400, body: "Hiányzó uid a kérésben" };
-    }
-    if (!subscription || !subscription.endpoint) {
-      return { statusCode: 400, body: "Hiányzó subscription" };
+    if (!uid || !subscription || !subscription.endpoint) {
+      return {
+        statusCode: 400,
+        body: "Hiányzó uid vagy subscription",
+      };
     }
 
     const db = admin.database();
     const subsRef = db.ref(`pushSubscriptions/${uid}`);
 
-    // Ne legyen duplikált endpoint
-    const snap = await subsRef.once("value");
-    const subs = snap.val() || {};
-    let existingId = null;
+    // Egyedi azonosító az endpoint-ból
+    const rawId = subscription.endpoint;
+    const subId = Buffer.from(rawId).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
 
-    for (const [subId, sub] of Object.entries(subs)) {
-      if (sub && sub.endpoint === subscription.endpoint) {
-        existingId = subId;
-        break;
-      }
-    }
-
-    const key = existingId || subsRef.push().key;
-    await subsRef.child(key).set(subscription);
+    await subsRef.child(subId).set(subscription);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true }),
+      body: "Subscription mentve",
     };
   } catch (err) {
     console.error("registerPush hiba:", err);
-    return { statusCode: 500, body: "Szerver hiba" };
+    return {
+      statusCode: 500,
+      body: "Szerver hiba: " + err.toString(),
+    };
   }
 };
