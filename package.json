@@ -1,17 +1,13 @@
 {
-  "name": "functions",
+  "name": "novenyfigyelo-netlify-functions",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "registerPush.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "echo \"No build step\"",
+    "start": "netlify dev"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
   "dependencies": {
-    "firebase": "^12.6.0",
-    "firebase-admin": "^13.6.0",
-    "web-push": "^3.6.7"
+    "firebase-admin": "^12.0.0",
+    "web-push": "^3.6.0"
   }
 }
