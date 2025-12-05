@@ -223,6 +223,14 @@
   </style>
 
   <script type="module">
+    import {
+      getAuth,
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -240,7 +248,19 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth();
+    // Globális UID, hogy a másik script is elérje
+    window.currentUid = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.currentUid = user.uid;
+        console.log("Bejelentkezett UID:", user.uid);
+      } else {
+        window.currentUid = null;
+        console.log("Nincs bejelentkezett felhasználó");
+      }
+    });
+
 
     const accounts = new Map();
     const STORAGE_KEY = 'storedAccounts';
@@ -767,34 +787,30 @@
 
 
   <script>
-    let notifEnabled = false;
-    let jelenlegiKategoria = "";
+    let notifEnabled = localStorage.getItem("notifEnabled") === "true";
 
-    window.addEventListener('DOMContentLoaded', function(){
-      const bellBtn = document.getElementById('notifBellBtn');
-      const notifModal = document.getElementById('notifModal');
-      const closeBtn = document.getElementById('notifModalClose');
-      const yesBtn = document.getElementById('notifYes');
-      const noBtn = document.getElementById('notifNo');
+    document.addEventListener("DOMContentLoaded", function () {
+      const bellBtn = document.getElementById("notifBellBtn");
+      const notifModal = document.getElementById("notifModal");
+      const yesBtn = document.getElementById("notifYesBtn");
+      const noBtn = document.getElementById("notifNoBtn");
 
-      function updateBellStyle(){
-        if(notifEnabled){
+      function updateBellStyle() {
+        if (!bellBtn) return;
+        if (notifEnabled) {
           bellBtn.classList.remove("inactive");
-        }else{
+        } else {
           bellBtn.classList.add("inactive");
         }
       }
 
-      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
       updateBellStyle();
 
-      bellBtn.addEventListener('click', function(){
-        notifModal.style.display = 'flex';
-      });
-
-      closeBtn.addEventListener('click', function(){
-        notifModal.style.display = 'none';
-      });
+      if (bellBtn) {
+        bellBtn.addEventListener("click", function () {
+          notifModal.style.display = "flex";
+        });
+      }
 
       yesBtn.addEventListener("click", function () {
         notifEnabled = true;
@@ -802,66 +818,117 @@
         notifModal.style.display = "none";
         updateBellStyle();
 
-        if (!window.firstUser || !firstUser.uid) {
-          alert("Először jelentkezz be egy fiókkal.");
-          return;
-        }
-
-        subscribeUserToPush(firstUser.uid);
+        Notification.requestPermission().then(function (permission) {
+          if (permission === "granted") {
+            // itt iratkozunk fel a push-ra
+            subscribeUserToPush(null);
+          } else {
+            console.log("A felhasználó nem engedélyezte az értesítéseket.");
+          }
+        });
       });
 
-
-      noBtn.addEventListener('click', function(){
+      noBtn.addEventListener("click", function () {
         notifEnabled = false;
-        localStorage.setItem('notifEnabled', 'false');
-        notifModal.style.display = 'none';
+        localStorage.setItem("notifEnabled", "false");
+        notifModal.style.display = "none";
         updateBellStyle();
       });
 
-      window.addEventListener('click', function(e){
-        if(e.target === notifModal){
-          notifModal.style.display = 'none';
+      window.addEventListener("click", function (e) {
+        if (e.target === notifModal) {
+          notifModal.style.display = "none";
         }
       });
 
+      // --- helper a VAPID kulcs átalakításához ---
       function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
         const base64 = (base64String + padding)
-          .replace(/\-/g, '+')
-          .replace(/_/g, '/');
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
         const rawData = window.atob(base64);
-        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        return outputArray;
       }
 
-      function subscribeUserToPush(plantType) {
-        if (!notifEnabled) return;
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array("BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0")
-            }).then((sub) => {
-              fetch('/.netlify/functions/registerPush', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription: sub, plantType })
-              });
-            });
+      // --- FELIRATKOZÁS PUSH-RA ---
+      async function subscribeUserToPush(plantType) {
+        try {
+          if (!notifEnabled) return;
+
+          const uid = window.currentUid;
+          if (!uid) {
+            alert("Először jelentkezz be egy fiókkal.");
+            return;
+          }
+
+          if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+            alert("A böngésződ nem támogatja a push értesítéseket.");
+            return;
+          }
+
+          const registration = await navigator.serviceWorker.ready;
+
+          // régi subscription törlése, hogy ne legyen VAPID ütközés
+          const existingSub = await registration.pushManager.getSubscription();
+          if (existingSub) {
+            try {
+              await existingSub.unsubscribe();
+              console.log("Régi subscription törölve.");
+            } catch (e) {
+              console.warn("Nem sikerült leiratkozni a régiről:", e);
+            }
+          }
+
+          const applicationServerKey = urlBase64ToUint8Array(
+            "BHiBxPp4Ch721j6OsVus_W9jb8xXi3n8GbDuR8dwxY5c3QQOqVH7uko_oC05nZmsdsk8xO7zrWk0STTWjyE5hHQ"
+          );
+
+          const sub = await registration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey,
           });
+
+          await fetch("/.netlify/functions/registerPush", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              uid,
+              plantType: plantType || null,
+              subscription: sub,
+            }),
+          });
+
+          console.log("Push feliratkozás sikeres.");
+        } catch (err) {
+          console.error("Hiba a push feliratkozás során:", err);
+          alert("Hiba történt a push feliratkozás során.");
         }
       }
+
+      // hogy máshol is tudd hívni, ha később kell
+      window.subscribeUserToPush = subscribeUserToPush;
     });
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(reg) {
-          console.log('Service Worker regisztrálva');
+    // Service worker regisztráció
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then(function (reg) {
+          console.log("Service Worker regisztrálva:", reg);
         })
-        .catch(function(err) {
-          console.log('Service Worker hiba:', err);
+        .catch(function (err) {
+          console.log("Service Worker hiba:", err);
         });
     }
   </script>
+
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>

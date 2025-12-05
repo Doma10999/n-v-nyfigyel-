@@ -1,39 +1,31 @@
-self.addEventListener("push", (event) => {
-  let data = {};
+// sw.js
 
-  try {
-    if (event.data) {
+self.addEventListener("push", function (event) {
+  let data = {};
+  if (event.data) {
+    try {
       data = event.data.json();
+    } catch (e) {
+      console.error("Push adatok parse hiba:", e);
     }
-  } catch (e) {
-    console.error("Push adat parse hiba:", e);
   }
 
   const title = data.title || "Növényfigyelő";
   const options = {
-    body: data.body || "Új értesítés érkezett.",
+    body:
+      data.body ||
+      "A növényed vízszintje 35% alá esett! Öntözd meg!",
     icon: data.icon || "/icon.png",
-    data: data.data || { url: "https://novenyfigyelo.netlify.app/" },
+    badge: data.badge || "/icon.png",
+    data: data.data || {},
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-  const targetUrl = (event.notification.data && event.notification.data.url) ||
-    "https://novenyfigyelo.netlify.app/";
-
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if (client.url === targetUrl && "focus" in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow(targetUrl);
-      }
-    })
+    clients.openWindow("https://novenyfigyelo.netlify.app")
   );
 });
