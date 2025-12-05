@@ -1,52 +1,31 @@
 // netlify/functions/sendPush.js
-const admin = require("firebase-admin");
-const webpush = require("web-push");
-const serviceAccount = require("./serviceAccountKey.json");
-
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
-  });
-}
-const realtime = admin.database();
-
-const publicVapidKey = "IDE_A_PUBLIC_VAPID_KEY_TÖL";
-const privateVapidKey = "IDE_A_PRIVATE_VAPID_KEY_TÖL";
-
-webpush.setVapidDetails(
-  "mailto:valami@emailcimed.hu",
-  publicVapidKey,
-  privateVapidKey
-);
+const { sendPushToUser } = require("./pushCommon");
 
 exports.handler = async (event) => {
   try {
-    const bodyObj = JSON.parse(event.body || "{}");
-    const title = bodyObj.title || "Növényfigyelő 🌱";
-    const body =
-      bodyObj.body || "Ez egy teszt értesítés a Növényfigyelőtől.";
+    const params = event.queryStringParameters || {};
+    let { uid, msg } = params;
 
-    const payload = JSON.stringify({ title, body });
-
-    const subsSnap = await realtime.ref("pushSubscriptions").once("value");
-    if (!subsSnap.exists()) {
-      return { statusCode: 200, body: "Nincsenek feliratkozók." };
+    if (!uid && event.body) {
+      const body = JSON.parse(event.body || "{}");
+      uid = body.uid || uid;
+      msg = body.msg || msg;
     }
 
-    const subs = subsSnap.val();
-    const sendPromises = Object.values(subs).map((subObj) => {
-      const subscription = subObj.subscription || subObj;
-      return webpush
-        .sendNotification(subscription, payload)
-        .catch((err) => console.error("Push hiba:", err));
-    });
+    if (!uid) {
+      return { statusCode: 400, body: "Hiányzó uid" };
+    }
 
-    await Promise.all(sendPromises);
+    const payload = {
+      title: "Teszt értesítés",
+      body: msg || "Ez egy teszt Push a Növényfigyelőből 🌱",
+    };
 
-    return { statusCode: 200, body: "Teszt push elküldve." };
+    await sendPushToUser(uid, payload);
+
+    return { statusCode: 200, body: "OK – teszt értesítés elküldve" };
   } catch (err) {
     console.error("sendPush hiba:", err);
-    return { statusCode: 500, body: err.toString() };
+    return { statusCode: 500, body: "Szerver hiba" };
   }
 };

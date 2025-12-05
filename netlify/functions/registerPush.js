@@ -1,50 +1,39 @@
 // netlify/functions/registerPush.js
-const admin = require("firebase-admin");
-const serviceAccount = require("./serviceAccountKey.json");
-
-// Firebase Admin inicializálás (csak egyszer)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
-  });
-}
-
-const realtime = admin.database();
-
-// endpoint → kulcs (RTDB-ben nem lehet simán URL-t kulcsként használni)
-function endpointToKey(endpoint) {
-  return Buffer.from(endpoint)
-    .toString("base64")
-    .replace(/\+/g, "-")
-    .replace(/\//g, "_");
-}
+const { admin } = require("./pushCommon");
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Csak POST engedélyezett." };
+    return { statusCode: 405, body: "Csak POST engedélyezett" };
   }
 
   try {
     const body = JSON.parse(event.body || "{}");
-    const { subscription, plantType } = body;
+    const { uid, subscription } = body;
 
+    if (!uid) {
+      return { statusCode: 400, body: "Hiányzó uid a kérésben" };
+    }
     if (!subscription || !subscription.endpoint) {
-      return { statusCode: 400, body: "Hiányzik a subscription objektum." };
+      return { statusCode: 400, body: "Hiányzó subscription" };
     }
 
-    const key = endpointToKey(subscription.endpoint);
+    const db = admin.database();
+    const subsRef = db.ref(`pushSubscriptions/${uid}`);
 
-    const saveObj = {
-      subscription,
-      plantType: plantType || null,
-      createdAt: Date.now(),
-    };
+    // Ne legyen duplikált endpoint
+    const snap = await subsRef.once("value");
+    const subs = snap.val() || {};
+    let existingId = null;
 
-    // RTDB: /pushSubscriptions/<kulcs>
-    await realtime.ref("pushSubscriptions").child(key).set(saveObj);
+    for (const [subId, sub] of Object.entries(subs)) {
+      if (sub && sub.endpoint === subscription.endpoint) {
+        existingId = subId;
+        break;
+      }
+    }
 
-    console.log("Feliratkozás elmentve:", key);
+    const key = existingId || subsRef.push().key;
+    await subsRef.child(key).set(subscription);
 
     return {
       statusCode: 200,
@@ -52,9 +41,6 @@ exports.handler = async (event) => {
     };
   } catch (err) {
     console.error("registerPush hiba:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: err.message }),
-    };
+    return { statusCode: 500, body: "Szerver hiba" };
   }
 };
