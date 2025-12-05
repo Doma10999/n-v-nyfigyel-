@@ -1,7 +1,6 @@
 [functions]
 directory = "netlify/functions"
 
-# 10 percenként fut
 [[scheduled]]
 cron = "*/10 * * * *"
 path = "/.netlify/functions/checkMoisture"

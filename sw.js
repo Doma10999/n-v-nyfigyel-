@@ -1,42 +1,21 @@
-self.addEventListener("push", (event) => {
-  let data = {};
-  if (event.data) {
-    try {
-      data = event.data.json();
-    } catch (e) {
-      console.error("Nem tudtam JSON-ként olvasni a push adatot:", e);
-    }
-  }
+// netlify/functions/sw.js NEM, hanem a gyökérben: /sw.js
+self.addEventListener("push", function (event) {
+  const data = event.data ? event.data.json() : {};
 
-  const title = data.title || "Növényfigyelő 🌱";
+  const title = data.title || "Növényfigyelő";
   const options = {
-    body:
-      data.body ||
-      data.message ||
-      "A növényedhez érkezett egy figyelmeztetés.",
+    body: data.body || "Új értesítés érkezett.",
     icon: "/icon.png",
     badge: "/icon.png",
-    data: {
-      url: "/",
-    },
+    data: data.data || {},
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", function (event) {
   event.notification.close();
-
   event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      for (const client of clientList) {
-        if ("focus" in client) {
-          return client.focus();
-        }
-      }
-      if (clients.openWindow) {
-        return clients.openWindow("/");
-      }
-    })
+    clients.openWindow("/") // vagy a dashboard URL-ed
   );
 });
