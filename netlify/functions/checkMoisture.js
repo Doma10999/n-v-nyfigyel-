@@ -16,8 +16,8 @@ const realtime = admin.database();
 // IDE ÍRD BE AZOKAT, AMIKET MÁR MOST IS HASZNÁLSZ az index.html-ben / régi sendPush.js-ben!
 // publicVapidKey = ugyanaz, mint ami a frontenden van
 // privateVapidKey = a hozzá tartozó privát kulcs (EZT NE TEDD KI FRONTENDRE!)
-const publicVapidKey = "IDE_A_PUBLIC_VAPID_KEY_TÖL";
-const privateVapidKey = "IDE_A_PRIVATE_VAPID_KEY_TÖL";
+const publicVapidKey = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
+const privateVapidKey = "KYg1qLt02ykW_Cfom9Cl4KoIFBW_aXCvITyX7G_OAOQ";
 
 webpush.setVapidDetails(
   "mailto:valami@emailcimed.hu",
