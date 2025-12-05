@@ -1,73 +1,51 @@
+// netlify/functions/checkMoisture.js
 const { admin, sendPushToUser } = require("./pushCommon");
 
-// Netlify ütemezett function: 10 percenként fut
-exports.handler = async () => {
+exports.handler = async function () {
   try {
     const db = admin.database();
     const usersSnap = await db.ref("users").once("value");
     const users = usersSnap.val() || {};
 
-    let totalUsersNotified = 0;
+    const THRESHOLD = 35; // 35% alatt jelezzen
 
-    const userEntries = Object.entries(users);
+    const allTasks = [];
 
-    await Promise.all(
-      userEntries.map(async ([uid, userData]) => {
-        if (!userData.devices) return;
+    for (const [uid, userData] of Object.entries(users)) {
+      const devices = (userData && userData.devices) || {};
 
-        const lowPlants = [];
+      for (const [deviceId, device] of Object.entries(devices)) {
+        const sensorValue = device.sensorValue;
+        if (typeof sensorValue !== "number") continue;
 
-        Object.entries(userData.devices).forEach(([deviceId, device]) => {
-          if (!device) return;
-          const sensorRaw = device.sensorValue;
-          const sensorValue =
-            typeof sensorRaw === "number" ? sensorRaw : parseFloat(sensorRaw);
+        if (sensorValue < THRESHOLD) {
+          const displayName = device.displayName || deviceId;
 
-          if (Number.isNaN(sensorValue)) return;
+          const payload = {
+            title: "Növényfigyelő",
+            body: `A(z) "${displayName}" növényed vízszintje ${sensorValue}%. Öntözd meg!`,
+            icon: "/icon.png",
+          };
 
-          // 35% ALATT riasztunk – ez független a kategóriától
-          if (sensorValue <= 35) {
-            const displayName = device.displayName || deviceId;
-            const plantType = device.plantType || "Növény";
-            lowPlants.push({ displayName, plantType, sensorValue });
-          }
-        });
+          allTasks.push(sendPushToUser(uid, payload));
+        }
+      }
+    }
 
-        if (lowPlants.length === 0) return;
-
-        const lines = lowPlants.map(
-          (p) => `${p.displayName} (${p.plantType}) – ${p.sensorValue}%`
-        );
-
-        const title = "Növényfigyelő – locsolás szükséges 💧";
-        const body =
-          lowPlants.length === 1
-            ? `${lines[0]}: a vízszint 35% alatt van. Ideje meglocsolni!`
-            : `Több növényed vízszintje is 35% alatt van:\n` + lines.join("\n");
-
-        const payload = {
-          title,
-          body,
-          icon: "/icon.png",
-          data: {
-            url: "https://novenyfigyelo.netlify.app/",
-          },
-        };
-
-        await sendPushToUser(uid, payload);
-        totalUsersNotified++;
-      })
-    );
+    await Promise.all(allTasks);
 
     return {
       statusCode: 200,
-      body: `checkMoisture lefutott, érintett userek: ${totalUsersNotified}`,
+      body: JSON.stringify({
+        ok: true,
+        notificationsSent: allTasks.length,
+      }),
     };
   } catch (err) {
     console.error("checkMoisture hiba:", err);
     return {
       statusCode: 500,
-      body: "Hiba: " + err.toString(),
+      body: JSON.stringify({ error: "Szerver hiba" }),
     };
   }
 };

@@ -1,39 +1,38 @@
+// netlify/functions/registerPush.js
 const { admin } = require("./pushCommon");
 
-exports.handler = async (event) => {
+exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method not allowed" };
+    return {
+      statusCode: 405,
+      body: "Method not allowed",
+    };
   }
 
   try {
     const body = JSON.parse(event.body || "{}");
     const { uid, subscription } = body;
 
-    if (!uid || !subscription || !subscription.endpoint) {
+    if (!uid || !subscription) {
       return {
         statusCode: 400,
-        body: "Hiányzó uid vagy subscription",
+        body: JSON.stringify({ error: "uid vagy subscription hiányzik" }),
       };
     }
 
     const db = admin.database();
-    const subsRef = db.ref(`pushSubscriptions/${uid}`);
-
-    // Egyedi azonosító az endpoint-ból
-    const rawId = subscription.endpoint;
-    const subId = Buffer.from(rawId).toString("base64").replace(/\+/g, "-").replace(/\//g, "_");
-
-    await subsRef.child(subId).set(subscription);
+    const subRef = db.ref(`pushSubscriptions/${uid}`).push();
+    await subRef.set(subscription);
 
     return {
       statusCode: 200,
-      body: "Subscription mentve",
+      body: JSON.stringify({ success: true }),
     };
   } catch (err) {
     console.error("registerPush hiba:", err);
     return {
       statusCode: 500,
-      body: "Szerver hiba: " + err.toString(),
+      body: JSON.stringify({ error: "Szerver hiba" }),
     };
   }
 };
