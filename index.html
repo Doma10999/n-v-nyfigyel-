@@ -89,7 +89,6 @@
     }
     #logout { background: #ef5350;}
     #logout:hover { background: #d32f2f;}
-
     .gauge-container {
       position: relative;
       width: 220px;
@@ -116,7 +115,6 @@
     @media (max-width: 480px) {
       .gauge-value { font-size: 24px;}
     }
-
     #addAccountBtn {
       position: fixed;
       bottom: 25px; right: 25px;
@@ -130,7 +128,6 @@
       z-index: 1000;
     }
     #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25);}
-
     #notifBellBtn {
       position: fixed;
       bottom: 115px; right: 25px;
@@ -148,7 +145,6 @@
       color: #7e917c;
     }
     #notifBellBtn:hover { transform: scale(1.08);}
-
     .deleteBtn {
       position: absolute;
       top: 18px; right: 18px;
@@ -169,7 +165,6 @@
       transform: scale(1.125);
       box-shadow: 0 6px 16px rgba(220,0,60,0.19);
     }
-
     #modal, #confirmModal {
       display: none;
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -189,7 +184,6 @@
     }
     #modalClose:hover, #confirmClose:hover { color: #111;}
     label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block;}
-
     .led-slider {
       width: 92%; margin: 14px auto; display: block;
       appearance: none; height: 18px; border-radius: 12px;
@@ -202,7 +196,6 @@
       box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
     .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1);}
-
     @media (max-width: 480px) {
       h1 { font-size: 2.2em; margin: 20px 0;}
       .card { margin: 20px 10px; padding: 25px;}
@@ -210,7 +203,6 @@
       #notifBellBtn, #addAccountBtn { width: 46px; height: 46px; font-size: 22px;}
       #notifModalContent { padding: 22px 8px;}
     }
-
     #notifModal {
       display: none;
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
@@ -230,7 +222,6 @@
     #notifModalClose:hover { color: #111;}
   </style>
 
-  <!-- Firebase + app logika -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -306,6 +297,11 @@
       "🌱Nedvességkedvelő": { min: 50, max: 80 },
       "💧Vízigényes": { min: 70, max: 100 }
     };
+
+    function normalizeToCategory(value, min, max) {
+      let norm = (value - min) / (max - min);
+      return Math.max(0, Math.min(1, norm));
+    }
 
     const RADIUS = 90, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
@@ -697,124 +693,173 @@
       if (!firstUser) firstUser = user;
     }
   </script>
-
-  <!-- Push értesítés + harang + modal -->
   <script>
-    // VAPID kulcs
-    const publicVapidKey = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
+        // VAPID kulcs (ugyanaz, mint a szerveren)
+    const publicVapidKey = "BHiBxPp4Ch721j6OsVus_W9jb8xXi3n8GbDuR8dwxY5c3QQOqVH7uko_oC05nZmsdsk8xO7zrWk0STTWjyE5hHQ";
 
     function urlBase64ToUint8Array(base64String) {
-      const padding = "=".repeat((4 - (base64String.length % 4) % 4));
+      const padding = "=".repeat((4 - base64String.length % 4) % 4);
       const base64 = (base64String + padding)
         .replace(/-/g, "+")
         .replace(/_/g, "/");
-
       const rawData = window.atob(base64);
-      return Uint8Array.from([...rawData].map(c => c.charCodeAt(0)));
+      return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
     }
 
-    // Először kiválasztott növény típus lekérése az oldalról
-    function getSelectedPlantType() {
-      const select = document.querySelector(".plant-type-select");
-      if (!select) return null;
-      const val = select.value;
-      return val && val.trim() !== "" ? val : null;
-    }
-
-    // Feliratkozás pushra
-    async function subscribeUserToPush(plantType) {
-      try {
-        if (!plantType) {
-          alert("Először válaszd ki a növény típusát a kártyán!");
-          return;
-        }
-
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          alert("A push értesítésekhez engedélyezni kell az értesítéseket a böngészőben.");
-          return;
-        }
-
-        const registration = await navigator.serviceWorker.ready;
-
-        const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-        });
-
-        await fetch("/.netlify/functions/registerPush", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            subscription: subscription,
-            plantType: plantType
-          })
-        });
-
-        alert("Push értesítés bekapcsolva erre a növény típusra: " + plantType);
-      } catch (err) {
-        console.error("Push feliratkozás hiba:", err);
-        alert("Hiba történt a push feliratkozás során.");
+    async function subscribeUserToPush() {
+      // 1. engedély
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        alert("Engedély nélkül nem tudok értesítést küldeni.");
+        return;
       }
+
+      if (!("serviceWorker" in navigator)) {
+        alert("A böngésző nem támogatja a push értesítést.");
+        return;
+      }
+
+      // 2. service worker
+      const registration = await navigator.serviceWorker.ready;
+
+      // 3. feliratkozás
+      const subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+      });
+
+      // 4. bejelentkezett user UID
+      const user = auth.currentUser;
+      if (!user) {
+        alert("Először jelentkezz be, utána iratkozz fel az értesítésre.");
+        return;
+      }
+
+      // 5. elküldjük a Netlify registerPush függvénynek
+      await fetch("/.netlify/functions/registerPush", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: user.uid,
+          subscription: subscription
+        }),
+      });
+
+      alert("Push értesítés bekapcsolva!");
     }
 
-    let notifEnabled = false;
-
+    // Harang ikon
     document.addEventListener("DOMContentLoaded", () => {
-      const bellBtn = document.getElementById("notifBellBtn");
-      const notifModal = document.getElementById("notifModal");
-      const notifModalClose = document.getElementById("notifModalClose");
-      const yesBtn = document.getElementById("notifYes");
-      const noBtn = document.getElementById("notifNo");
+      const bell = document.getElementById("notifBellBtn");
+      if (bell) {
+        bell.addEventListener("click", subscribeUserToPush);
+      }
+    });
 
-      function updateBellStyle() {
-        if (notifEnabled) {
+    // Service worker
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js")
+        .then(() => console.log("SW regisztrálva"))
+        .catch((err) => console.error("SW hiba:", err));
+    }
+
+  </script>
+
+
+  <script>
+    let notifEnabled = false;
+    let jelenlegiKategoria = "";
+
+    window.addEventListener('DOMContentLoaded', function(){
+      const bellBtn = document.getElementById('notifBellBtn');
+      const notifModal = document.getElementById('notifModal');
+      const closeBtn = document.getElementById('notifModalClose');
+      const yesBtn = document.getElementById('notifYes');
+      const noBtn = document.getElementById('notifNo');
+
+      function updateBellStyle(){
+        if(notifEnabled){
           bellBtn.classList.remove("inactive");
-        } else {
+        }else{
           bellBtn.classList.add("inactive");
         }
       }
 
-      notifEnabled = localStorage.getItem("notifEnabled") === "true";
+      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
       updateBellStyle();
 
-      bellBtn.addEventListener("click", () => {
-        notifModal.style.display = "flex";
+      bellBtn.addEventListener('click', function(){
+        notifModal.style.display = 'flex';
       });
 
-      notifModalClose.addEventListener("click", () => {
+      closeBtn.addEventListener('click', function(){
+        notifModal.style.display = 'none';
+      });
+
+      yesBtn.addEventListener("click", function () {
+        notifEnabled = true;
+        localStorage.setItem("notifEnabled", "true");
         notifModal.style.display = "none";
+        updateBellStyle();
+
+        if (!window.firstUser || !firstUser.uid) {
+          alert("Először jelentkezz be egy fiókkal.");
+          return;
+        }
+
+        subscribeUserToPush(firstUser.uid);
       });
 
-      window.addEventListener("click", (e) => {
-        if (e.target === notifModal) {
-          notifModal.style.display = "none";
+
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+
+      window.addEventListener('click', function(e){
+        if(e.target === notifModal){
+          notifModal.style.display = 'none';
         }
       });
 
-      yesBtn.addEventListener("click", async () => {
-        notifEnabled = true;
-        localStorage.setItem("notifEnabled", "true");
-        updateBellStyle();
-        notifModal.style.display = "none";
+      function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+      }
 
-        const plantType = getSelectedPlantType();
-        await subscribeUserToPush(plantType);
-      });
-
-      noBtn.addEventListener("click", () => {
-        notifEnabled = false;
-        localStorage.setItem("notifEnabled", "false");
-        updateBellStyle();
-        notifModal.style.display = "none";
-      });
+      function subscribeUserToPush(plantType) {
+        if (!notifEnabled) return;
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array("BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0")
+            }).then((sub) => {
+              fetch('/.netlify/functions/registerPush', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: sub, plantType })
+              });
+            });
+          });
+        }
+      }
     });
 
-    // Service Worker regisztráció
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js")
-        .then(() => console.log("Service Worker regisztrálva"))
-        .catch(err => console.error("Service Worker hiba:", err));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) {
+          console.log('Service Worker regisztrálva');
+        })
+        .catch(function(err) {
+          console.log('Service Worker hiba:', err);
+        });
     }
   </script>
 </head>
@@ -843,7 +888,7 @@
 
   <button id="addAccountBtn">+</button>
 
-  <button id="notifBellBtn" aria-label="Push értesítés" class="inactive">
+  <button id="notifBellBtn" aria-label="Push értesítés">
     <i class="fa-solid fa-bell"></i>
   </button>
 
