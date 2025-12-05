@@ -2,47 +2,59 @@
 const admin = require("firebase-admin");
 const serviceAccount = require("./serviceAccountKey.json");
 
+// Firebase Admin inicializálás (csak egyszer)
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app"
+    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
   });
 }
 
-const db = admin.database();
+const realtime = admin.database();
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
+// endpoint → kulcs (RTDB-ben nem lehet simán URL-t kulcsként használni)
+function endpointToKey(endpoint) {
+  return Buffer.from(endpoint)
+    .toString("base64")
+    .replace(/\+/g, "-")
+    .replace(/\//g, "_");
+}
 
+exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+    return { statusCode: 405, body: "Csak POST engedélyezett." };
   }
 
   try {
     const body = JSON.parse(event.body || "{}");
-    const subscription = body.subscription;
+    const { subscription, plantType } = body;
 
-    if (!subscription) {
-      return { statusCode: 400, body: "Missing subscription" };
+    if (!subscription || !subscription.endpoint) {
+      return { statusCode: 400, body: "Hiányzik a subscription objektum." };
     }
 
-    // Itt tároljuk Realtime DB-be
-    // /pushSubscriptions/<randomId>
-    await db.ref("pushSubscriptions").push({
+    const key = endpointToKey(subscription.endpoint);
+
+    const saveObj = {
       subscription,
-      plantType: body.plantType || null,
-      createdAt: Date.now()
-    });
+      plantType: plantType || null,
+      createdAt: Date.now(),
+    };
+
+    // RTDB: /pushSubscriptions/<kulcs>
+    await realtime.ref("pushSubscriptions").child(key).set(saveObj);
+
+    console.log("Feliratkozás elmentve:", key);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true })
+      body: JSON.stringify({ ok: true }),
     };
   } catch (err) {
-    console.error("registerPush error:", err);
+    console.error("registerPush hiba:", err);
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "Server error" })
+      body: JSON.stringify({ error: err.message }),
     };
   }
 };

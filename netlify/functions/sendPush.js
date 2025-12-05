@@ -6,59 +6,47 @@ const serviceAccount = require("./serviceAccountKey.json");
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app"
+    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
   });
 }
+const realtime = admin.database();
 
-const db = admin.database();
-
-const publicVapidKey  = "BA9Fs-ZMeeisRVBM5A-NJoYGudUZHsaPzWCgI8tQ_Kj5zEr-xq8tMZkoq0pTP5NjVqmpivK5PBX2GAHHgGuhbj0";
-const privateVapidKey = "KYg1qLt02ykW_Cfom9Cl4KoIFBW_aXCvITyX7G_OAOQ";
+const publicVapidKey = "IDE_A_PUBLIC_VAPID_KEY_TÖL";
+const privateVapidKey = "IDE_A_PRIVATE_VAPID_KEY_TÖL";
 
 webpush.setVapidDetails(
-  "mailto:teszt@example.com",
+  "mailto:valami@emailcimed.hu",
   publicVapidKey,
   privateVapidKey
 );
 
-exports.handler = async (event, context) => {
-  context.callbackWaitsForEmptyEventLoop = false;
-
+exports.handler = async (event) => {
   try {
-    const subsSnap = await db.ref("pushSubscriptions").once("value");
+    const bodyObj = JSON.parse(event.body || "{}");
+    const title = bodyObj.title || "Növényfigyelő 🌱";
+    const body =
+      bodyObj.body || "Ez egy teszt értesítés a Növényfigyelőtől.";
+
+    const payload = JSON.stringify({ title, body });
+
+    const subsSnap = await realtime.ref("pushSubscriptions").once("value");
     if (!subsSnap.exists()) {
       return { statusCode: 200, body: "Nincsenek feliratkozók." };
     }
 
     const subs = subsSnap.val();
-    const sendPromises = [];
-
-    for (const key of Object.keys(subs)) {
-      const subData = subs[key];
-      const subscription = subData.subscription;
-      if (!subscription) continue;
-
-      const payload = JSON.stringify({
-        title: "Növényfigyelő teszt 🌱",
-        body: "Ez egy teszt push értesítés.",
-        icon: "/icon.png"
-      });
-
-      sendPromises.push(
-        webpush.sendNotification(subscription, payload).catch(err => {
-          console.error("Push hiba:", err);
-        })
-      );
-    }
+    const sendPromises = Object.values(subs).map((subObj) => {
+      const subscription = subObj.subscription || subObj;
+      return webpush
+        .sendNotification(subscription, payload)
+        .catch((err) => console.error("Push hiba:", err));
+    });
 
     await Promise.all(sendPromises);
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ message: `Teszt értesítés elküldve: ${sendPromises.length} feliratkozónak.` })
-    };
+    return { statusCode: 200, body: "Teszt push elküldve." };
   } catch (err) {
-    console.error("sendPush error:", err);
-    return { statusCode: 500, body: "Server error" };
+    console.error("sendPush hiba:", err);
+    return { statusCode: 500, body: err.toString() };
   }
 };
