@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "firebase-admin": "latest",
-    "node-fetch": "2",
-    "web-push": "3"
-  }
-}
