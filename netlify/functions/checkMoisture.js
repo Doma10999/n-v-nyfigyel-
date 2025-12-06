@@ -1,78 +1,51 @@
-const { db, webpush } = require("./pushCommon");
+// netlify/functions/checkMoisture.js
+const { admin, sendPushToUser } = require("./pushCommon");
 
-const THRESHOLD = 35;         // 35% alatt jelezzen
-const COOLDOWN_MINUTES = 10;  // minimum 10 perc két értesítés között
-
-exports.handler = async () => {
+exports.handler = async function () {
   try {
-    const now = Date.now();
-
-    // 1) Összes felhasználó + eszköz Realtime DB-ből
-    const usersSnap = await db.ref("/users").get();
+    const db = admin.database();
+    const usersSnap = await db.ref("users").once("value");
     const users = usersSnap.val() || {};
 
-    // 2) Subscriptionök
-    const subsSnap = await db.ref("/pushSubscriptions").get();
-    const subs = subsSnap.val() || {};
+    const THRESHOLD = 35; // 35% alatt jelezzen
 
-    const notifications = [];
+    const allTasks = [];
 
     for (const [uid, userData] of Object.entries(users)) {
-      const devices = userData.devices || {};
-      const sub = subs[uid];
-      if (!sub) continue; // nincs feliratkozás, nincs értesítés
+      const devices = (userData && userData.devices) || {};
 
-      for (const [deviceId, dev] of Object.entries(devices)) {
-        const sensorValue = typeof dev.sensorValue === "number" ? dev.sensorValue : Number(dev.sensorValue || 0);
-        if (isNaN(sensorValue)) continue;
+      for (const [deviceId, device] of Object.entries(devices)) {
+        const sensorValue = device.sensorValue;
+        if (typeof sensorValue !== "number") continue;
 
         if (sensorValue < THRESHOLD) {
-          const lastPushAt = dev.lastPushAt || 0;
-          const diff = now - lastPushAt;
+          const displayName = device.displayName || deviceId;
 
-          if (diff >= COOLDOWN_MINUTES * 60 * 1000) {
-            notifications.push({ uid, deviceId, sensorValue, subscription: sub });
-          }
+          const payload = {
+            title: "Növényfigyelő",
+            body: `A(z) "${displayName}" növényed vízszintje ${sensorValue}%. Öntözd meg!`,
+            icon: "/icon.png",
+          };
+
+          allTasks.push(sendPushToUser(uid, payload));
         }
       }
     }
 
-    let sent = 0;
-
-    for (const item of notifications) {
-      const payload = JSON.stringify({
-        title: "Növényfigyelő 🌱",
-        body: `A(z) ${item.deviceId} nedvesség szintje ${item.sensorValue}% – ideje megöntözni!`,
-        data: {
-          uid: item.uid,
-          deviceId: item.deviceId
-        }
-      });
-
-      try {
-        await webpush.sendNotification(item.subscription, payload);
-        sent++;
-
-        // lastPushAt mentése
-        await db
-          .ref(`/users/${item.uid}/devices/${item.deviceId}/lastPushAt`)
-          .set(now);
-      } catch (err) {
-        console.error("Push küldési hiba:", item.uid, item.deviceId, err.statusCode, err.body);
-      }
-    }
-
-    console.log(`checkMoisture lefutott, elküldött értesítések: ${sent}`);
+    await Promise.all(allTasks);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ sent })
+      body: JSON.stringify({
+        ok: true,
+        notificationsSent: allTasks.length,
+      }),
     };
   } catch (err) {
     console.error("checkMoisture hiba:", err);
     return {
       statusCode: 500,
-      body: "Szerver hiba a checkMoisture függvényben"
+      body: JSON.stringify({ error: "Szerver hiba" }),
     };
   }
 };

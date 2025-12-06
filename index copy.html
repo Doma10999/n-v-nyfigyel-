@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Növényfigyelő</title>
+
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+
+  <style>
+    /* --- DESIGN STÍLUSOK (EDDIGI SZÉP UI) --- */
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0;}
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+      padding: 20px;
+      text-align: center;
+      color: #1b3a2a;
+    }
+    h1 { font-size: 2.8em; margin: 25px 0; color: #0d3b23; }
+
+    .card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 25px;
+      width: 350px;
+      margin: 0 auto;
+      box-shadow: 0 0 20px rgba(0,0,0,0.1);
+    }
+
+    input, button {
+      width: 100%;
+      padding: 12px;
+      margin: 10px 0;
+      border-radius: 10px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      background: #4caf50;
+      color: white;
+      cursor: pointer;
+    }
+
+    #notifBellBtn {
+      position: fixed;
+      bottom: 25px;
+      right: 25px;
+      width: 65px;
+      height: 65px;
+      background: #4caf50;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: white;
+      font-size: 28px;
+      cursor: pointer;
+    }
+
+  </style>
+
+  <!-- ===========================
+       FIREBASE + AUTH + DATABASE
+       =========================== -->
+
+  <script type="module">
+
+    import { initializeApp } 
+    from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
+    import { 
+      getAuth, 
+      onAuthStateChanged,
+      signInWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    import { 
+      getDatabase, 
+      ref, 
+      onValue, 
+      get, 
+      set 
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+
+    /* --- FIREBASE CONFIG --- */
+    const firebaseConfig = {
+      apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
+      authDomain: "plant-monitor-3976f.firebaseapp.com",
+      databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "plant-monitor-3976f",
+      storageBucket: "plant-monitor-3976f.appspot.com",
+      messagingSenderId: "705425147510",
+      appId: "1:705425147510:web:71f15bde879f3672df8157"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    // 🔥 GLOBÁLIS UID (PUSH FELIRATKOZÁSHOZ KELL)
+    window.currentUid = null;
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        window.currentUid = user.uid;
+        console.log("✔️ Bejelentkezve:", user.uid);
+      } else {
+        window.currentUid = null;
+        console.log("❌ Nincs bejelentkezve");
+      }
+    });
+
+    window.auth = auth;
+    window.db = db;
+
+  </script>
+  <!-- ===========================
+       UI + ACCOUNT KEZELÉS
+       =========================== -->
+
+  <script type="module">
+
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      set,
+      get
+    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+    const auth = window.auth;
+    const db = window.db;
+
+    /* ------------------------------
+       LOGIN FORM + FELHASZNÁLÓ LISTA
+       ------------------------------ */
+
+    const loginForm = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passInput = document.getElementById("password");
+    const statusDiv = document.getElementById("status");
+
+    const accountsContainer = document.getElementById("accountsContainer");
+    const addAccountBtn = document.getElementById("addAccountBtn");
+
+    const STORAGE_KEY = "storedAccounts";
+
+    function getStoredAccounts() {
+      try {
+        const d = localStorage.getItem(STORAGE_KEY);
+        return d ? JSON.parse(d) : [];
+      } catch {
+        return [];
+      }
+    }
+
+    function saveStoredAccounts(list) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    }
+
+    function addStoredAccount(email, uid) {
+      const list = getStoredAccounts();
+      if (!list.some(acc => acc.uid === uid)) {
+        list.push({ email, uid });
+        saveStoredAccounts(list);
+      }
+    }
+
+    function removeStoredAccount(uid) {
+      let list = getStoredAccounts();
+      list = list.filter(acc => acc.uid !== uid);
+      saveStoredAccounts(list);
+    }
+
+    /* ------------------------------
+       LOGIN
+       ------------------------------ */
+
+    loginForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      statusDiv.textContent = "Bejelentkezés...";
+      statusDiv.style.color = "green";
+
+      try {
+        const cred = await signInWithEmailAndPassword(
+          auth,
+          emailInput.value,
+          passInput.value
+        );
+
+        const user = cred.user;
+
+        addStoredAccount(emailInput.value, user.uid);
+        addAccountCard(user, emailInput.value);
+
+        loginForm.style.display = "none";
+        statusDiv.style.display = "none";
+
+      } catch (err) {
+        statusDiv.style.color = "red";
+        statusDiv.textContent = "Hibás email vagy jelszó!";
+      }
+    });
+
+    /* ------------------------------
+       ACCOUNT KÁRTYA LÉTREHOZÁSA
+       ------------------------------ */
+
+    function addAccountCard(user, email) {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      card.innerHTML = `
+        <button class="deleteBtn">✖</button>
+        <h3>${email}</h3>
+
+        <div class="gauge-container">
+          <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
+            <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
+            <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
+          </svg>
+          <div class="gauge-value">0%</div>
+        </div>
+
+        <label>Növény kategória:</label>
+        <select class="plant-type">
+          <option value="">Válassz...</option>
+          <option>🌵Szárazkedvelő</option>
+          <option>🌾Mérsékelten száraz</option>
+          <option>🌿Kiegyensúlyozott vízigényű</option>
+          <option>🌱Nedvességkedvelő</option>
+          <option>💧Vízigényes</option>
+        </select>
+      `;
+
+      const gaugeValue = card.querySelector(".gauge-value");
+      const gaugeCircle = card.querySelector(".gauge-fill");
+      const select = card.querySelector(".plant-type");
+
+      const R = 80;
+      const Circ = 2 * Math.PI * R;
+      gaugeCircle.style.strokeDasharray = Circ;
+
+      let selectedDeviceId = null;
+
+      (async () => {
+        const snap = await get(ref(db, `users/${user.uid}/devices`));
+        if (!snap.exists()) return;
+        const devices = snap.val();
+        selectedDeviceId = Object.keys(devices)[0];
+
+        const catSnap = await get(ref(db, `users/${user.uid}/devices/${selectedDeviceId}/plantType`));
+        if (catSnap.exists()) {
+          select.value = catSnap.val();
+        }
+
+        const soilRef = ref(db, `users/${user.uid}/devices/${selectedDeviceId}/sensorValue`);
+        onValue(soilRef, (s) => {
+          if (s.exists()) {
+            const v = s.val();
+            updateGauge(v);
+          }
+        });
+      })();
+
+      function updateGauge(val) {
+        gaugeValue.textContent = val + "%";
+        const offset = Circ - (val / 100) * Circ;
+        gaugeCircle.style.strokeDashoffset = offset;
+
+        if (val < 35) gaugeCircle.style.stroke = "red";
+        else gaugeCircle.style.stroke = "green";
+      }
+
+      select.addEventListener("change", async () => {
+        if (!selectedDeviceId) return;
+        await set(ref(db, `users/${user.uid}/devices/${selectedDeviceId}/plantType`), select.value);
+      });
+
+      card.querySelector(".deleteBtn").addEventListener("click", () => {
+        removeStoredAccount(user.uid);
+        card.remove();
+      });
+
+      accountsContainer.appendChild(card);
+    }
+
+    /* ------------------------------
+       OLDAL BETÖLTÉSKOR: korábbi fiókok visszatöltése
+       ------------------------------ */
+
+    window.addEventListener("load", () => {
+      const list = getStoredAccounts();
+      if (list.length > 0) {
+        list.forEach((acc) => {
+          addAccountCard({ uid: acc.uid }, acc.email);
+        });
+        loginForm.style.display = "none";
+        statusDiv.style.display = "none";
+      }
+    });
+
+  </script>

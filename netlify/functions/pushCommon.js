@@ -1,26 +1,53 @@
+// netlify/functions/pushCommon.js
 const admin = require("firebase-admin");
-const webpush = require("web-push");
+const webPush = require("web-push");
 const serviceAccount = require("./serviceAccountKey.json");
 
-// Firebase Admin inicializálása (Realtime Database)
+// ---- Firebase Admin init (Realtime Database) ----
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
-    databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app"
+    databaseURL:
+      "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
   });
 }
 
-const db = admin.database();
+// ---- Web Push / VAPID ----
+// Ezek a Te kulcsaid (csak példa projekthez, ezért most kódban hagyjuk)
+const publicVapidKey  = "BHiBxPp4Ch721j6OsVus_W9jb8xXi3n8GbDuR8dwxY5c3QQOqVH7uko_oC05nZmsdsk8xO7zrWk0STTWjyE5hHQ";
+const privateVapidKey = "4KeCLA749xHKD5y8RDa2-hRe8e4t7Fza-LtCFYuBoF4";
 
-// Web Push VAPID kulcsok
-webpush.setVapidDetails(
-  "mailto:drobnidominik@gmail.com",
-  "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg",
-  "EChy7SISO5NioHEB0Jsk1hgtLUvNHneiHZpFYfLGuwc"
+webPush.setVapidDetails(
+  "mailto:info@pelda.hu", // bármi lehet
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
 );
+
+// Közös függvény a push küldéshez
+async function sendPushToUser(uid, payload) {
+  const db = admin.database();
+  const subsRef = db.ref(`pushSubscriptions/${uid}`);
+
+  const subsSnap = await subsRef.once("value");
+  const subs = subsSnap.val() || {};
+
+  const promises = Object.entries(subs).map(async ([subId, sub]) => {
+    try {
+      await webPush.sendNotification(sub, JSON.stringify(payload));
+    } catch (err) {
+      console.error("Push hiba:", err.statusCode, err.body);
+
+      // Ha lejárt / törölt subscription → takarítás
+      if (err.statusCode === 404 || err.statusCode === 410) {
+        await subsRef.child(subId).remove();
+      }
+    }
+  });
+
+  await Promise.all(promises);
+}
 
 module.exports = {
   admin,
-  db,
-  webpush
+  sendPushToUser,
 };

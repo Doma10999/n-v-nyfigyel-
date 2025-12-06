@@ -1,10 +1,11 @@
-const { db } = require("./pushCommon");
+// netlify/functions/registerPush.js
+const { admin } = require("./pushCommon");
 
-exports.handler = async (event) => {
+exports.handler = async function (event) {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      body: "Method not allowed"
+      body: "Method not allowed",
     };
   }
 
@@ -15,22 +16,23 @@ exports.handler = async (event) => {
     if (!uid || !subscription) {
       return {
         statusCode: 400,
-        body: "uid és subscription kötelező"
+        body: JSON.stringify({ error: "uid vagy subscription hiányzik" }),
       };
     }
 
-    // Egyetlen subscription / user – ide mindig a legfrissebbet írjuk
-    await db.ref(`/pushSubscriptions/${uid}`).set(subscription);
+    const db = admin.database();
+    const subRef = db.ref(`pushSubscriptions/${uid}`).push();
+    await subRef.set(subscription);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ ok: true })
+      body: JSON.stringify({ success: true }),
     };
   } catch (err) {
     console.error("registerPush hiba:", err);
     return {
       statusCode: 500,
-      body: "Szerver hiba a registerPush függvényben"
+      body: JSON.stringify({ error: "Szerver hiba" }),
     };
   }
 };
