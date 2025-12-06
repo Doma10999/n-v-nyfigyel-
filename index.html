@@ -7,7 +7,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    * { box-sizing: border-box; margin: 0; padding: 0;}
     body {
       font-family: 'Roboto', sans-serif;
       background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
@@ -54,14 +54,11 @@
       animation-duration: 16s;
     }
     @keyframes float {
-      0% { transform: translateY(0) rotate(0deg); }
-      50% { transform: translateY(-20px) rotate(180deg); }
-      100% { transform: translateY(0) rotate(360deg); }
+      0% { transform: translateY(0) rotate(0deg);}
+      50% { transform: translateY(-20px) rotate(180deg);}
+      100% { transform: translateY(0) rotate(360deg);}
     }
-    .card:hover {
-      transform: translateY(-8px);
-      box-shadow: 0 28px 48px rgba(0,0,0,0.15);
-    }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 28px 48px rgba(0,0,0,0.15);}
     input, select, button {
       width: 100%;
       padding: 14px;
@@ -72,8 +69,8 @@
       outline: none;
       transition: all 0.3s ease;
     }
-    input { background: #f0f7f3; }
-    input:focus { box-shadow: 0 0 0 4px rgba(102,187,106,0.25); }
+    input { background: #f0f7f3;}
+    input:focus { box-shadow: 0 0 0 4px rgba(102,187,106,0.25);}
     select {
       background: #f0f7f3;
       padding-right: 40px;
@@ -90,8 +87,8 @@
       background: linear-gradient(145deg, #43a047, #66bb6a);
       transform: scale(1.03);
     }
-    #logout { background: #ef5350; }
-    #logout:hover { background: #d32f2f; }
+    #logout { background: #ef5350;}
+    #logout:hover { background: #d32f2f;}
     .gauge-container {
       position: relative;
       width: 220px;
@@ -99,11 +96,11 @@
       margin: 30px auto;
     }
     @media (max-width: 480px) {
-      .gauge-container { width: 180px; height: 180px; }
+      .gauge-container { width: 180px; height: 180px;}
     }
-    .gauge-svg { transform: rotate(-90deg); width:100%; height:100%; }
-    .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18; }
-    .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease; }
+    .gauge-svg { transform: rotate(-90deg); width:100%; height:100%;}
+    .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18;}
+    .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;}
     .gauge-value {
       position: absolute;
       top: 50%; left: 50%;
@@ -116,7 +113,7 @@
       white-space: nowrap;
     }
     @media (max-width: 480px) {
-      .gauge-value { font-size: 24px; }
+      .gauge-value { font-size: 24px;}
     }
     #addAccountBtn {
       position: fixed;
@@ -130,7 +127,7 @@
       transition: transform 0.3s ease, box-shadow 0.3s ease;
       z-index: 1000;
     }
-    #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25); }
+    #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25);}
     #notifBellBtn {
       position: fixed;
       bottom: 115px; right: 25px;
@@ -147,7 +144,7 @@
       background: linear-gradient(145deg, #b0c4b1, #d0e6cd);
       color: #7e917c;
     }
-    #notifBellBtn:hover { transform: scale(1.08); }
+    #notifBellBtn:hover { transform: scale(1.08);}
     .deleteBtn {
       position: absolute;
       top: 18px; right: 18px;
@@ -168,25 +165,25 @@
       transform: scale(1.125);
       box-shadow: 0 6px 16px rgba(220,0,60,0.19);
     }
-    #modal, #confirmModal, #notifModal {
+    #modal, #confirmModal {
       display: none;
       position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
       background: rgba(0,0,0,0.45);
       justify-content: center; align-items: center; z-index: 1100;
     }
-    #modalContent, #confirmModalContent, #notifModalContent {
-      background: #ffffffee; padding: 30px 24px;
+    #modalContent, #confirmModalContent {
+      background: #ffffffee; padding: 36px 28px;
       border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
       width: 380px; max-width: 92vw; text-align: center; position: relative;
       animation: popIn 0.3s ease-out;
     }
     @keyframes popIn { from { transform: scale(0.9); opacity: 0;} to { transform: scale(1); opacity: 1;} }
-    #modalClose, #confirmClose, #notifModalClose {
+    #modalClose, #confirmClose {
       position: absolute; top: 18px; right: 20px;
       font-size: 28px; color: #aaa; cursor: pointer; transition: color 0.25s ease;
     }
-    #modalClose:hover, #confirmClose:hover, #notifModalClose:hover { color: #111; }
-    label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block; }
+    #modalClose:hover, #confirmClose:hover { color: #111;}
+    label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block;}
     .led-slider {
       width: 92%; margin: 14px auto; display: block;
       appearance: none; height: 18px; border-radius: 12px;
@@ -198,31 +195,37 @@
       background: #66bb6a; border: 3px solid #fff; cursor: pointer;
       box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
     }
-    .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
+    .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1);}
     @media (max-width: 480px) {
       h1 { font-size: 2.2em; margin: 20px 0;}
-      .card { margin: 20px 10px; padding: 25px; }
-      .gauge-container { width: 180px; height: 180px; }
+      .card { margin: 20px 10px; padding: 25px;}
+      .gauge-container { width: 180px; height: 180px;}
       #notifBellBtn, #addAccountBtn { width: 46px; height: 46px; font-size: 22px;}
       #notifModalContent { padding: 22px 8px;}
     }
+    #notifModal {
+      display: none;
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center; align-items: center; z-index: 1101;
+    }
+    #notifModalContent {
+      background: #fff; padding: 34px 23px;
+      border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 360px; max-width: 90vw; text-align: center; position: relative;
+      animation: popIn 0.3s ease-out;
+    }
+    #notifModalClose {
+      position: absolute; top: 18px; right: 20px;
+      font-size: 28px; color: #aaa; cursor: pointer; transition: color 0.22s;
+    }
+    #notifModalClose:hover { color: #111;}
   </style>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import {
-      getAuth,
-      onAuthStateChanged,
-      signInWithEmailAndPassword,
-      signOut
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import {
-      getDatabase,
-      ref,
-      onValue,
-      set,
-      get
-    } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { getDatabase, ref, onValue, set, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
@@ -236,111 +239,80 @@
     };
 
     const app = initializeApp(firebaseConfig);
-    const auth = getAuth(app);
-    const db   = getDatabase(app);
+    const db = getDatabase(app);
+    const auth = getAuth();
 
-    // Globális UID, hogy a push kód is elérje
-    window.currentUid = null;
-
-    onAuthStateChanged(auth, (user) => {
-      if (user) {
-        window.currentUid = user.uid;
-        console.log("Bejelentkezett UID:", user.uid);
-      } else {
-        window.currentUid = null;
-        console.log("Nincs bejelentkezett felhasználó");
-      }
-    });
-
-    // ---- Lokális tárolók a fiókokhoz / kategóriákhoz ----
     const accounts = new Map();
-    const STORAGE_KEY    = "storedAccounts";
-    const PLANT_TYPE_KEY = "plantTypeData_hu_v1";
+    const STORAGE_KEY = 'storedAccounts';
+    const PLANT_TYPE_KEY = 'plantTypeData_hu_v1';
 
     function getStoredAccounts() {
-      try {
-        const data = localStorage.getItem(STORAGE_KEY);
-        return data ? JSON.parse(data) : [];
-      } catch {
-        return [];
-      }
+      try { const data = localStorage.getItem(STORAGE_KEY); return data ? JSON.parse(data) : []; } catch { return []; }
     }
-    function setStoredAccounts(accs) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
-    }
+    function setStoredAccounts(accs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(accs)); }
     function addStoredAccount(email, uid) {
       const accs = getStoredAccounts();
-      if (!accs.some(a => a.uid === uid)) {
-        accs.push({ email, uid });
-        setStoredAccounts(accs);
-      }
+      if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
     }
     function removeStoredAccount(uid) {
       const accs = getStoredAccounts().filter(a => a.uid !== uid);
       setStoredAccounts(accs);
-      const dict = getPlantTypeAll();
-      delete dict[uid];
-      savePlantTypeAll(dict);
+      const plantTypesDict = getPlantTypeAll();
+      delete plantTypesDict[uid];
+      savePlantTypeAll(plantTypesDict);
     }
     function getPlantTypeAll() {
-      try {
-        const d = localStorage.getItem(PLANT_TYPE_KEY);
-        return d ? JSON.parse(d) : {};
-      } catch {
-        return {};
-      }
+      try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
     }
-    function savePlantTypeAll(obj) {
-      localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj));
-    }
+    function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
     function getPlantType(uid) {
-      const d = getPlantTypeAll();
-      return d[uid] || "";
+      const d = getPlantTypeAll(); return d[uid] || '';
     }
     function setPlantType(uid, value) {
-      const d = getPlantTypeAll();
-      d[uid] = value;
-      savePlantTypeAll(d);
+      const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
     }
 
-    // ---- DOM elemek ----
-    const loginForm        = document.getElementById("loginForm");
-    const emailInput       = document.getElementById("email");
-    const passInput        = document.getElementById("password");
-    const statusDiv        = document.getElementById("status");
-    const gaugeValueMain   = document.getElementById("gauge-value");
-    const gaugeCircleMain  = document.querySelector(".gauge-fill");
-    const logoutBtn        = document.getElementById("logout");
-    const plantDataCard    = document.getElementById("plantData");
-    const addAccountBtn    = document.getElementById("addAccountBtn");
-    const modal            = document.getElementById("modal");
-    const modalCloseBtn    = document.getElementById("modalClose");
-    const addNewAccountForm= document.getElementById("addNewAccountForm");
-    const newAccountEmail  = document.getElementById("newAccountEmail");
-    const newAccountPass   = document.getElementById("newAccountPass");
-    const newAccountToken  = document.getElementById("newAccountToken");
+    const loginForm = document.getElementById("loginForm");
+    const emailInput = document.getElementById("email");
+    const passInput = document.getElementById("password");
+    const statusDiv = document.getElementById("status");
+    const gaugeValue = document.getElementById("gauge-value");
+    const gaugeCircle = document.querySelector(".gauge-fill");
+    const logoutBtn = document.getElementById("logout");
+    const plantDataCard = document.getElementById("plantData");
+    const addAccountBtn = document.getElementById("addAccountBtn");
+    const modal = document.getElementById("modal");
+    const modalCloseBtn = document.getElementById("modalClose");
+    const addNewAccountForm = document.getElementById("addNewAccountForm");
+    const newAccountEmail = document.getElementById("newAccountEmail");
+    const newAccountPass = document.getElementById("newAccountPass");
+    const newAccountToken = document.getElementById("newAccountToken");
     const addAccountStatus = document.getElementById("addAccountStatus");
-    const accountsContainer= document.getElementById("accountsContainer");
+    const accountsContainer = document.getElementById("accountsContainer");
 
     const plantCategories = {
-      "🌵Szárazkedvelő":           { min: 10, max: 40 },
-      "🌾Mérsékelten száraz":       { min: 20, max: 45 },
+      "🌵Szárazkedvelő": { min: 10, max: 40 },
+      "🌾Mérsékelten száraz": { min: 20, max: 45 },
       "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
-      "🌱Nedvességkedvelő":        { min: 50, max: 80 },
-      "💧Vízigényes":              { min: 70, max: 100 }
+      "🌱Nedvességkedvelő": { min: 50, max: 80 },
+      "💧Vízigényes": { min: 70, max: 100 }
     };
 
-    const RADIUS = 90;
-    const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
-    gaugeCircleMain.style.strokeDasharray = CIRCUMFERENCE;
+    function normalizeToCategory(value, min, max) {
+      let norm = (value - min) / (max - min);
+      return Math.max(0, Math.min(1, norm));
+    }
+
+    const RADIUS = 90, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
+    gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
 
     let firstUser = null;
 
-    window.addEventListener("load", () => {
+    window.addEventListener('load', () => {
       const stored = getStoredAccounts();
       if (stored.length > 0) {
         stored.forEach(acc => {
-          addAccountCard({ uid: acc.uid }, acc.email, false);
+          addAccountCard({ uid: acc.uid }, acc.email, auth, false);
         });
         hideLoginScreen();
       } else {
@@ -364,12 +336,12 @@
           return;
         }
 
-        addAccountCard(user, emailInput.value, accounts.size === 0);
+        addAccountCard(user, emailInput.value, auth, accounts.size === 0);
         addStoredAccount(emailInput.value, user.uid);
         hideLoginScreen();
       } catch (err) {
         statusDiv.style.color = "red";
-        if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
+        if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(err.code)) {
           statusDiv.innerText = "Hibás felhasználónév vagy jelszó!";
         } else {
           statusDiv.innerText = "Hiba: " + err.message;
@@ -392,7 +364,7 @@
       plantDataCard.style.display = "block";
       accountsContainer.style.display = "none";
       addAccountBtn.style.display = "none";
-      updateMainGauge(0);
+      updateGauge(0);
       firstUser = null;
     }
 
@@ -405,13 +377,13 @@
       addAccountBtn.style.display = "flex";
     }
 
-    function updateMainGauge(value) {
-      gaugeValueMain.innerText = value + "%";
+    function updateGauge(value) {
+      gaugeValue.innerText = value + "%";
       const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
-      gaugeCircleMain.style.strokeDashoffset = offset;
+      gaugeCircle.style.strokeDashoffset = offset;
       const color = getGradientColor(value);
-      gaugeCircleMain.style.stroke = color;
-      gaugeValueMain.style.color = color;
+      gaugeCircle.style.stroke = color;
+      gaugeValue.style.color = color;
     }
 
     function getGradientColor(value) {
@@ -430,14 +402,15 @@
       return `rgb(${r},${g},${b})`;
     }
 
-    // ---- Fiók hozzáadás modál ----
     addAccountBtn.addEventListener("click", () => {
       modal.style.display = "flex";
       addAccountStatus.innerText = "";
     });
+
     modalCloseBtn.addEventListener("click", () => {
       modal.style.display = "none";
     });
+
     window.addEventListener("click", (e) => {
       if (e.target === modal) modal.style.display = "none";
     });
@@ -446,7 +419,7 @@
       e.preventDefault();
 
       const email = newAccountEmail.value.trim();
-      const pass  = newAccountPass.value.trim();
+      const pass = newAccountPass.value.trim();
 
       addAccountStatus.textContent = "";
 
@@ -462,7 +435,7 @@
         const uid = userCred.user.uid;
 
         addStoredAccount(email, uid);
-        addAccountCard({ uid }, email, true);
+        addAccountCard({ uid }, email, auth, true);
 
         modal.style.display = "none";
         newAccountEmail.value = "";
@@ -471,6 +444,7 @@
 
       } catch (err) {
         addAccountStatus.style.color = "red";
+
         if (err.code === "auth/invalid-credential") {
           addAccountStatus.textContent = "Hibás email vagy jelszó.";
         } else {
@@ -490,7 +464,6 @@
       }
     }
 
-    // ---- Törlés megerősítés modál ----
     let confirmResolve = null;
     function showConfirmModal(message) {
       return new Promise((resolve) => {
@@ -522,14 +495,14 @@
         hideConfirmModal();
       });
       window.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
+        if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
           hideConfirmModal();
         }
       });
     });
 
-    // ---- Kártya létrehozása egy felhasználónak ----
-    function addAccountCard(user, email, isMain=false) {
+    function addAccountCard(user, email, auth, isMain=false) {
+
       const plantTypes = [
         "🌵Szárazkedvelő",
         "🌾Mérsékelten száraz",
@@ -579,12 +552,12 @@
         ${plantTypeSelectHtml}
       `;
 
-      const gaugeValueEl  = card.querySelector(".gauge-value");
+      const gaugeValueEl = card.querySelector(".gauge-value");
       const gaugeCircleEl = card.querySelector(".gauge-fill");
       const displayNameSpan = card.querySelector(".displayNameSpan");
-      const editBtn   = card.querySelector(".editNameBtn");
+      const editBtn = card.querySelector(".editNameBtn");
       const editInput = card.querySelector(".editNameInput");
-      const saveBtn   = card.querySelector(".saveNameBtn");
+      const saveBtn = card.querySelector(".saveNameBtn");
 
       gaugeCircleEl.style.strokeDasharray = 2 * Math.PI * 80;
 
@@ -612,16 +585,16 @@
               updateAccountGauge(currPercent, currCat);
             }
 
-            const sliderContainer = card.querySelector(".slider-container");
-            if (devicesData[firstDeviceId] && devicesData[firstDeviceId].hasOwnProperty("ledLevel")) {
+            const sliderContainer = card.querySelector('.slider-container');
+            if (devicesData[firstDeviceId] && devicesData[firstDeviceId].hasOwnProperty('ledLevel')) {
               sliderContainer.style.display = "block";
-              const slider = card.querySelector(".led-slider");
+              const slider = card.querySelector('.led-slider');
               const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
               onValue(ledLevelRef, (snap) => {
                 if (snap.exists()) slider.value = snap.val();
               });
-              slider.addEventListener("input", async (e) => {
-                const newValue = parseInt(e.target.value, 10);
+              slider.addEventListener('input', async (e) => {
+                const newValue = parseInt(e.target.value);
                 await set(ledLevelRef, newValue);
               });
             } else {
@@ -681,7 +654,7 @@
 
       const selectElem = card.querySelector(`#${selectId}`);
       setTimeout(async () => {
-        let saved = "";
+        let saved = '';
         if (user.uid && firstDeviceId) {
           const catSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`));
           if (catSnap.exists() && catSnap.val()) {
@@ -716,134 +689,148 @@
       });
 
       accountsContainer.appendChild(card);
-      accounts.set(user.uid, { user, card });
+      accounts.set(user.uid, { user, auth, card });
       if (!firstUser) firstUser = user;
     }
+  </script>
+  <script>
+  // Itt a helyes VAPID kulcs
+  const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
 
-    // ---------------- PUSH ÉRTESÍTÉS FRONTEND ----------------
-    const PUBLIC_VAPID_KEY = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
-    let notifEnabled = localStorage.getItem("notifEnabled") === "true";
-
-    function urlBase64ToUint8Array(base64String) {
+  // Kötelező függvény a kulcs konvertálásához
+  function urlBase64ToUint8Array(base64String) {
       const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
       const base64 = (base64String + padding)
-        .replace(/-/g, "+")
-        .replace(/_/g, "/");
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
+
       const rawData = window.atob(base64);
       const outputArray = new Uint8Array(rawData.length);
+
       for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
+          outputArray[i] = rawData.charCodeAt(i);
       }
       return outputArray;
-    }
+  }
 
-    async function subscribeUserToPush() {
-      try {
-        if (!notifEnabled) return;
+  // Push engedélyezése
+  async function subscribeUserToPush() {
+      const registration = await navigator.serviceWorker.ready;
 
-        const uid = window.currentUid;
-        if (!uid) {
-          alert("Először jelentkezz be egy fiókkal.");
-          return;
-        }
-
-        if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-          alert("A böngésződ nem támogatja a push értesítéseket.");
-          return;
-        }
-
-        const permission = await Notification.requestPermission();
-        if (permission !== "granted") {
-          alert("Engedély nélkül nem tudok értesítést küldeni.");
-          return;
-        }
-
-        const registration = await navigator.serviceWorker.ready;
-
-        // régi subscription törlése, hogy ne legyen VAPID ütközés
-        const existingSub = await registration.pushManager.getSubscription();
-        if (existingSub) {
-          try {
-            await existingSub.unsubscribe();
-            console.log("Régi subscription törölve.");
-          } catch (e) {
-            console.warn("Nem sikerült leiratkozni a régiről:", e);
-          }
-        }
-
-        const sub = await registration.pushManager.subscribe({
+      const subscription = await registration.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(PUBLIC_VAPID_KEY)
-        });
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      });
 
-        await fetch("/.netlify/functions/registerPush", {
+      console.log("Feliratkozási token:", subscription);
+
+      // Elküldés Netlify felé
+      await fetch("/.netlify/functions/registerPush", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ uid, subscription: sub })
-        });
+          body: JSON.stringify(subscription),
+          headers: { "Content-Type": "application/json" }
+      });
 
-        alert("Push értesítés bekapcsolva!");
-      } catch (err) {
-        console.error("Hiba a push feliratkozás során:", err);
-        alert("Hiba történt a push feliratkozás során.");
-      }
-    }
+      alert("Push értesítés bekapcsolva!");
+  }
+  </script>
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const bellBtn   = document.getElementById("notifBellBtn");
-      const notifModal= document.getElementById("notifModal");
-      const yesBtn    = document.getElementById("notifYes");
-      const noBtn     = document.getElementById("notifNo");
-      const notifModalClose = document.getElementById("notifModalClose");
 
-      function updateBellStyle() {
-        if (!bellBtn) return;
-        if (notifEnabled) {
+  <script>
+    let notifEnabled = false;
+    let jelenlegiKategoria = "";
+
+    window.addEventListener('DOMContentLoaded', function(){
+      const bellBtn = document.getElementById('notifBellBtn');
+      const notifModal = document.getElementById('notifModal');
+      const closeBtn = document.getElementById('notifModalClose');
+      const yesBtn = document.getElementById('notifYes');
+      const noBtn = document.getElementById('notifNo');
+
+      function updateBellStyle(){
+        if(notifEnabled){
           bellBtn.classList.remove("inactive");
-        } else {
+        }else{
           bellBtn.classList.add("inactive");
         }
       }
+
+      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
       updateBellStyle();
 
-      if (bellBtn) {
-        bellBtn.addEventListener("click", () => {
-          notifModal.style.display = "flex";
+      bellBtn.addEventListener('click', function(){
+        notifModal.style.display = 'flex';
+      });
+
+      closeBtn.addEventListener('click', function(){
+        notifModal.style.display = 'none';
+      });
+
+      yesBtn.addEventListener('click', function(){
+        notifEnabled = true;
+        localStorage.setItem('notifEnabled', 'true');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+        Notification.requestPermission().then(function(permission) {
+          if (permission === "granted") {
+            console.log("Push értesítés engedélyezve");
+            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
+            subscribeUserToPush(null);
+          } else {
+            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
+          }
         });
-      }
-      if (notifModalClose) {
-        notifModalClose.addEventListener("click", () => {
-          notifModal.style.display = "none";
-        });
-      }
-      window.addEventListener("click", (e) => {
-        if (e.target === notifModal) {
-          notifModal.style.display = "none";
+      });
+
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+
+      window.addEventListener('click', function(e){
+        if(e.target === notifModal){
+          notifModal.style.display = 'none';
         }
       });
 
-      yesBtn.addEventListener("click", async () => {
-        notifEnabled = true;
-        localStorage.setItem("notifEnabled", "true");
-        notifModal.style.display = "none";
-        updateBellStyle();
-        await subscribeUserToPush();
-      });
+      function urlBase64ToUint8Array(base64String) {
+        const padding = '='.repeat((4 - base64String.length % 4) % 4);
+        const base64 = (base64String + padding)
+          .replace(/\-/g, '+')
+          .replace(/_/g, '/');
+        const rawData = window.atob(base64);
+        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
+      }
 
-      noBtn.addEventListener("click", () => {
-        notifEnabled = false;
-        localStorage.setItem("notifEnabled", "false");
-        notifModal.style.display = "none";
-        updateBellStyle();
-      });
+      function subscribeUserToPush(plantType) {
+        if (!notifEnabled) return;
+        if ('serviceWorker' in navigator && 'PushManager' in window) {
+          navigator.serviceWorker.ready.then((reg) => {
+            reg.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: urlBase64ToUint8Array("BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE")
+            }).then((sub) => {
+              fetch('/.netlify/functions/registerPush', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ subscription: sub, plantType })
+              });
+            });
+          });
+        }
+      }
     });
 
-    // Service worker regisztráció
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register("sw.js")
-        .then(reg => console.log("Service Worker regisztrálva:", reg))
-        .catch(err => console.log("Service Worker hiba:", err));
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) {
+          console.log('Service Worker regisztrálva');
+        })
+        .catch(function(err) {
+          console.log('Service Worker hiba:', err);
+        });
     }
   </script>
 </head>
@@ -880,7 +867,7 @@
     <div id="notifModalContent">
       <span id="notifModalClose">&times;</span>
       <h3>Push értesítés beállítás</h3>
-      <p>Szeretnél értesítést kapni, ha a növényed vízszintje 35% alá esik?</p>
+      <p>Szeretnél értesítést kapni, ha a növény vízszintje 35% alá esik?</p>
       <div style="margin-top:28px;">
         <button id="notifYes" style="background:linear-gradient(145deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-size:17px;cursor:pointer;margin:0 9px;">
           Igen
@@ -895,12 +882,12 @@
   <div id="modal">
     <div id="modalContent">
       <span id="modalClose">&times;</span>
-      <h3>Fiók hozzáadása</h3>
+      <h3>Bejelentkezés</h3>
       <form id="addNewAccountForm">
         <input type="email" id="newAccountEmail" placeholder="Email"><br>
         <input type="password" id="newAccountPass" placeholder="Jelszó"><br>
         <div style="text-align:center; margin: 10px 0; font-weight:600;">vagy</div>
-        <input type="text" id="newAccountToken" placeholder="Azonosító (nem használt)"><br>
+        <input type="text" id="newAccountToken" placeholder="Azonosító"><br>
         <button type="submit">Belépés</button>
       </form>
       <p id="addAccountStatus"></p>
