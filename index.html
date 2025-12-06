@@ -1,1 +1,671 @@
-<html><body>Placeholder</body></html>
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Növényfigyelő</title>
+  <link rel="icon" href="icon.png" />
+  <style>
+    @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Roboto", sans-serif;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+      overflow-x: hidden;
+      color: #1b3a2a;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.4em;
+      margin: 25px 0 10px;
+      color: #1b5e20;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .title-icon { font-size: 0.9em; }
+    .card {
+      max-width: 420px;
+      margin: 0 auto;
+      background: #ffffff;
+      border-radius: 28px;
+      box-shadow: 0 18px 45px rgba(0, 0, 0, 0.12);
+      padding: 22px 24px 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    .card::before {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle at top left, #e8f5e9 0, transparent 60%);
+      top: -140px;
+      left: -120px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .card::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      background: radial-gradient(circle at bottom right, #e0f2f1 0, transparent 60%);
+      bottom: -140px;
+      right: -120px;
+      opacity: 0.7;
+      pointer-events: none;
+    }
+    .card-inner { position: relative; z-index: 2; }
+    .login-section {
+      margin-bottom: 24px;
+      padding: 16px 14px 18px;
+      background: rgba(248, 250, 252, 0.92);
+      border-radius: 20px;
+      border: 1px solid rgba(200, 230, 201, 0.7);
+      backdrop-filter: blur(8px);
+    }
+    .login-section h2 {
+      font-size: 1rem;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #2e7d32;
+    }
+    .input-group {
+      margin-bottom: 12px;
+      text-align: left;
+    }
+    label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+      margin-bottom: 4px;
+      color: #33691e;
+    }
+    input[type="email"],
+    input[type="password"] {
+      width: 100%;
+      padding: 9px 11px;
+      border-radius: 999px;
+      border: 1px solid #c8e6c9;
+      font-size: 0.84rem;
+      outline: none;
+      background: rgba(255, 255, 255, 0.9);
+      transition: box-shadow 0.2s, border-color 0.2s, background 0.2s;
+    }
+    input[type="email"]:focus,
+    input[type="password"]:focus {
+      border-color: #66bb6a;
+      box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.2);
+      background: #ffffff;
+    }
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    button {
+      cursor: pointer;
+      border: none;
+      font-family: inherit;
+    }
+    .btn-primary,
+    .btn-outline {
+      flex: 1;
+      padding: 8px 0;
+      border-radius: 999px;
+      font-size: 0.86rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease,
+                  color 0.15s ease, border-color 0.15s ease;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #43a047, #2e7d32);
+      color: white;
+      box-shadow: 0 10px 22px rgba(56, 142, 60, 0.35);
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 12px 26px rgba(56, 142, 60, 0.4);
+    }
+    .btn-outline {
+      background: transparent;
+      color: #2e7d32;
+      border: 1px solid rgba(76, 175, 80, 0.65);
+      box-shadow: none;
+    }
+    .btn-outline:hover {
+      background: rgba(200, 230, 201, 0.3);
+      border-color: #388e3c;
+    }
+    .status-text {
+      margin-top: 6px;
+      font-size: 0.72rem;
+      color: #546e7a;
+    }
+    .status-text strong { color: #2e7d32; }
+    .plant-header {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 12px 0 6px;
+      position: relative;
+    }
+    .plant-name {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: #1b5e20;
+      padding: 6px 18px;
+      border-radius: 999px;
+      background: rgba(232, 245, 233, 0.9);
+      box-shadow: 0 10px 24px rgba(56, 142, 60, 0.15);
+      max-width: 260px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .edit-btn {
+      position: absolute;
+      right: -6px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: none;
+      background: #ffffff;
+      box-shadow: 0 8px 18px rgba(0, 0, 0, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: #388e3c;
+    }
+    .edit-btn:hover {
+      background: #e8f5e9;
+      transform: translateY(-50%) translateY(-1px);
+    }
+    .delete-btn {
+      position: absolute;
+      right: -42px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 26px;
+      height: 26px;
+      border-radius: 999px;
+      border: none;
+      background: #ffebee;
+      box-shadow: 0 8px 18px rgba(244, 67, 54, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      color: #c62828;
+    }
+    .delete-btn:hover {
+      background: #ffcdd2;
+      transform: translateY(-50%) translateY(-1px);
+    }
+    .gauge-wrapper {
+      margin: 8px 0 16px;
+      display: flex;
+      justify-content: center;
+    }
+    .gauge-circle {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      background: conic-gradient(#66bb6a 0deg, #a5d6a7 220deg, #e0e0e0 220deg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 16px 40px rgba(76, 175, 80, 0.35);
+      position: relative;
+    }
+    .gauge-circle::after {
+      content: "";
+      position: absolute;
+      width: 112px;
+      height: 112px;
+      border-radius: 50%;
+      background: #ffffff;
+    }
+    .gauge-value {
+      position: relative;
+      font-size: 1.6rem;
+      font-weight: 700;
+      color: #2e7d32;
+    }
+    .slider-section { margin-bottom: 10px; }
+    .slider-label {
+      font-size: 0.78rem;
+      margin-bottom: 4px;
+      color: #455a64;
+    }
+    .slider-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #c8e6c9;
+      outline: none;
+      overflow: hidden;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #43a047;
+      box-shadow: -200px 0 0 190px #66bb6a;
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 2px solid #43a047;
+      cursor: pointer;
+    }
+    .slider-value {
+      min-width: 40px;
+      font-size: 0.8rem;
+      color: #2e7d32;
+      text-align: right;
+    }
+    .select-group {
+      margin: 12px 0;
+      text-align: left;
+    }
+    select {
+      width: 100%;
+      padding: 8px 10px;
+      border-radius: 12px;
+      border: 1px solid #c8e6c9;
+      font-size: 0.85rem;
+      background: rgba(255, 255, 255, 0.9);
+      outline: none;
+    }
+    select:focus {
+      border-color: #66bb6a;
+      box-shadow: 0 0 0 2px rgba(102, 187, 106, 0.3);
+      background: #ffffff;
+    }
+    .floating-buttons {
+      position: fixed;
+      right: 22px;
+      bottom: 28px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      z-index: 15;
+    }
+    .fab {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.1rem;
+      color: #ffffff;
+      box-shadow: 0 14px 28px rgba(56, 142, 60, 0.45);
+      background: linear-gradient(145deg, #43a047, #2e7d32);
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+    .fab:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 32px rgba(56, 142, 60, 0.5);
+    }
+    .fab.secondary {
+      background: linear-gradient(145deg, #aed581, #7cb342);
+      box-shadow: 0 12px 26px rgba(124, 179, 66, 0.5);
+    }
+    .fab.secondary:hover {
+      box-shadow: 0 14px 30px rgba(124, 179, 66, 0.6);
+    }
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 90px;
+      transform: translateX(-50%);
+      background: rgba(33, 33, 33, 0.96);
+      color: #ffffff;
+      padding: 10px 18px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+      display: none;
+      z-index: 30;
+    }
+    .toast.show {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      animation: fadeSlide 0.25s ease-out;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translate(-50%, 10px); }
+      to { opacity: 1; transform: translate(-50%, 0); }
+    }
+  </style>
+</head>
+<body>
+  <h1>Növényfigyelő <span class="title-icon">🌱</span></h1>
+
+  <div class="card">
+    <div class="card-inner">
+      <section class="login-section">
+        <h2>Bejelentkezés</h2>
+        <div class="input-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" placeholder="pelda@cim.hu" />
+        </div>
+        <div class="input-group">
+          <label for="password">Jelszó</label>
+          <input id="password" type="password" placeholder="••••••••" />
+        </div>
+        <div class="btn-row">
+          <button id="loginBtn" class="btn-primary">Belépés</button>
+          <button id="registerBtn" class="btn-outline">Regisztráció</button>
+        </div>
+        <p id="authStatus" class="status-text">Nincs bejelentkezve</p>
+      </section>
+
+      <section>
+        <div class="plant-header">
+          <div id="plantName" class="plant-name">Nincs növény</div>
+        </div>
+
+        <div class="gauge-wrapper">
+          <div class="gauge-circle" id="gaugeCircle">
+            <div class="gauge-value"><span id="moistureValue">0</span>%</div>
+          </div>
+        </div>
+
+        <div class="slider-section">
+          <div class="slider-label">Fény erő</div>
+          <div class="slider-row">
+            <input id="ledSlider" type="range" min="0" max="100" value="0" />
+            <div class="slider-value"><span id="ledValue">0</span>%</div>
+          </div>
+        </div>
+
+        <div class="select-group">
+          <label for="plantType">Növény típusa:</label>
+          <select id="plantType">
+            <option value="">Válassz kategóriát...</option>
+            <option value="Nedvességkedvelő">🌧 Nedvességkedvelő</option>
+            <option value="Kiegyensúlyozott vízigényű">💧 Kiegyensúlyozott vízigényű</option>
+            <option value="Szárazságtűrő">☀ Szárazságtűrő</option>
+          </select>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="floating-buttons">
+    <button id="notifBell" class="fab secondary" title="Push értesítések">
+      🔔
+    </button>
+    <button id="addDeviceBtn" class="fab" title="Új eszköz (később)">
+      +
+    </button>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script type="module">
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      createUserWithEmailAndPassword,
+      onAuthStateChanged,
+      signOut
+    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js";
+    import {
+      getDatabase,
+      ref,
+      onValue,
+      set,
+      update
+    } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAd-vysRLOkCiRAMGJTU9R8C2bH4oW7vdA",
+      authDomain: "plant-monitor-3976f.firebaseapp.com",
+      databaseURL: "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app",
+      projectId: "plant-monitor-3976f",
+      storageBucket: "plant-monitor-3976f.appspot.com",
+      messagingSenderId: "803080430405",
+      appId: "1:803080430405:web:d4400e9d25d5e91159a846"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getDatabase(app);
+
+    const emailInput = document.getElementById("email");
+    const passwordInput = document.getElementById("password");
+    const authStatus = document.getElementById("authStatus");
+    const loginBtn = document.getElementById("loginBtn");
+    const registerBtn = document.getElementById("registerBtn");
+    const gaugeCircle = document.getElementById("gaugeCircle");
+    const moistureValueEl = document.getElementById("moistureValue");
+    const plantNameEl = document.getElementById("plantName");
+    const ledSlider = document.getElementById("ledSlider");
+    const ledValue = document.getElementById("ledValue");
+    const plantTypeSelect = document.getElementById("plantType");
+    const notifBell = document.getElementById("notifBell");
+    const toastEl = document.getElementById("toast");
+
+    const DEFAULT_DEVICE_ID = "esp32_001";
+
+    function showToast(message) {
+      toastEl.textContent = message;
+      toastEl.classList.add("show");
+      setTimeout(() => toastEl.classList.remove("show"), 2600);
+    }
+
+    function updateGaugeDisplay(value) {
+      const clamped = Math.max(0, Math.min(100, Number(value) || 0));
+      const endDeg = (clamped / 100) * 360;
+      gaugeCircle.style.background = \`conic-gradient(#66bb6a 0deg, #66bb6a \${endDeg}deg, #e0e0e0 \${endDeg}deg)\`;
+      moistureValueEl.textContent = clamped.toFixed(0);
+    }
+
+    ledSlider.addEventListener("input", () => {
+      ledValue.textContent = ledSlider.value;
+    });
+
+    loginBtn.addEventListener("click", async () => {
+      try {
+        const email = emailInput.value.trim();
+        const pass = passwordInput.value.trim();
+        if (!email || !pass) {
+          showToast("Add meg az emailt és jelszót.");
+          return;
+        }
+        await signInWithEmailAndPassword(auth, email, pass);
+      } catch (err) {
+        console.error(err);
+        showToast("Hiba a bejelentkezésnél: " + (err.code || err.message));
+      }
+    });
+
+    registerBtn.addEventListener("click", async () => {
+      try {
+        const email = emailInput.value.trim();
+        const pass = passwordInput.value.trim();
+        if (!email || !pass) {
+          showToast("Add meg az emailt és jelszót.");
+          return;
+        }
+        await createUserWithEmailAndPassword(auth, email, pass);
+        showToast("Sikeres regisztráció. Most már használhatod az alkalmazást!");
+      } catch (err) {
+        console.error(err);
+        showToast("Hiba a regisztrációnál: " + (err.code || err.message));
+      }
+    });
+
+    async function saveDeviceData(uid) {
+      const plantType = plantTypeSelect.value || "";
+      const displayName = plantNameEl.textContent || "Növény";
+      const ledLevel = Number(ledSlider.value) || 0;
+
+      const deviceRef = ref(db, \`users/\${uid}/devices/\${DEFAULT_DEVICE_ID}\`);
+      await update(deviceRef, {
+        displayName,
+        plantType,
+        ledLevel
+      });
+    }
+
+    plantTypeSelect.addEventListener("change", async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        await saveDeviceData(user.uid);
+      } catch (err) {
+        console.error(err);
+        showToast("Nem sikerült menteni a növény típusát.");
+      }
+    });
+
+    ledSlider.addEventListener("change", async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      try {
+        await saveDeviceData(user.uid);
+        showToast("LED fény beállítás mentve.");
+      } catch (err) {
+        console.error(err);
+        showToast("Nem sikerült menteni a LED fény értékét.");
+      }
+    });
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        authStatus.innerHTML = \`Bejelentkezve: <strong>\${user.email}</strong>\`;
+        subscribeToDevice(user.uid);
+      } else {
+        authStatus.textContent = "Nincs bejelentkezve";
+        plantNameEl.textContent = "Nincs növény";
+        updateGaugeDisplay(0);
+        plantTypeSelect.value = "";
+        ledSlider.value = 0;
+        ledValue.textContent = "0";
+      }
+    });
+
+    function subscribeToDevice(uid) {
+      const deviceRef = ref(db, \`users/\${uid}/devices/\${DEFAULT_DEVICE_ID}\`);
+      onValue(deviceRef, (snap) => {
+        const data = snap.val() || {};
+        if (data.displayName) {
+          plantNameEl.textContent = data.displayName;
+        }
+        if (typeof data.sensorValue === "number") {
+          updateGaugeDisplay(data.sensorValue);
+        }
+        if (typeof data.ledLevel === "number") {
+          ledSlider.value = data.ledLevel;
+          ledValue.textContent = String(data.ledLevel);
+        }
+        if (data.plantType) {
+          const opts = Array.from(plantTypeSelect.options);
+          const match = opts.find((o) => o.text.includes(data.plantType) || o.value === data.plantType);
+          if (match) plantTypeSelect.value = match.value;
+        }
+      });
+    }
+
+    const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    async function subscribeUserToPush() {
+      try {
+        const user = auth.currentUser;
+        if (!user) {
+          showToast("Előbb jelentkezz be.");
+          return;
+        }
+        if (!("serviceWorker" in navigator)) {
+          showToast("A böngésződ nem támogatja az értesítéseket.");
+          return;
+        }
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          showToast("Az értesítések le vannak tiltva.");
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.register("/sw.js");
+        console.log("Service Worker regisztrálva", registration);
+
+        const sub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        });
+
+        const tokenData = await user.getIdTokenResult();
+        const uid = tokenData.claims.user_id;
+
+        const res = await fetch("/.netlify/functions/registerPush", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            uid,
+            subscription: sub
+          })
+        });
+
+        if (!res.ok) {
+          const text = await res.text();
+          console.error("registerPush hiba:", res.status, text);
+          showToast("Nem sikerült elmenteni az értesítés beállítást.");
+          return;
+        }
+
+        showToast("Push értesítés bekapcsolva!");
+      } catch (err) {
+        console.error("subscribeUserToPush hiba:", err);
+        showToast("Hiba történt az értesítés beállításakor.");
+      }
+    }
+
+    notifBell.addEventListener("click", () => {
+      subscribeUserToPush();
+    });
+  </script>
+</body>
+</html>
