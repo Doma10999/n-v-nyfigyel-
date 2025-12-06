@@ -1,12 +1,8 @@
-// netlify/functions/registerPush.js
 const { admin } = require("./pushCommon");
 
-exports.handler = async function (event) {
+exports.handler = async (event, context) => {
   if (event.httpMethod !== "POST") {
-    return {
-      statusCode: 405,
-      body: "Method not allowed",
-    };
+    return { statusCode: 405, body: "Method Not Allowed" };
   }
 
   try {
@@ -14,25 +10,20 @@ exports.handler = async function (event) {
     const { uid, subscription } = body;
 
     if (!uid || !subscription) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: "uid vagy subscription hiányzik" }),
-      };
+      return { statusCode: 400, body: "uid és subscription kötelező" };
     }
 
     const db = admin.database();
-    const subRef = db.ref(`pushSubscriptions/${uid}`).push();
-    await subRef.set(subscription);
+    const subsRef = db.ref(`pushSubscriptions/${uid}`);
+    const newRef = subsRef.push();
+    await newRef.set(subscription);
 
     return {
       statusCode: 200,
-      body: JSON.stringify({ success: true }),
+      body: JSON.stringify({ success: true })
     };
   } catch (err) {
     console.error("registerPush hiba:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Szerver hiba" }),
-    };
+    return { statusCode: 500, body: "Szerver hiba" };
   }
 };

@@ -1,51 +1,45 @@
-// netlify/functions/checkMoisture.js
 const { admin, sendPushToUser } = require("./pushCommon");
 
-exports.handler = async function () {
+exports.handler = async (event, context) => {
   try {
     const db = admin.database();
     const usersSnap = await db.ref("users").once("value");
     const users = usersSnap.val() || {};
-
-    const THRESHOLD = 35; // 35% alatt jelezzen
-
-    const allTasks = [];
+    const THRESHOLD = 35;
+    const promises = [];
 
     for (const [uid, userData] of Object.entries(users)) {
-      const devices = (userData && userData.devices) || {};
+      if (!userData.devices) continue;
 
-      for (const [deviceId, device] of Object.entries(devices)) {
-        const sensorValue = device.sensorValue;
-        if (typeof sensorValue !== "number") continue;
+      let userNeedsNotification = false;
+      let firstDryPlantName = "A növényed";
 
-        if (sensorValue < THRESHOLD) {
-          const displayName = device.displayName || deviceId;
-
-          const payload = {
-            title: "Növényfigyelő",
-            body: `A(z) "${displayName}" növényed vízszintje ${sensorValue}%. Öntözd meg!`,
-            icon: "/icon.png",
-          };
-
-          allTasks.push(sendPushToUser(uid, payload));
+      for (const [deviceId, device] of Object.entries(userData.devices)) {
+        const sensor = device.sensorValue;
+        if (typeof sensor === "number" && sensor < THRESHOLD) {
+          userNeedsNotification = true;
+          firstDryPlantName = device.displayName || "A növényed";
+          break;
         }
+      }
+
+      if (userNeedsNotification) {
+        const payload = {
+          title: "Növényfigyelő 🌱",
+          body: `${firstDryPlantName} vízszintje 35% alá esett! Öntözd meg!`,
+          icon: "/icon.png"
+        };
+        promises.push(sendPushToUser(uid, payload));
       }
     }
 
-    await Promise.all(allTasks);
-
+    await Promise.all(promises);
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        ok: true,
-        notificationsSent: allTasks.length,
-      }),
+      body: JSON.stringify({ ok: true, sent: promises.length })
     };
   } catch (err) {
     console.error("checkMoisture hiba:", err);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: "Szerver hiba" }),
-    };
+    return { statusCode: 500, body: "Szerver hiba" };
   }
 };
