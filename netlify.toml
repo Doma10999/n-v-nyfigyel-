@@ -1,0 +1,6 @@
+[functions]
+directory = "netlify/functions"
+
+[[scheduled]]
+path = "/.netlify/functions/checkMoisture"
+cron = "*/10 * * * *"
