@@ -221,29 +221,6 @@
     }
     #notifModalClose:hover { color: #111;}
   </style>
-  <script src="push-client.js"></script>
-  <script>
-    // Itt állítsd be a bejelentkezett felhasználó uid-jét
-    // Ha már van változód (pl. currentUserUid), azt használd:
-    const uid = window.currentUserUid || "TEST_UID";
-
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(function(reg) {
-        console.log("Service worker regisztrálva.");
-        // Ha engedélyt ad a böngésző az értesítésre, feliratkozunk
-        Notification.requestPermission().then(function(permission) {
-          if (permission === "granted") {
-            registerPush(uid);
-          } else {
-            console.log("A felhasználó nem engedélyezte az értesítést.");
-          }
-        });
-      }).catch(function(err) {
-        console.error("Service worker reg.hiba:", err);
-      });
-    }
-  </script>
-
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
