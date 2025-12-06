@@ -1,6 +1,7 @@
-[functions]
-directory = "netlify/functions"
+[build]
+  publish = "."
+  functions = "netlify/functions"
+  command = "npm install"
 
-[[scheduled]]
-path = "/.netlify/functions/checkMoisture"
-cron = "*/10 * * * *"
+[functions]
+  node_bundler = "esbuild"
