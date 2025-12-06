@@ -221,28 +221,8 @@
     }
     #notifModalClose:hover { color: #111;}
   </style>
-  <script src="push-client.js"></script>
-  <script>
-    // Itt állítsd be a bejelentkezett felhasználó uid-jét
-    // Ha már van változód (pl. currentUserUid), azt használd:
-    const uid = window.currentUserUid || "TEST_UID";
-
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").then(function(reg) {
-        console.log("Service worker regisztrálva.");
-        // Ha engedélyt ad a böngésző az értesítésre, feliratkozunk
-        Notification.requestPermission().then(function(permission) {
-          if (permission === "granted") {
-            registerPush(uid);
-          } else {
-            console.log("A felhasználó nem engedélyezte az értesítést.");
-          }
-        });
-      }).catch(function(err) {
-        console.error("Service worker reg.hiba:", err);
-      });
-    }
-  </script>
+  
+  
 
 
   <script type="module">
@@ -716,146 +696,25 @@
       if (!firstUser) firstUser = user;
     }
   </script>
-  <script>
-  // Itt a helyes VAPID kulcs
-  const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
-
-  // Kötelező függvény a kulcs konvertálásához
-  function urlBase64ToUint8Array(base64String) {
-      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding)
-          .replace(/-/g, "+")
-          .replace(/_/g, "/");
-
-      const rawData = window.atob(base64);
-      const outputArray = new Uint8Array(rawData.length);
-
-      for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
-      }
-      return outputArray;
-  }
-
-  // Push engedélyezése
-  async function subscribeUserToPush() {
-      const registration = await navigator.serviceWorker.ready;
-
-      const subscription = await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      });
-
-      console.log("Feliratkozási token:", subscription);
-
-      // Elküldés Netlify felé
-      await fetch("/.netlify/functions/registerPush", {
-          method: "POST",
-          body: JSON.stringify(subscription),
-          headers: { "Content-Type": "application/json" }
-      });
-
-      alert("Push értesítés bekapcsolva!");
-  }
-  </script>
+  
 
 
-  <script>
-    let notifEnabled = false;
-    let jelenlegiKategoria = "";
+  
 
-    window.addEventListener('DOMContentLoaded', function(){
-      const bellBtn = document.getElementById('notifBellBtn');
-      const notifModal = document.getElementById('notifModal');
-      const closeBtn = document.getElementById('notifModalClose');
-      const yesBtn = document.getElementById('notifYes');
-      const noBtn = document.getElementById('notifNo');
-
-      function updateBellStyle(){
-        if(notifEnabled){
-          bellBtn.classList.remove("inactive");
-        }else{
-          bellBtn.classList.add("inactive");
-        }
-      }
-
-      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
-      updateBellStyle();
-
-      bellBtn.addEventListener('click', function(){
-        notifModal.style.display = 'flex';
-      });
-
-      closeBtn.addEventListener('click', function(){
-        notifModal.style.display = 'none';
-      });
-
-      yesBtn.addEventListener('click', function(){
-        notifEnabled = true;
-        localStorage.setItem('notifEnabled', 'true');
-        notifModal.style.display = 'none';
-        updateBellStyle();
-        Notification.requestPermission().then(function(permission) {
-          if (permission === "granted") {
-            console.log("Push értesítés engedélyezve");
-            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
-            subscribeUserToPush(null);
-          } else {
-            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
-          }
-        });
-      });
-
-      noBtn.addEventListener('click', function(){
-        notifEnabled = false;
-        localStorage.setItem('notifEnabled', 'false');
-        notifModal.style.display = 'none';
-        updateBellStyle();
-      });
-
-      window.addEventListener('click', function(e){
-        if(e.target === notifModal){
-          notifModal.style.display = 'none';
-        }
-      });
-
-      function urlBase64ToUint8Array(base64String) {
-        const padding = '='.repeat((4 - base64String.length % 4) % 4);
-        const base64 = (base64String + padding)
-          .replace(/\-/g, '+')
-          .replace(/_/g, '/');
-        const rawData = window.atob(base64);
-        return Uint8Array.from([...rawData].map((c) => c.charCodeAt(0)));
-      }
-
-      function subscribeUserToPush(plantType) {
-        if (!notifEnabled) return;
-        if ('serviceWorker' in navigator && 'PushManager' in window) {
-          navigator.serviceWorker.ready.then((reg) => {
-            reg.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: urlBase64ToUint8Array("BCYdagojWk6evEFFMhZbdE8FGpQQiNycuvchcaSCFlsHv4uLF_xvkB4UObcIcz2jmNwkq2tOHDhawETwboltZOiE")
-            }).then((sub) => {
-              fetch('/.netlify/functions/registerPush', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ subscription: sub, plantType })
-              });
-            });
-          });
-        }
-      }
+<!-- OneSignal Web Push -->
+<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(async function(OneSignal) {
+    await OneSignal.init({
+      appId: "6a595cdc-e443-4179-bc11-95241c8ad20f",
+      notifyButton: {
+        enable: true,
+      },
     });
+  });
+</script>
 
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(reg) {
-          console.log('Service Worker regisztrálva');
-        })
-        .catch(function(err) {
-          console.log('Service Worker hiba:', err);
-        });
-    }
-  </script>
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>
