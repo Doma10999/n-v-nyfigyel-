@@ -1,75 +1,41 @@
-const { getDb, initWebPush, webpush } = require("./pushCommon");
+// Opcionális segédfüggvény, amivel kézzel is lehet push-t küldeni teszteléshez.
+// Nem használja a nedvesség logikát, csak elküldi a megadott üzenetet az adott usernek.
 
-exports.handler = async (event, context) => {
-  try {
-    const db = getDb();
-    initWebPush();
+const { db, webpush } = require("./pushCommon");
 
-    // Összes feliratkozás
-    const subsSnap = await db.ref("/pushSubscriptions").once("value");
-    const subs = subsSnap.val() || {};
+exports.handler = async (event) => {
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: "Method not allowed"
+    };
+  }
 
-    if (!Object.keys(subs).length) {
-      return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "No subscribers" }),
-      };
+  try:
+    body = JSON.parse(event.body || "{}");
+    const { uid, title, body: msg } = body;
+
+    if (!uid) {
+      return { statusCode: 400, body: "uid kötelező" };
     }
 
-    // Összes felhasználó + eszköz adat
-    const usersSnap = await db.ref("/users").once("value");
-    const users = usersSnap.val() || {};
+    const subSnap = await db.ref(`/pushSubscriptions/${uid}`).get();
+    const subscription = subSnap.val();
 
-    const toNotify = [];
-
-    Object.entries(users).forEach(([uid, userData]) => {
-      const devices = (userData && userData.devices) || {};
-      const hasDry = Object.values(devices).some((dev) => {
-        const val = dev && typeof dev.sensorValue === "number" ? dev.sensorValue : null;
-        return val !== null && val < 35;
-      });
-      if (hasDry && subs[uid]) {
-        toNotify.push({ uid, sub: subs[uid] });
-      }
-    });
-
-    if (!toNotify.length) {
-      return {
-        statusCode: 200,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: "No dry plants under 35%" }),
-      };
+    if (!subscription) {
+      return { statusCode: 404, body: "Nincs subscription ehhez a userhez" };
     }
 
     const payload = JSON.stringify({
-      title: "Növényfigyelő",
-      body: "A növényed vízszintje 35% alá esett! Öntözd meg!",
+      title: title || "Teszt értesítés",
+      body: msg || "Ez egy teszt üzenet a Növényfigyelőtől."
     });
 
-    const results = await Promise.all(
-      toNotify.map(({ uid, sub }) =>
-        webpush.sendNotification(sub, payload).then(
-          () => ({ uid, ok: true }),
-          (err) => {
-            console.error("Webpush error for", uid, err && err.body ? err.body : err);
-            return { uid, ok: false };
-          }
-        )
-      )
-    );
+    await webpush.sendNotification(subscription, payload);
 
-    return {
-      statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ sent: results }),
-    };
+    return { statusCode: 200, body: JSON.stringify({ ok: true }) };
   } catch (err) {
-    console.error("sendPush error:", err);
-    return {
-      statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Internal server error" }),
-    };
+    console.error("sendPush hiba:", err);
+    return { statusCode: 500, body: "Szerver hiba a sendPush függvényben" };
   }
 };

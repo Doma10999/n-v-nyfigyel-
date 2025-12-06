@@ -1,44 +1,36 @@
-const {{ getDb, initWebPush }} = require("./pushCommon");
+const { db } = require("./pushCommon");
 
-exports.handler = async (event, context) => {
+exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
     return {
       statusCode: 405,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Method not allowed" }),
+      body: "Method not allowed"
     };
   }
 
   try {
-    const data = JSON.parse(event.body || "{}");
-    const uid = data.uid;
-    const subscription = data.subscription;
+    const body = JSON.parse(event.body || "{}");
+    const { uid, subscription } = body;
 
     if (!uid || !subscription) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ error: "Missing uid or subscription" }),
+        body: "uid és subscription kötelező"
       };
     }
 
-    const db = getDb();
-    initWebPush();
-
-    // Mentsük el a subscriptiont az adott felhasználóhoz
+    // Egyetlen subscription / user – ide mindig a legfrissebbet írjuk
     await db.ref(`/pushSubscriptions/${uid}`).set(subscription);
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ok: true }),
+      body: JSON.stringify({ ok: true })
     };
   } catch (err) {
-    console.error("registerPush error:", err);
+    console.error("registerPush hiba:", err);
     return {
       statusCode: 500,
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ error: "Internal server error" }),
+      body: "Szerver hiba a registerPush függvényben"
     };
   }
 };

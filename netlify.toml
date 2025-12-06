@@ -1,9 +1,11 @@
 [build]
   publish = "."
   functions = "netlify/functions"
+  command = "npm install"
 
 [functions]
   node_bundler = "esbuild"
 
-[functions."sendPush"]
-  schedule = "*/10 * * * *"
+[[scheduled_functions]]
+  name = "checkMoisture"
+  cron = "*/10 * * * *"
