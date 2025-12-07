@@ -718,6 +718,11 @@
 
     async function subscribeUserToPush() {
       try {
+        if (!window.jelenlegiEszkozID) {
+          console.error("NINCS beállítva a készülék ID! Nem lehet push-t regisztrálni.");
+          return;
+        }
+
         const registration = await navigator.serviceWorker.ready;
 
         // Meglévő subscription lekérése
@@ -792,11 +797,21 @@
           notifModal.style.display = 'none';
         });
 
-        yesBtn.addEventListener('click', function(){
+        yesBtn.addEventListener("click", async function(){
           notifEnabled = true;
           localStorage.setItem('notifEnabled', 'true');
           notifModal.style.display = 'none';
           updateBellStyle();
+
+          // <<< VÁRJON, AMÍG NINCS kész eszköz ID >>>
+          if (!window.jelenlegiEszkozID) {
+            console.warn("Várakozás eszköz ID-re...");
+            let tries = 0;
+            while (!window.jelenlegiEszkozID && tries < 30) {
+              await new Promise(r => setTimeout(r, 200));
+              tries++;
+            }
+          }
 
           Notification.requestPermission().then(function(permission){
             if (permission === "granted") {
@@ -804,6 +819,7 @@
             }
           });
         });
+
 
         noBtn.addEventListener('click', function(){
           notifEnabled = false;
