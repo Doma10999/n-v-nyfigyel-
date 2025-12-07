@@ -745,7 +745,7 @@
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            subscription: newSub,
+            subscription: newSub.toJSON(),
             deviceId: window.jelenlegiEszkozID   // <<< EZ MOST MÁR KÜLDŐDIK
           })
         });
