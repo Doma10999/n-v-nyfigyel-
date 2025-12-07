@@ -221,8 +221,10 @@
     }
     #notifModalClose:hover { color: #111;}
   </style>
+  
+  
 
-  <!-- Firebase + fő logika -->
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
@@ -258,6 +260,19 @@
     function removeStoredAccount(uid) {
       const accs = getStoredAccounts().filter(a => a.uid !== uid);
       setStoredAccounts(accs);
+      const plantTypesDict = getPlantTypeAll();
+      delete plantTypesDict[uid];
+      savePlantTypeAll(plantTypesDict);
+    }
+    function getPlantTypeAll() {
+      try { const d = localStorage.getItem(PLANT_TYPE_KEY); return d ? JSON.parse(d) : {}; } catch { return {}; }
+    }
+    function savePlantTypeAll(obj) { localStorage.setItem(PLANT_TYPE_KEY, JSON.stringify(obj)); }
+    function getPlantType(uid) {
+      const d = getPlantTypeAll(); return d[uid] || '';
+    }
+    function setPlantType(uid, value) {
+      const d = getPlantTypeAll(); d[uid] = value; savePlantTypeAll(d);
     }
 
     const loginForm = document.getElementById("loginForm");
@@ -274,6 +289,8 @@
     const addNewAccountForm = document.getElementById("addNewAccountForm");
     const newAccountEmail = document.getElementById("newAccountEmail");
     const newAccountPass = document.getElementById("newAccountPass");
+    const newAccountToken = document.getElementById("newAccountToken");
+    const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
 
     const plantCategories = {
@@ -284,17 +301,21 @@
       "💧Vízigényes": { min: 70, max: 100 }
     };
 
+    function normalizeToCategory(value, min, max) {
+      let norm = (value - min) / (max - min);
+      return Math.max(0, Math.min(1, norm));
+    }
+
     const RADIUS = 90, CIRCUMFERENCE = 2 * Math.PI * RADIUS;
     gaugeCircle.style.strokeDasharray = CIRCUMFERENCE;
 
     let firstUser = null;
-    window.firstUser = null; // a push script innen fogja látni
 
     window.addEventListener('load', () => {
       const stored = getStoredAccounts();
       if (stored.length > 0) {
         stored.forEach(acc => {
-          addAccountCard({ uid: acc.uid }, acc.email, accounts.size === 0);
+          addAccountCard({ uid: acc.uid }, acc.email, auth, false);
         });
         hideLoginScreen();
       } else {
@@ -318,7 +339,7 @@
           return;
         }
 
-        addAccountCard(user, emailInput.value, accounts.size === 0);
+        addAccountCard(user, emailInput.value, auth, accounts.size === 0);
         addStoredAccount(emailInput.value, user.uid);
         hideLoginScreen();
       } catch (err) {
@@ -348,7 +369,6 @@
       addAccountBtn.style.display = "none";
       updateGauge(0);
       firstUser = null;
-      window.firstUser = null;
     }
 
     function hideLoginScreen() {
@@ -364,6 +384,9 @@
       gaugeValue.innerText = value + "%";
       const offset = CIRCUMFERENCE - (value / 100) * CIRCUMFERENCE;
       gaugeCircle.style.strokeDashoffset = offset;
+      const color = getGradientColor(value);
+      gaugeCircle.style.stroke = color;
+      gaugeValue.style.color = color;
     }
 
     function getGradientColor(value) {
@@ -384,6 +407,7 @@
 
     addAccountBtn.addEventListener("click", () => {
       modal.style.display = "flex";
+      addAccountStatus.innerText = "";
     });
 
     modalCloseBtn.addEventListener("click", () => {
@@ -399,7 +423,7 @@
 
       const email = newAccountEmail.value.trim();
       const pass = newAccountPass.value.trim();
-      const addAccountStatus = document.getElementById("addAccountStatus");
+
       addAccountStatus.textContent = "";
 
       const stored = getStoredAccounts();
@@ -414,7 +438,7 @@
         const uid = userCred.user.uid;
 
         addStoredAccount(email, uid);
-        addAccountCard({ uid }, email, true);
+        addAccountCard({ uid }, email, auth, true);
 
         modal.style.display = "none";
         newAccountEmail.value = "";
@@ -443,7 +467,45 @@
       }
     }
 
-    function addAccountCard(user, email, setAsFirst=false) {
+    let confirmResolve = null;
+    function showConfirmModal(message) {
+      return new Promise((resolve) => {
+        const modal = document.getElementById("confirmModal");
+        document.getElementById("confirmText").innerText = message;
+        modal.style.display = "flex";
+        confirmResolve = resolve;
+      });
+    }
+
+    function hideConfirmModal() {
+      const modal = document.getElementById("confirmModal");
+      modal.style.display = "none";
+      if (confirmResolve) confirmResolve(false);
+      confirmResolve = null;
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("confirmIgenBtn").addEventListener("click", () => {
+        const modal = document.getElementById("confirmModal");
+        modal.style.display = "none";
+        if (confirmResolve) confirmResolve(true);
+        confirmResolve = null;
+      });
+      document.getElementById("confirmNemBtn").addEventListener("click", () => {
+        hideConfirmModal();
+      });
+      document.getElementById("confirmClose").addEventListener("click", () => {
+        hideConfirmModal();
+      });
+      window.addEventListener("keydown", (e) => {
+        if(e.key === "Escape" && document.getElementById("confirmModal").style.display === "flex") {
+          hideConfirmModal();
+        }
+      });
+    });
+
+    function addAccountCard(user, email, auth, isMain=false) {
+
       const plantTypes = [
         "🌵Szárazkedvelő",
         "🌾Mérsékelten száraz",
@@ -475,7 +537,10 @@
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
         <h3>
           <span class="displayNameSpan">${email}</span>
+          <button class="editNameBtn" aria-label="Név szerkesztése" style="background:none;border:none;cursor:pointer;margin-left:3px;font-size:15px;">✏️</button>
         </h3>
+        <input type="text" class="editNameInput" style="display:none;width:75%;margin:0 auto 7px auto;padding:8px;" maxlength="50"/>
+        <button class="saveNameBtn" style="display:none;background:#43a047;color:#fff;margin-bottom:10px;border-radius:9px;padding:8px 16px;border:none;font-size:15px;cursor:pointer;">Mentés</button>
         <div class="gauge-container">
           <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
@@ -483,11 +548,20 @@
           </svg>
           <div class="gauge-value">0%</div>
         </div>
+        <div class="slider-container" style="display:none;">
+          <input type="range" min="0" max="100" step="1" value="0" class="led-slider" />
+          <div class="slider-labels"><span>Fény erő</span></div>
+        </div>
         ${plantTypeSelectHtml}
       `;
 
       const gaugeValueEl = card.querySelector(".gauge-value");
       const gaugeCircleEl = card.querySelector(".gauge-fill");
+      const displayNameSpan = card.querySelector(".displayNameSpan");
+      const editBtn = card.querySelector(".editNameBtn");
+      const editInput = card.querySelector(".editNameInput");
+      const saveBtn = card.querySelector(".saveNameBtn");
+
       gaugeCircleEl.style.strokeDasharray = 2 * Math.PI * 80;
 
       let currPercent = 0;
@@ -500,9 +574,10 @@
           if (devicesSnap.exists()) {
             const devicesData = devicesSnap.val();
             firstDeviceId = Object.keys(devicesData)[0];
+            // <<< ADD HOZZÁ EZT A SORT! >>>
+            window.jelenlegiEszkozID = firstDeviceId;
 
             const nameSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`));
-            const displayNameSpan = card.querySelector(".displayNameSpan");
             if (nameSnap.exists() && nameSnap.val()) {
               displayNameSpan.textContent = nameSnap.val();
             }
@@ -515,6 +590,22 @@
               updateAccountGauge(currPercent, currCat);
             }
 
+            const sliderContainer = card.querySelector('.slider-container');
+            if (devicesData[firstDeviceId] && devicesData[firstDeviceId].hasOwnProperty('ledLevel')) {
+              sliderContainer.style.display = "block";
+              const slider = card.querySelector('.led-slider');
+              const ledLevelRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/ledLevel`);
+              onValue(ledLevelRef, (snap) => {
+                if (snap.exists()) slider.value = snap.val();
+              });
+              slider.addEventListener('input', async (e) => {
+                const newValue = parseInt(e.target.value);
+                await set(ledLevelRef, newValue);
+              });
+            } else {
+              sliderContainer.style.display = "none";
+            }
+
             const soilRef = ref(db, `users/${user.uid}/devices/${firstDeviceId}/sensorValue`);
             onValue(soilRef, (snap) => {
               if (snap.exists()) {
@@ -525,6 +616,28 @@
           }
         }
       })();
+
+      editBtn.addEventListener("click", () => {
+        editInput.value = displayNameSpan.textContent;
+        displayNameSpan.style.display = "none";
+        editBtn.style.display = "none";
+        editInput.style.display = "inline-block";
+        saveBtn.style.display = "inline-block";
+        editInput.focus();
+      });
+
+      saveBtn.addEventListener("click", async () => {
+        const newName = editInput.value.trim();
+        if (!newName) return;
+        displayNameSpan.textContent = newName;
+        displayNameSpan.style.display = "inline-block";
+        editBtn.style.display = "inline-block";
+        editInput.style.display = "none";
+        saveBtn.style.display = "none";
+        if (user.uid && firstDeviceId) {
+          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`), newName);
+        }
+      });
 
       function updateAccountGauge(realPercent, cat) {
         let display = 0;
@@ -545,43 +658,58 @@
       }
 
       const selectElem = card.querySelector(`#${selectId}`);
-      selectElem.addEventListener("change", async (e) => {
-        const value = e.target.value;
-        currCat = value;
-        updateAccountGauge(currPercent, currCat);
+      setTimeout(async () => {
+        let saved = '';
         if (user.uid && firstDeviceId) {
-          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), value);
+          const catSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`));
+          if (catSnap.exists() && catSnap.val()) {
+            saved = catSnap.val();
+          }
         }
-      });
+        if (!saved) saved = getPlantType(user.uid);
+        if (saved) {
+          selectElem.value = saved;
+          currCat = saved;
+          updateAccountGauge(currPercent, currCat);
+        }
+      }, 10);
 
       const deleteBtn = card.querySelector(".deleteBtn");
       deleteBtn.addEventListener("click", async () => {
-        const confirmed = confirm("Biztosan törlöd ezt a fiókot?");
+        const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
         if (confirmed) {
           await signOut(auth);
           removeAccount(user.uid);
         }
       });
 
-      accountsContainer.appendChild(card);
-      accounts.set(user.uid, { user, card });
+      selectElem.addEventListener("change", async (e) => {
+        const value = e.target.value;
+        currCat = value;
+        setPlantType(user.uid, value);
+        updateAccountGauge(currPercent, currCat);
+        if (user.uid && firstDeviceId) {
+          await set(ref(db, `users/${user.uid}/devices/${firstDeviceId}/plantType`), value);
+        }
+      });
 
-      if (setAsFirst) {
-        firstUser = user;
-        window.firstUser = user;
-      }
+      accountsContainer.appendChild(card);
+      accounts.set(user.uid, { user, auth, card });
+      if (!firstUser) firstUser = user;
     }
   </script>
-
-  <!-- PUSH LOGIKA – CSAK ITT VAN publicVapidKey, SEHOL MÁSHOL -->
   <script>
     const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
 
     function urlBase64ToUint8Array(base64String) {
       const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const base64 = (base64String + padding)
+        .replace(/-/g, "+")
+        .replace(/_/g, "/");
+
       const rawData = window.atob(base64);
       const outputArray = new Uint8Array(rawData.length);
+
       for (let i = 0; i < rawData.length; ++i) {
         outputArray[i] = rawData.charCodeAt(i);
       }
@@ -589,107 +717,135 @@
     }
 
     async function subscribeUserToPush() {
-      if (!window.firstUser || !window.firstUser.uid) {
-        console.error("Nincs bejelentkezett felhasználó, nem tudunk feliratkozni.");
-        return;
-      }
-
-      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-        alert("Ez a böngésző nem támogatja a push értesítéseket.");
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-      if (permission !== "granted") {
-        alert("Az értesítések le vannak tiltva a böngészőben.");
-        return;
-      }
-
-      const registration = await navigator.serviceWorker.ready;
-
-      // Régi subscription törlése
-      const existingSub = await registration.pushManager.getSubscription();
-      if (existingSub) {
-        try {
-          await existingSub.unsubscribe();
-        } catch (e) {
-          console.warn("Nem sikerült törölni a régi subscriptiont:", e);
+      try {
+        if (!window.jelenlegiEszkozID) {
+          console.error("NINCS beállítva a készülék ID! Nem lehet push-t regisztrálni.");
+          return;
         }
+
+        const registration = await navigator.serviceWorker.ready;
+
+        // Meglévő subscription lekérése
+        let sub = await registration.pushManager.getSubscription();
+
+        // Ha létezik régi és más kulccsal jött létre → töröljük
+        if (sub) {
+          console.log("Régi push subscription található, leiratkozás...");
+          await sub.unsubscribe();
+          console.log("Régi subscription törölve.");
+        }
+
+        // Új feliratkozás készítése
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg"
+          )
+        });
+
+        console.log("Új feliratkozási token:", newSub);
+
+        // Beküldés a Netlify function felé
+        await fetch("/.netlify/functions/registerPush", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            subscription: newSub.toJSON(),
+            deviceId: window.jelenlegiEszkozID   // <<< EZ MOST MÁR KÜLDŐDIK
+          })
+        });
+
+      } catch (err) {
+        console.error("Push feliratkozás hiba:", err);
       }
-
-      // Új subscription
-      const newSub = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
-      });
-
-      // Küldés a Netlify functionnek
-      await fetch("/.netlify/functions/registerPush", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          uid: window.firstUser.uid,
-          subscription: newSub.toJSON(),
-        }),
-      });
-
-      localStorage.setItem("notificationsEnabled", "true");
-      console.log("Push feliratkozás sikeres.");
     }
 
-    document.addEventListener("DOMContentLoaded", () => {
-      const bellBtn = document.getElementById("notifBellBtn");
-      const notifModal = document.getElementById("notifModal");
-      const closeBtn = document.getElementById("notifModalClose");
-      const yesBtn = document.getElementById("notifYes");
-      const noBtn = document.getElementById("notifNo");
 
-      function updateBellStyle() {
-        const enabled = localStorage.getItem("notificationsEnabled") === "true";
-        if (enabled) bellBtn.classList.remove("inactive");
-        else bellBtn.classList.add("inactive");
-      }
-
-      updateBellStyle();
-
-      bellBtn.addEventListener("click", () => {
-        notifModal.style.display = "flex";
-      });
-
-      closeBtn.addEventListener("click", () => {
-        notifModal.style.display = "none";
-      });
-
-      yesBtn.addEventListener("click", async () => {
-        notifModal.style.display = "none";
-        try {
-          await subscribeUserToPush();
-          alert("Értesítések bekapcsolva!");
-          updateBellStyle();
-        } catch (e) {
-          console.error("Push feliratkozási hiba:", e);
-          alert("Hiba történt az értesítések bekapcsolásakor.");
-        }
-      });
-
-      noBtn.addEventListener("click", () => {
-        notifModal.style.display = "none";
-        localStorage.setItem("notificationsEnabled", "false");
-        updateBellStyle();
-      });
-
-      window.addEventListener("click", (e) => {
-        if (e.target === notifModal) notifModal.style.display = "none";
-      });
-
-      if ("serviceWorker" in navigator) {
-        navigator.serviceWorker
-          .register("/sw.js")
-          .then(() => console.log("Service worker regisztrálva."))
-          .catch((err) => console.error("Service worker hiba:", err));
-      }
-    });
+    // biztosan elérhető legyen window.subscribeUserToPush néven
+    window.subscribeUserToPush = subscribeUserToPush;
   </script>
+
+
+
+  <script>
+    let notifEnabled = false;
+    let jelenlegiKategoria = "";
+
+    window.addEventListener('DOMContentLoaded', function(){
+        const bellBtn = document.getElementById('notifBellBtn');
+        const notifModal = document.getElementById('notifModal');
+        const closeBtn = document.getElementById('notifModalClose');
+        const yesBtn = document.getElementById('notifYes');
+        const noBtn = document.getElementById('notifNo');
+
+        function updateBellStyle(){
+          if(notifEnabled){
+            bellBtn.classList.remove("inactive");
+          } else {
+            bellBtn.classList.add("inactive");
+          }
+        }
+
+        notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+        updateBellStyle();
+
+        bellBtn.addEventListener('click', function(){
+          notifModal.style.display = 'flex';
+        });
+
+        closeBtn.addEventListener('click', function(){
+          notifModal.style.display = 'none';
+        });
+
+        yesBtn.addEventListener("click", async function(){
+          notifEnabled = true;
+          localStorage.setItem('notifEnabled', 'true');
+          notifModal.style.display = 'none';
+          updateBellStyle();
+
+          // <<< VÁRJON, AMÍG NINCS kész eszköz ID >>>
+          if (!window.jelenlegiEszkozID) {
+            console.warn("Várakozás eszköz ID-re...");
+            let tries = 0;
+            while (!window.jelenlegiEszkozID && tries < 30) {
+              await new Promise(r => setTimeout(r, 200));
+              tries++;
+            }
+          }
+
+          Notification.requestPermission().then(function(permission){
+            if (permission === "granted") {
+              window.subscribeUserToPush && window.subscribeUserToPush();
+            }
+          });
+        });
+
+
+        noBtn.addEventListener('click', function(){
+          notifEnabled = false;
+          localStorage.setItem('notifEnabled', 'false');
+          notifModal.style.display = 'none';
+          updateBellStyle();
+        });
+
+        window.addEventListener('click', function(e){
+          if (e.target === notifModal) {
+            notifModal.style.display = 'none';
+          }
+        });
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(reg) {
+              console.log('Service Worker regisztrálva');
+            })
+            .catch(function(err) {
+              console.log('Service Worker hiba:', err);
+            });
+        }
+
+    });  <!-- *** EZ HIÁNYZOTT *** -->
+  </script> <!-- *** EZ IS HIÁNYZOTT *** -->
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>
@@ -743,6 +899,8 @@
       <form id="addNewAccountForm">
         <input type="email" id="newAccountEmail" placeholder="Email"><br>
         <input type="password" id="newAccountPass" placeholder="Jelszó"><br>
+        <div style="text-align:center; margin: 10px 0; font-weight:600;">vagy</div>
+        <input type="text" id="newAccountToken" placeholder="Azonosító"><br>
         <button type="submit">Belépés</button>
       </form>
       <p id="addAccountStatus"></p>
@@ -759,5 +917,116 @@
       </div>
     </div>
   </div>
+
+<script>
+// === PUSH ÉRTESÍTÉS KEZELÉS (Netlify + web-push) ===
+const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+async function subscribeUserToPush() {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+    console.warn("Push értesítés nem támogatott ezen az eszközön.");
+    return;
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== "granted") {
+    alert("Az értesítések le vannak tiltva a böngészőben.");
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+
+  // régi subscription törlése
+  const existingSub = await registration.pushManager.getSubscription();
+  if (existingSub) {
+    try {
+      await existingSub.unsubscribe();
+      console.log("Régi push subscription törölve.");
+    } catch (e) {
+      console.warn("Nem sikerült törölni a régi subscriptiont:", e);
+    }
+  }
+
+  const newSub = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicVapidKey),
+  });
+
+  console.log("Új subscription:", newSub);
+
+  const uid = window.firstUser && window.firstUser.uid;
+  if (!uid) {
+    console.error("Nincs UID, nem tudjuk regisztrálni a push-t.");
+    return;
+  }
+
+  await fetch("/.netlify/functions/registerPush", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      uid,
+      subscription: newSub,
+    }),
+  });
+
+  console.log("Push subscription elmentve a Netlify functionön keresztül.");
+  localStorage.setItem("notificationsEnabled", "true");
+}
+
+// A harang ablak IGEN gombja hívja ezt
+document.addEventListener("DOMContentLoaded", () => {
+  const yesBtn = document.getElementById("notifYes");
+  const noBtn = document.getElementById("notifNo");
+  const bellBtn = document.getElementById("notifBell");
+  const notifOverlay = document.getElementById("notifOverlay");
+
+  if (bellBtn && notifOverlay) {
+    bellBtn.addEventListener("click", () => {
+      notifOverlay.classList.add("active");
+    });
+  }
+
+  if (noBtn && notifOverlay) {
+    noBtn.addEventListener("click", () => {
+      notifOverlay.classList.remove("active");
+      localStorage.setItem("notificationsEnabled", "false");
+    });
+  }
+
+  if (yesBtn && notifOverlay) {
+    yesBtn.addEventListener("click", async () => {
+      notifOverlay.classList.remove("active");
+      try {
+        await subscribeUserToPush();
+        alert("Értesítések bekapcsolva!");
+      } catch (e) {
+        console.error("Push feliratkozási hiba:", e);
+        alert("Hiba történt az értesítések bekapcsolásakor.");
+      }
+    });
+  }
+
+  // Service worker regisztráció
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register("/sw.js").then(() => {
+      console.log("Service worker regisztrálva.");
+    }).catch((err) => {
+      console.error("Service worker regisztrációs hiba:", err);
+    });
+  }
+});
+</script>
+
 </body>
 </html>
