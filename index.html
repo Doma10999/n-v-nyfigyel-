@@ -744,71 +744,69 @@
     let jelenlegiKategoria = "";
 
     window.addEventListener('DOMContentLoaded', function(){
-      const bellBtn = document.getElementById('notifBellBtn');
-      const notifModal = document.getElementById('notifModal');
-      const closeBtn = document.getElementById('notifModalClose');
-      const yesBtn = document.getElementById('notifYes');
-      const noBtn = document.getElementById('notifNo');
+        const bellBtn = document.getElementById('notifBellBtn');
+        const notifModal = document.getElementById('notifModal');
+        const closeBtn = document.getElementById('notifModalClose');
+        const yesBtn = document.getElementById('notifYes');
+        const noBtn = document.getElementById('notifNo');
 
-      function updateBellStyle(){
-        if(notifEnabled){
-          bellBtn.classList.remove("inactive");
-        }else{
-          bellBtn.classList.add("inactive");
-        }
-      }
-
-      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
-      updateBellStyle();
-
-      bellBtn.addEventListener('click', function(){
-        notifModal.style.display = 'flex';
-      });
-
-      closeBtn.addEventListener('click', function(){
-        notifModal.style.display = 'none';
-      });
-
-      yesBtn.addEventListener('click', function(){
-        notifEnabled = true;
-        localStorage.setItem('notifEnabled', 'true');
-        notifModal.style.display = 'none';
-        updateBellStyle();
-        Notification.requestPermission().then(function(permission) {
-          if (permission === "granted") {
-            console.log("Push értesítés engedélyezve");
-            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
-            window.subscribeUserToPush && window.subscribeUserToPush();
+        function updateBellStyle(){
+          if(notifEnabled){
+            bellBtn.classList.remove("inactive");
           } else {
-            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
+            bellBtn.classList.add("inactive");
+          }
+        }
+
+        notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+        updateBellStyle();
+
+        bellBtn.addEventListener('click', function(){
+          notifModal.style.display = 'flex';
+        });
+
+        closeBtn.addEventListener('click', function(){
+          notifModal.style.display = 'none';
+        });
+
+        yesBtn.addEventListener('click', function(){
+          notifEnabled = true;
+          localStorage.setItem('notifEnabled', 'true');
+          notifModal.style.display = 'none';
+          updateBellStyle();
+
+          Notification.requestPermission().then(function(permission){
+            if (permission === "granted") {
+              window.subscribeUserToPush && window.subscribeUserToPush();
+            }
+          });
+        });
+
+        noBtn.addEventListener('click', function(){
+          notifEnabled = false;
+          localStorage.setItem('notifEnabled', 'false');
+          notifModal.style.display = 'none';
+          updateBellStyle();
+        });
+
+        window.addEventListener('click', function(e){
+          if (e.target === notifModal) {
+            notifModal.style.display = 'none';
           }
         });
-      });
 
-      noBtn.addEventListener('click', function(){
-        notifEnabled = false;
-        localStorage.setItem('notifEnabled', 'false');
-        notifModal.style.display = 'none';
-        updateBellStyle();
-      });
-
-      window.addEventListener('click', function(e){
-        if (e.target === notifModal) {
-          notifModal.style.display = 'none';
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.register('/sw.js')
+            .then(function(reg) {
+              console.log('Service Worker regisztrálva');
+            })
+            .catch(function(err) {
+              console.log('Service Worker hiba:', err);
+            });
         }
-      });
 
-
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js')
-        .then(function(reg) {
-          console.log('Service Worker regisztrálva');
-        })
-        .catch(function(err) {
-          console.log('Service Worker hiba:', err);
-        });
-    }
-  </script>
+    });  <!-- *** EZ HIÁNYZOTT *** -->
+  </script> <!-- *** EZ IS HIÁNYZOTT *** -->
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>
