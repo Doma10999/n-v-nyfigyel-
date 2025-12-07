@@ -741,7 +741,10 @@
       await fetch("/.netlify/functions/registerPush", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(subscription)
+        body: JSON.stringify({
+            subscription: newSub,
+            deviceId: jelenlegiEszkozID    // <<< EZT KELL HOZZÁADNI
+        })
       });
 
       alert("Push értesítés bekapcsolva!");
