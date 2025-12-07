@@ -714,42 +714,45 @@
       return outputArray;
     }
 
-    // Push engedélyezése (régi subscription törlésével)
     async function subscribeUserToPush() {
-      const registration = await navigator.serviceWorker.ready;
+      try {
+        const registration = await navigator.serviceWorker.ready;
 
-      // 1) Megnézzük, van-e már subscription
-      const existing = await registration.pushManager.getSubscription();
-      if (existing) {
-        try {
+        // Meglévő subscription lekérése
+        let sub = await registration.pushManager.getSubscription();
+
+        // Ha létezik régi és más kulccsal jött létre → töröljük
+        if (sub) {
           console.log("Régi push subscription található, leiratkozás...");
-          await existing.unsubscribe();
+          await sub.unsubscribe();
           console.log("Régi subscription törölve.");
-        } catch (err) {
-          console.warn("Nem sikerült leiratkozni a régi subscription-ről:", err);
         }
-      }
 
-      // 2) Új subscription az aktuális VAPID kulccsal
-      const subscription = await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
-      });
+        // Új feliratkozás készítése
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(
+            "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg"
+          )
+        });
 
-      console.log("Új feliratkozási token:", subscription);
+        console.log("Új feliratkozási token:", newSub);
 
-      await fetch("/.netlify/functions/registerPush", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+        // Beküldés a Netlify function felé
+        await fetch("/.netlify/functions/registerPush", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
             subscription: newSub,
-            deviceId: jelenlegiEszkozID    // <<< EZT KELL HOZZÁADNI
-        })
-      });
+            deviceId: jelenlegiEszkozID   // <<< EZ MOST MÁR KÜLDŐDIK
+          })
+        });
 
-      alert("Push értesítés bekapcsolva!");
-      return subscription;
+      } catch (err) {
+        console.error("Push feliratkozás hiba:", err);
+      }
     }
+
 
     // biztosan elérhető legyen window.subscribeUserToPush néven
     window.subscribeUserToPush = subscribeUserToPush;
