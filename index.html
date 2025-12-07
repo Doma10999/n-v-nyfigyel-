@@ -813,9 +813,11 @@
       });
 
       window.addEventListener('click', function(e){
-        if(e.target === notifModal){
-          notifModal.style.displa
-    });
+        if (e.target === notifModal) {
+          notifModal.style.display = 'none';
+        }
+      });
+
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js')
