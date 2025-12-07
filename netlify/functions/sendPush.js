@@ -1,4 +1,4 @@
-const { getDb, initWebPush, webpush } = require("./pushCommon");
+const { getDb, initWebPush, webpush } = require("../pushCommon");
 
 exports.handler = async (event, context) => {
   try {

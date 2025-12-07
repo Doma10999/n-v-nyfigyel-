@@ -1,4 +1,4 @@
-const {{ getDb, initWebPush }} = require("./pushCommon");
+const { getDb, initWebPush } = require("../pushCommon");
 
 exports.handler = async (event, context) => {
   if (event.httpMethod !== "POST") {
