@@ -5,5 +5,5 @@
 [functions]
   node_bundler = "esbuild"
 
-[functions."checkMoisture"]
+[functions."sendPush"]
   schedule = "*/10 * * * *"

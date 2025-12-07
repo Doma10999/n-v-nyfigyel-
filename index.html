@@ -1,4 +1,248 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Növényfigyelő</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+    * { box-sizing: border-box; margin: 0; padding: 0;}
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+      overflow-x: hidden;
+      color: #1b3a2a;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      font-size: 2.8em;
+      margin: 25px 0;
+      color: #0d3b23;
+      letter-spacing: 1px;
+      text-shadow: 1px 1px 5px rgba(0,0,0,0.05);
+    }
+    .card {
+      position: relative;
+      background: rgba(255,255,255,0.9);
+      border-radius: 30px;
+      padding: 30px 25px;
+      margin: 25px auto;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.35s ease, box-shadow 0.35s ease;
+    }
+    .card::before, .card::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: float 12s infinite linear;
+    }
+    .card::before {
+      width: 200px; height: 200px;
+      background: #66bb6a;
+      top: -50px; right: -80px;
+    }
+    .card::after {
+      width: 150px; height: 150px;
+      background: #43a047;
+      bottom: -60px; left: -50px;
+      animation-duration: 16s;
+    }
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg);}
+      50% { transform: translateY(-20px) rotate(180deg);}
+      100% { transform: translateY(0) rotate(360deg);}
+    }
+    .card:hover { transform: translateY(-8px); box-shadow: 0 28px 48px rgba(0,0,0,0.15);}
+    input, select, button {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+    input { background: #f0f7f3;}
+    input:focus { box-shadow: 0 0 0 4px rgba(102,187,106,0.25);}
+    select {
+      background: #f0f7f3;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+    button {
+      background: linear-gradient(145deg, #66bb6a, #43a047);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+    button:hover {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      transform: scale(1.03);
+    }
+    #logout { background: #ef5350;}
+    #logout:hover { background: #d32f2f;}
+    .gauge-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 30px auto;
+    }
+    @media (max-width: 480px) {
+      .gauge-container { width: 180px; height: 180px;}
+    }
+    .gauge-svg { transform: rotate(-90deg); width:100%; height:100%;}
+    .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18;}
+    .gauge-fill { fill: none; stroke-width: 18; stroke-linecap: round; transition: stroke-dashoffset 0.6s ease, stroke 0.4s ease;}
+    .gauge-value {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: #1b3a2a;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+      line-height: 1;
+      white-space: nowrap;
+    }
+    @media (max-width: 480px) {
+      .gauge-value { font-size: 24px;}
+    }
+    #addAccountBtn {
+      position: fixed;
+      bottom: 25px; right: 25px;
+      width: 65px; height: 65px;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      border-radius: 50%;
+      color: white; font-size: 38px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      z-index: 1000;
+    }
+    #addAccountBtn:hover { transform: scale(1.1); box-shadow: 0 8px 28px rgba(0,0,0,0.25);}
+    #notifBellBtn {
+      position: fixed;
+      bottom: 115px; right: 25px;
+      width: 65px; height: 65px;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      border-radius: 50%;
+      color: white; font-size: 34px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      transition: transform 0.3s, box-shadow 0.3s;
+      z-index: 1001;
+    }
+    #notifBellBtn.inactive {
+      background: linear-gradient(145deg, #b0c4b1, #d0e6cd);
+      color: #7e917c;
+    }
+    #notifBellBtn:hover { transform: scale(1.08);}
+    .deleteBtn {
+      position: absolute;
+      top: 18px; right: 18px;
+      width: 40px; height: 40px;
+      background: #fff; border: none; border-radius: 50%;
+      box-shadow: 0 2px 10px rgba(220,0,60,0.10),0 1.5px 4px rgba(0,0,0,0.09);
+      color: #d32f2f;
+      font-weight: bold;
+      font-size: 26px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.22s, color 0.22s, transform 0.14s;
+      z-index: 5;
+    }
+    .deleteBtn:hover {
+      background: #ffe3e3;
+      color: #b71c1c;
+      transform: scale(1.125);
+      box-shadow: 0 6px 16px rgba(220,0,60,0.19);
+    }
+    #modal, #confirmModal {
+      display: none;
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center; align-items: center; z-index: 1100;
+    }
+    #modalContent, #confirmModalContent {
+      background: #ffffffee; padding: 36px 28px;
+      border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 380px; max-width: 92vw; text-align: center; position: relative;
+      animation: popIn 0.3s ease-out;
+    }
+    @keyframes popIn { from { transform: scale(0.9); opacity: 0;} to { transform: scale(1); opacity: 1;} }
+    #modalClose, #confirmClose {
+      position: absolute; top: 18px; right: 20px;
+      font-size: 28px; color: #aaa; cursor: pointer; transition: color 0.25s ease;
+    }
+    #modalClose:hover, #confirmClose:hover { color: #111;}
+    label { font-weight: 600; color: #1b3a2a; margin-bottom: 6px; display: block;}
+    .led-slider {
+      width: 92%; margin: 14px auto; display: block;
+      appearance: none; height: 18px; border-radius: 12px;
+      background: linear-gradient(90deg, #e7ffe0 0%, #4caf50 100%);
+      outline: none; transition: all 0.25s ease;
+    }
+    .led-slider::-webkit-slider-thumb {
+      appearance: none; width: 28px; height: 28px; border-radius: 50%;
+      background: #66bb6a; border: 3px solid #fff; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
+    }
+    .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1);}
+    @media (max-width: 480px) {
+      h1 { font-size: 2.2em; margin: 20px 0;}
+      .card { margin: 20px 10px; padding: 25px;}
+      .gauge-container { width: 180px; height: 180px;}
+      #notifBellBtn, #addAccountBtn { width: 46px; height: 46px; font-size: 22px;}
+      #notifModalContent { padding: 22px 8px;}
+    }
+    #notifModal {
+      display: none;
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center; align-items: center; z-index: 1101;
+    }
+    #notifModalContent {
+      background: #fff; padding: 34px 23px;
+      border-radius: 28px; box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 360px; max-width: 90vw; text-align: center; position: relative;
+      animation: popIn 0.3s ease-out;
+    }
+    #notifModalClose {
+      position: absolute; top: 18px; right: 20px;
+      font-size: 28px; color: #aaa; cursor: pointer; transition: color 0.22s;
+    }
+    #notifModalClose:hover { color: #111;}
+  </style>
+  
+  <script>
+    // Itt állítsd be a bejelentkezett felhasználó uid-jét
+    // Ha már van változód (pl. currentUserUid), azt használd:
+    const uid = window.currentUserUid || "TEST_UID";
 
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then(function(reg) {
+        console.log("Service worker regisztrálva.");
+        // Ha engedélyt ad a böngésző az értesítésre, feliratkozunk
+        Notification.requestPermission().then(function(permission) {
+          if (permission === "granted") {
+            registerPush(uid);
+          } else {
+            console.log("A felhasználó nem engedélyezte az értesítést.");
+          }
+        });
+      }).catch(function(err) {
+        console.error("Service worker reg.hiba:", err);
+      });
+    }
+  </script>
 
 
   <script type="module">
@@ -472,23 +716,117 @@
       if (!firstUser) firstUser = user;
     }
   </script>
-  
+  <script>
+  // Itt a helyes VAPID kulcs
+  const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
+
+  // Kötelező függvény a kulcs konvertálásához
+  function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding)
+          .replace(/-/g, "+")
+          .replace(/_/g, "/");
+
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+
+      for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+  }
+
+  // Push engedélyezése
+  async function subscribeUserToPush() {
+      const registration = await navigator.serviceWorker.ready;
+
+      const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+      });
+
+      console.log("Feliratkozási token:", subscription);
+
+      // Elküldés Netlify felé
+      await fetch("/.netlify/functions/registerPush", {
+          method: "POST",
+          body: JSON.stringify(subscription),
+          headers: { "Content-Type": "application/json" }
+      });
+
+      alert("Push értesítés bekapcsolva!");
+  }
+  </script>
 
 
- 
-<!-- OneSignal Web SDK -->
-<script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "IDE_ÍRD_BE_A_SAJÁT_ONESIGNAL_APP_ID",
-      allowLocalhostAsSecureOrigin: true
+  <script>
+    let notifEnabled = false;
+    let jelenlegiKategoria = "";
+
+    window.addEventListener('DOMContentLoaded', function(){
+      const bellBtn = document.getElementById('notifBellBtn');
+      const notifModal = document.getElementById('notifModal');
+      const closeBtn = document.getElementById('notifModalClose');
+      const yesBtn = document.getElementById('notifYes');
+      const noBtn = document.getElementById('notifNo');
+
+      function updateBellStyle(){
+        if(notifEnabled){
+          bellBtn.classList.remove("inactive");
+        }else{
+          bellBtn.classList.add("inactive");
+        }
+      }
+
+      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+      updateBellStyle();
+
+      bellBtn.addEventListener('click', function(){
+        notifModal.style.display = 'flex';
+      });
+
+      closeBtn.addEventListener('click', function(){
+        notifModal.style.display = 'none';
+      });
+
+      yesBtn.addEventListener('click', function(){
+        notifEnabled = true;
+        localStorage.setItem('notifEnabled', 'true');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+        Notification.requestPermission().then(function(permission) {
+          if (permission === "granted") {
+            console.log("Push értesítés engedélyezve");
+            // itt most még nem küldünk növény típust, de a backend tud kezelni alapot
+            window.subscribeUserToPush && window.subscribeUserToPush();
+          } else {
+            console.log("Push értesítés visszautasítva vagy nem engedélyezhető");
+          }
+        });
+      });
+
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+
+      window.addEventListener('click', function(e){
+        if(e.target === notifModal){
+          notifModal.style.displa
     });
-    window.OneSignalInstance = OneSignal;
-  });
-</script>
- 
+
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then(function(reg) {
+          console.log('Service Worker regisztrálva');
+        })
+        .catch(function(err) {
+          console.log('Service Worker hiba:', err);
+        });
+    }
+  </script>
 </head>
 <body>
   <h1>Növényfigyelő 🌱</h1>
@@ -560,90 +898,5 @@
       </div>
     </div>
   </div>
-
-<script>
-  let notifEnabled = false;
-
-  window.addEventListener('DOMContentLoaded', function() {
-    const bellBtn = document.getElementById('notifBellBtn');
-    const notifModal = document.getElementById('notifModal');
-    const closeBtn = document.getElementById('notifModalClose');
-    const yesBtn = document.getElementById('notifYes');
-    const noBtn = document.getElementById('notifNo');
-
-    function updateBellStyle() {
-      if (notifEnabled) {
-        bellBtn.classList.remove("inactive");
-      } else {
-        bellBtn.classList.add("inactive");
-      }
-    }
-
-    // Betöltjük az előző beállítást (ha volt)
-    notifEnabled = localStorage.getItem('notifEnabled') === 'true';
-    updateBellStyle();
-
-    bellBtn.addEventListener('click', function() {
-      notifModal.style.display = 'flex';
-    });
-
-    closeBtn.addEventListener('click', function() {
-      notifModal.style.display = 'none';
-    });
-
-    yesBtn.addEventListener('click', function() {
-      notifEnabled = true;
-      localStorage.setItem('notifEnabled', 'true');
-      notifModal.style.display = 'none';
-      updateBellStyle();
-
-      if (!window.OneSignalDeferred) {
-        console.warn("OneSignal még nem inicializált.");
-        return;
-      }
-
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          const permission = await OneSignal.Notifications.requestPermission();
-          if (permission === 'granted') {
-            await OneSignal.User.PushSubscription.optIn();
-            console.log("Push értesítés engedélyezve és OneSignal feliratkozás megtörtént.");
-          } else {
-            console.log("A felhasználó nem engedélyezte az értesítést.");
-          }
-        } catch (e) {
-          console.error("OneSignal feliratkozás hiba:", e);
-        }
-      });
-    });
-
-    noBtn.addEventListener('click', function() {
-      notifEnabled = false;
-      localStorage.setItem('notifEnabled', 'false');
-      notifModal.style.display = 'none';
-      updateBellStyle();
-
-      if (!window.OneSignalDeferred) {
-        console.warn("OneSignal még nem inicializált.");
-        return;
-      }
-
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        try {
-          await OneSignal.User.PushSubscription.optOut();
-          console.log("OneSignal push leiratkozás megtörtént.");
-        } catch (e) {
-          console.error("OneSignal leiratkozás hiba:", e);
-        }
-      });
-    });
-
-    window.addEventListener('click', function(e) {
-      if (e.target === notifModal) {
-        notifModal.style.display = 'none';
-      }
-    });
-  });
-</script>
 </body>
 </html>
