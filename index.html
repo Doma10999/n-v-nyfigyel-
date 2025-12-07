@@ -574,6 +574,8 @@
           if (devicesSnap.exists()) {
             const devicesData = devicesSnap.val();
             firstDeviceId = Object.keys(devicesData)[0];
+            // <<< ADD HOZZÁ EZT A SORT! >>>
+            window.jelenlegiEszkozID = firstDeviceId;
 
             const nameSnap = await get(ref(db, `users/${user.uid}/devices/${firstDeviceId}/displayName`));
             if (nameSnap.exists() && nameSnap.val()) {
@@ -744,7 +746,7 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             subscription: newSub,
-            deviceId: jelenlegiEszkozID   // <<< EZ MOST MÁR KÜLDŐDIK
+            deviceId: window.jelenlegiEszkozID   // <<< EZ MOST MÁR KÜLDŐDIK
           })
         });
 
