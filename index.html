@@ -477,15 +477,6 @@
     const db = getDatabase(app);
     const auth = getAuth();
 
-    // expose Firebase helpers for non-module scripts
-    window.__db = db;
-    window.__ref = ref;
-    window.__get = get;
-    window.__set = set;
-    window.__update = update;
-    window.__onValue = onValue;
-
-
     // ====== UI elemek ======
     const loginForm = document.getElementById("loginForm");
     const emailInput = document.getElementById("email");
@@ -818,9 +809,7 @@
           display = Math.round(((realPercent - min) / (max - min)) * 100);
           if (display < 0) display = 0;
           if (display > 100) display = 100;
-        
-        return display;
-      } else {
+        } else {
           display = realPercent;
         }
         gaugeValueEl.textContent = display + "%";
@@ -835,15 +824,11 @@
       card.addEventListener("click", (e) => {
         // ha törlés / gomb nyomás -> ne ütközzön
         if (e.target.closest(".deleteBtn") || e.target.closest(".edit-pill") || e.target.closest(".name-edit-wrap") || e.target.closest("select") || e.target.closest("input") ) return;
-        window.jelenlegiUID = uid;
-        window.jelenlegiEmail = email;
         setSelectedDevice(deviceId);
       });
 
       // alapból legyen kiválasztva az első, ha még nincs
-      if (!window.jelenlegiEszkozID) window.jelenlegiUID = uid;
-        window.jelenlegiEmail = email;
-        setSelectedDevice(deviceId);
+      if (!window.jelenlegiEszkozID) setSelectedDevice(deviceId);
 
       // név szerkesztés UI
       function openEdit() {
@@ -927,16 +912,13 @@
       });
 
       // Firebase: soil sensor
-      const soilRef = ref(db, `users/${uid}/devices/${deviceId}/moisture`);
+      const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
       onValue(soilRef, (snap) => {
         if (!snap.exists()) return;
         const v = Number(snap.val());
         if (Number.isFinite(v)) {
           currPercent = v;
-          const displayPct = updateAccountGauge(currPercent, currCat);
-          if (window.__maybeEmailNotify) {
-            window.__maybeEmailNotify({ uid, deviceId, displayPct, plantType: currCat, displayName: titleEl.textContent, fallbackEmail: email });
-          }
+          updateAccountGauge(currPercent, currCat);
           pushHistory(key, currPercent);
         }
       });
@@ -1163,194 +1145,120 @@
     window.__setSelectedDevice = setSelectedDevice;
   </script>
 
-  
-  <!-- Email értesítés (Google Apps Script Web App) -->
+  <!-- Push reg + bell modal (megtartva), csak a kiválasztott eszközre regisztrál -->
   <script>
-    // 1) Ide illeszd be a Google Apps Script /exec URL-t
-    const GOOGLE_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz5CwDKgK8jH2e6991Kn1HGC50ftuyT8J-KK04qHF6hxZkxisvzhLXKswEHC7Jl8E3B/exec";
+    const publicVapidKey = "BJ5EmlT4WDwHo9vyVZbROc4O2tkZlv5hBZVs8nbfEwJlJMdgpgEHnM9i5PugKAXYq10hbPjnvyLOBM-O3hi_Rhg";
 
-    // 2) Küszöbök: itt a "kijelzett %" alapján döntünk (amit a kategória skáláz)
-    const EMAIL_THRESHOLD = 35;
-
-    // 3) Védelem: ne spam-eljen (6 óra)
-    const DEFAULT_COOLDOWN_MS = 6 * 60 * 60 * 1000;
-
-    // Kulcs: per-uid + device
-    function keyFor(uid, deviceId) {
-      return `emailNotif|${uid}|${deviceId}`;
+    function urlBase64ToUint8Array(base64String) {
+      const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+      return outputArray;
     }
 
-    // Firebase elérés a module scriptből
-    function fb() {
-      return {
-        db: window.__db,
-        ref: window.__ref,
-        get: window.__get,
-        set: window.__set,
-        update: window.__update,
-        onValue: window.__onValue
-      };
-    }
-
-    // UI állapot
-    let emailNotifEnabled = false;
-
-    async function loadEmailSettings(uid, deviceId) {
-      const { db, ref, get } = fb();
-      const base = `users/${uid}/devices/${deviceId}`;
-      const [enSnap, emSnap] = await Promise.all([
-        get(ref(db, `${base}/emailNotifEnabled`)),
-        get(ref(db, `${base}/emailNotifEmail`))
-      ]);
-      return {
-        enabled: enSnap.exists() ? !!enSnap.val() : false,
-        email: emSnap.exists() ? String(emSnap.val() || "") : ""
-      };
-    }
-
-    async function saveEmailSettings(uid, deviceId, enabled, email) {
-      const { db, ref, update } = fb();
-      const base = `users/${uid}/devices/${deviceId}`;
-      await update(ref(db, base), {
-        emailNotifEnabled: !!enabled,
-        emailNotifEmail: String(email || ""),
-        emailNotifCooldownMs: DEFAULT_COOLDOWN_MS
-      });
-      localStorage.setItem(keyFor(uid, deviceId), enabled ? "1" : "0");
-    }
-
-    function updateBellUI() {
-      const bellBtn = document.getElementById("notifBellBtn");
-      if (!bellBtn) return;
-      bellBtn.classList.toggle("inactive", !emailNotifEnabled);
-    }
-
-    async function sendEmailViaAppsScript(payload) {
-      if (!GOOGLE_APPS_SCRIPT_URL || GOOGLE_APPS_SCRIPT_URL.includes("PASTE_")) {
-        console.warn("Hiányzik a GOOGLE_APPS_SCRIPT_URL az index.html-ben.");
-        return;
-      }
+    async function subscribeUserToPush() {
       try {
-        await fetch(GOOGLE_APPS_SCRIPT_URL, {
+        if (!window.jelenlegiEszkozID) {
+          console.error("NINCS kiválasztott eszköz! Kattints egy kártyára, majd próbáld újra.");
+          return;
+        }
+
+        const registration = await navigator.serviceWorker.ready;
+        let sub = await registration.pushManager.getSubscription();
+        if (sub) {
+          await sub.unsubscribe();
+        }
+
+        const newSub = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(publicVapidKey)
+        });
+
+        await fetch("/.netlify/functions/registerPush", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
+          body: JSON.stringify({
+            subscription: newSub.toJSON(),
+            deviceId: window.jelenlegiEszkozID
+          })
         });
-      } catch (e) {
-        console.warn("Email küldés hiba (Apps Script):", e);
+
+      } catch (err) {
+        console.error("Push feliratkozás hiba:", err);
       }
     }
 
-    // Ezt hívja a kártya, amikor frissül a szenzor
-    window.__maybeEmailNotify = async function({ uid, deviceId, displayPct, plantType, displayName, fallbackEmail }) {
-      try {
-        if (!uid || !deviceId) return;
-        if (!Number.isFinite(displayPct)) return;
-        if (displayPct > EMAIL_THRESHOLD) return;
-
-        const { db, ref, get, set } = fb();
-        const base = `users/${uid}/devices/${deviceId}`;
-
-        // be van-e kapcsolva?
-        const enSnap = await get(ref(db, `${base}/emailNotifEnabled`));
-        const enabled = enSnap.exists() ? !!enSnap.val() : false;
-        if (!enabled) return;
-
-        // email
-        const emSnap = await get(ref(db, `${base}/emailNotifEmail`));
-        const email = (emSnap.exists() ? String(emSnap.val() || "") : "") || String(fallbackEmail || "");
-        if (!email) return;
-
-        // cooldown (Firebase-ben tárolt utolsó küldés)
-        const cdSnap = await get(ref(db, `${base}/emailNotifCooldownMs`));
-        const cooldownMs = cdSnap.exists() ? Number(cdSnap.val()) : DEFAULT_COOLDOWN_MS;
-
-        const lastSnap = await get(ref(db, `${base}/lastEmailSentAt`));
-        const lastAt = lastSnap.exists() ? Number(lastSnap.val()) : 0;
-        const now = Date.now();
-        if (now - lastAt < cooldownMs) return;
-
-        // először beírjuk, hogy "elküldés folyamatban" (spam védelem)
-        await set(ref(db, `${base}/lastEmailSentAt`), now);
-
-        // küldés
-        await sendEmailViaAppsScript({
-          email,
-          deviceId,
-          moisture: displayPct,
-          category: plantType || "",
-          plantName: displayName || ""
-        });
-      } catch (e) {
-        console.warn("maybeEmailNotify hiba:", e);
-      }
-    };
-
-    // Harang modal logika
-    window.addEventListener("DOMContentLoaded", async function() {
-      const bellBtn = document.getElementById("notifBellBtn");
-      const notifModal = document.getElementById("notifModal");
-      const closeBtn = document.getElementById("notifModalClose");
-      const yesBtn = document.getElementById("notifYes");
-      const noBtn = document.getElementById("notifNo");
-      const emailInput = document.getElementById("notifEmailInput");
-
-      function openModal() { if (notifModal) notifModal.style.display = "flex"; }
-      function closeModal() { if (notifModal) notifModal.style.display = "none"; }
-
-      if (!bellBtn) return;
-
-      bellBtn.addEventListener("click", async () => {
-        const uid = window.jelenlegiUID;
-        const deviceId = window.jelenlegiEszkozID;
-        if (!uid || !deviceId) {
-          alert("Előbb válassz fiókot + eszközt (kattints a kártyára)!");
-          return;
-        }
-
-        // beolvassuk az aktuális beállítást Firebase-ből
-        const s = await loadEmailSettings(uid, deviceId);
-        emailNotifEnabled = s.enabled;
-        if (emailInput) {
-          emailInput.value = s.email || window.jelenlegiEmail || "";
-        }
-        updateBellUI();
-        openModal();
-      });
-
-      if (closeBtn) closeBtn.addEventListener("click", closeModal);
-      window.addEventListener("click", (e) => { if (e.target === notifModal) closeModal(); });
-
-      if (yesBtn) yesBtn.addEventListener("click", async () => {
-        const uid = window.jelenlegiUID;
-        const deviceId = window.jelenlegiEszkozID;
-        const email = (emailInput && emailInput.value.trim()) || window.jelenlegiEmail || "";
-        if (!email) {
-          alert("Írd be az email címet!");
-          return;
-        }
-        await saveEmailSettings(uid, deviceId, true, email);
-        emailNotifEnabled = true;
-        updateBellUI();
-        closeModal();
-        alert("Kész! Email értesítés bekapcsolva ennél a növénynél.");
-      });
-
-      if (noBtn) noBtn.addEventListener("click", async () => {
-        const uid = window.jelenlegiUID;
-        const deviceId = window.jelenlegiEszkozID;
-        await saveEmailSettings(uid, deviceId, false, "");
-        emailNotifEnabled = false;
-        updateBellUI();
-        closeModal();
-        alert("Email értesítés kikapcsolva ennél a növénynél.");
-      });
-
-      // induláskor harang színe (ha már van választott device később frissül)
-      updateBellUI();
-    });
+    window.subscribeUserToPush = subscribeUserToPush;
   </script>
 
+  <script>
+    let notifEnabled = false;
+
+    window.addEventListener('DOMContentLoaded', function(){
+      const bellBtn = document.getElementById('notifBellBtn');
+      const notifModal = document.getElementById('notifModal');
+      const closeBtn = document.getElementById('notifModalClose');
+      const yesBtn = document.getElementById('notifYes');
+      const noBtn = document.getElementById('notifNo');
+
+      function updateBellStyle(){
+        if(notifEnabled) bellBtn.classList.remove("inactive");
+        else bellBtn.classList.add("inactive");
+      }
+
+      notifEnabled = localStorage.getItem('notifEnabled') === 'true';
+      updateBellStyle();
+
+      bellBtn.addEventListener('click', function(){
+        notifModal.style.display = 'flex';
+      });
+
+      closeBtn.addEventListener('click', function(){
+        notifModal.style.display = 'none';
+      });
+
+      yesBtn.addEventListener("click", async function(){
+        notifEnabled = true;
+        localStorage.setItem('notifEnabled', 'true');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+
+        // várjuk meg, hogy legyen kiválasztott eszköz (ha még nem)
+        if (!window.jelenlegiEszkozID) {
+          let tries = 0;
+          while (!window.jelenlegiEszkozID && tries < 30) {
+            await new Promise(r => setTimeout(r, 200));
+            tries++;
+          }
+        }
+
+        Notification.requestPermission().then(function(permission){
+          if (permission === "granted") {
+            window.subscribeUserToPush && window.subscribeUserToPush();
+          }
+        });
+      });
+
+      noBtn.addEventListener('click', function(){
+        notifEnabled = false;
+        localStorage.setItem('notifEnabled', 'false');
+        notifModal.style.display = 'none';
+        updateBellStyle();
+      });
+
+      window.addEventListener('click', function(e){
+        if (e.target === notifModal) notifModal.style.display = 'none';
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/sw.js')
+          .then(function() { console.log('Service Worker regisztrálva'); })
+          .catch(function(err) { console.log('Service Worker hiba:', err); });
+      }
+    });
+  </script>
 </head>
 
 <body>
@@ -1372,7 +1280,7 @@
 
   <button id="addAccountBtn" title="Fiók hozzáadása">+</button>
 
-  <button id="notifBellBtn" aria-label="Email értesítés" title="Email értesítés">
+  <button id="notifBellBtn" aria-label="Push értesítés" title="Push értesítés">
     <i class="fa-solid fa-bell"></i>
   </button>
 
@@ -1383,10 +1291,8 @@
   <div id="notifModal">
     <div id="notifModalContent">
       <span id="notifModalClose">&times;</span>
-      <h3>Email értesítés beállítás</h3>
-      <p>Küldjek emailt, ha a növény <b>szomjas</b> (kijelzett érték ≤ 35%)?</p>
-      <input id="notifEmailInput" type="email" placeholder="Email cím" style="margin-top:10px;" />
-      <p style="margin-top:8px; opacity:.8; font-size:13px;">Üzenet példa: <b>„Szomjas a növényed – ideje locsolni! 💧”</b></p>
+      <h3>Push értesítés beállítás</h3>
+      <p>Értesítést kérsz, ha a növény vízszintje 35% alá esik?</p>
       <div style="margin-top:22px;">
         <button id="notifYes" style="background:linear-gradient(145deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:12px;padding:10px 20px;font-size:17px;cursor:pointer;margin:0 9px; width:auto;">
           Igen
@@ -1396,7 +1302,7 @@
         </button>
       </div>
       <p style="margin-top:12px; opacity:.75; font-size:13px;">
-        Tipp: válassz ki egy kártyát (kattints rá), és arra a növényre fog vonatkozni az email értesítés.
+        Tipp: válassz ki egy kártyát (kattints rá), és arra a növényre fog feliratkozni a push.
       </p>
     </div>
   </div>

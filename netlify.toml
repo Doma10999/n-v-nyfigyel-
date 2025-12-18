@@ -1,2 +1,10 @@
 [build]
   publish = "."
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[functions."sendPush"]
+  # 10 percenként fut
+  schedule = "*/10 * * * *"
