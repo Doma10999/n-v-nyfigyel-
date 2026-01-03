@@ -955,16 +955,24 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
 
         currPercent = v;
         const displayPct = updateAccountGauge(currPercent, currCat);
-        pushHistory(key, currPercent);
-        if (window.__maybeEmailNotify) {
-          window.__maybeEmailNotify({
-          uid,
-          deviceId,
-          realPct: currPercent,   // ← EZ A VALÓDI SZENZOR %
-          displayPct,
-          plantType: currCat,
-          displayName: titleEl.textContent });
-        }
+        pushHistory(key, displayPct);
+
+        // 🔹 ÚJ: mentjük Firebase-be
+        const now = Date.now();
+        await set(
+          ref(db, `users/${uid}/devices/${deviceId}/history/${now}`),
+          v
+        );
+
+        //if (window.__maybeEmailNotify) {
+          //window.__maybeEmailNotify({
+          //uid,
+          //deviceId,
+          //realPct: currPercent,   // ← EZ A VALÓDI SZENZOR %   ❌ NINCS AZONNALI EMAIL
+          //displayPct,
+          //plantType: currCat,
+          //displayName: titleEl.textContent });
+        //}
       });
 // Firebase: LED (csak ha van)
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
@@ -1005,6 +1013,25 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
           batteryImg.src = `batteryPercent/${icon}`;
         });
       });
+
+      // 🔹 HISTORY betöltése Firebase-ből (grafikonhoz)
+      const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
+      get(historyRef).then(snap => {
+        if (!snap.exists()) return;
+
+        const obj = deviceCards.get(key);
+        if (!obj) return;
+
+        const entries = Object.entries(snap.val())
+          .map(([t, v]) => ({ t: Number(t), v: Number(v) }))
+          .filter(p => Number.isFinite(p.v))
+          .sort((a,b) => a.t - b.t)
+          .slice(-100); // utolsó ~100 pont
+
+        obj.history = entries;
+        obj.lastUpdated = entries.at(-1)?.t || 0;
+      });
+
 
       // tároljuk
       deviceCards.set(key, {
@@ -1493,6 +1520,71 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
         console.warn("Apps Script email hiba:", e);
       }
     }
+
+    // ===== AUTO EMAIL CHECK (5 percenként) =====
+    setInterval(async () => {
+      if (!window.__deviceCardsMap) return;
+
+      for (const [key, obj] of window.__deviceCardsMap.entries()) {
+        const [uid, deviceId] = key.split("|");
+
+        try {
+          const { db, ref, get } = window.__db
+            ? { db: window.__db, ref: window.__ref, get: window.__get }
+            : {};
+
+          if (!db) return;
+
+          const base = `users/${uid}/devices/${deviceId}`;
+
+          const snapVal = await get(ref(db, `${base}/sensorValue`));
+          if (!snapVal.exists()) continue;
+
+          const value = Number(snapVal.val());
+          if (!Number.isFinite(value)) continue;
+
+          const enabledSnap = await get(ref(db, `${base}/emailNotifEnabled`));
+          if (!enabledSnap.exists() || !enabledSnap.val()) continue;
+
+          const emailSnap = await get(ref(db, `${base}/emailNotifEmail`));
+          if (!emailSnap.exists()) continue;
+
+          const cooldownSnap = await get(ref(db, `${base}/lastEmailSentAt`));
+          const lastSent = cooldownSnap.exists() ? Number(cooldownSnap.val()) : 0;
+
+          const now = Date.now();
+          const cooldown = 6 * 60 * 60 * 1000; // 6 óra
+
+          if (now - lastSent < cooldown) continue;
+
+          if (value > 35) continue; // NEM száraz → nincs email
+
+          // mentjük hogy elküldtük
+          await window.__set(
+            window.__ref(db, `${base}/lastEmailSentAt`),
+            now
+          );
+
+          // EMAIL küldés
+          await fetch("https://script.google.com/macros/s/AKfycbz5CwDKgK8jH2e6991Kn1HGC50ftuyT8J-KK04qHF6hxZkxisvzhLXKswEHC7Jl8E3B/exec", {
+            method: "POST",
+            mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              email: emailSnap.val(),
+              moisture: value,
+              deviceId
+            })
+          });
+
+          console.log("📧 Email elküldve:", deviceId);
+
+        } catch (err) {
+          console.warn("Email check error:", err);
+        }
+      }
+    }, 5 * 60 * 1000); // 5 perc
+
 
     // Ezt hívjuk minden szenzor frissítésnél
     window.__maybeEmailNotify = async function({
