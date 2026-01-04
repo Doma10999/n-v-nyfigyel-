@@ -442,11 +442,12 @@
 
     canvas {
       width: 100%;
-      height: 160px;
-      background: rgba(255,255,255,0.8);
-      border-radius: 16px;
-      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+      height: 140px;
+      background: #ffffff;
+      border-radius: 14px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
     }
+
     
 
     /* Confirm buttons */
@@ -608,77 +609,78 @@
       obj.history.push({ t: now, v: value });
       if (obj.history.length > 60) obj.history.shift(); // kb 60 pont
     }
-
     function drawSimpleLineChart(canvas, history) {
       const ctx = canvas.getContext("2d");
       const w = canvas.width;
       const h = canvas.height;
 
-      // háttér
-      ctx.clearRect(0,0,w,h);
-      ctx.fillStyle = "rgba(255,255,255,0.0)";
-      ctx.fillRect(0,0,w,h);
+      ctx.clearRect(0, 0, w, h);
 
-      // rács
-      ctx.strokeStyle = "rgba(0,0,0,0.06)";
-      ctx.lineWidth = 1;
-      for (let i=1;i<=4;i++){
-        const y = (h/5)*i;
-        ctx.beginPath();
-        ctx.moveTo(0,y);
-        ctx.lineTo(w,y);
-        ctx.stroke();
-      }
-
-      if (!history || history.length < 2) {
-        ctx.fillStyle = "rgba(13,59,35,0.6)";
-        ctx.font = "14px Roboto, Arial";
-        ctx.fillText("Nincs elég adat a grafikonhoz (várj pár frissítést).", 12, 28);
+      if (!history || history.length === 0) {
+        ctx.fillStyle = "rgba(0,0,0,0.5)";
+        ctx.font = "14px Roboto";
+        ctx.fillText("Nincs adat", 12, 24);
         return;
       }
 
-      const values = history.map(p => p.v);
-      const minV = Math.min(...values, 0);
-      const maxV = Math.max(...values, 100);
-      const pad = 12;
+      // 🔹 csak az utolsó 12 mérés
+      const data = history.slice(-12);
+      const barCount = data.length;
 
-      const xStep = (w - pad*2) / (history.length - 1);
+      const paddingTop = 22;
+      const paddingBottom = 28; // ⬅ HELY AZ ALSÓ % FELIRATNAK
+      const paddingX = 18;
+      const gap = 8;
 
-      function yFromVal(v) {
-        const norm = (v - minV) / (maxV - minV || 1);
-        return h - pad - norm * (h - pad*2);
-      }
+      const usableHeight = h - paddingTop - paddingBottom;
+      const barWidth = (w - paddingX * 2 - gap * (barCount - 1)) / barCount;
 
-      // vonal
-      ctx.strokeStyle = "rgba(67,160,71,0.95)";
-      ctx.lineWidth = 3;
-      ctx.lineJoin = "round";
-      ctx.lineCap = "round";
-      ctx.beginPath();
-      for (let i=0;i<history.length;i++){
-        const x = pad + i * xStep;
-        const y = yFromVal(history[i].v);
-        if (i===0) ctx.moveTo(x,y);
-        else ctx.lineTo(x,y);
-      }
-      ctx.stroke();
+      data.forEach((p, i) => {
+        const value = Math.max(0, Math.min(100, p.v));
+        const barHeight = (value / 100) * usableHeight;
 
-      // pontok
-      ctx.fillStyle = "rgba(13,59,35,0.75)";
-      for (let i=0;i<history.length;i+=Math.ceil(history.length/10)){
-        const x = pad + i * xStep;
-        const y = yFromVal(history[i].v);
+        const x = paddingX + i * (barWidth + gap);
+        const y = paddingTop + (usableHeight - barHeight);
+
+        // 🔹 szín logika
+        let color = "#66bb6a";
+        if (value < 30) color = "#ef5350";
+        else if (value < 50) color = "#ffa726";
+
+        ctx.fillStyle = color;
+
+        // 🔹 lekerekített oszlop
+        const r = 6;
         ctx.beginPath();
-        ctx.arc(x,y,3.5,0,Math.PI*2);
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + barWidth - r, y);
+        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
+        ctx.lineTo(x + barWidth, y + barHeight);
+        ctx.lineTo(x, y + barHeight);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
         ctx.fill();
-      }
 
-      // utolsó érték
-      const last = history[history.length-1].v;
-      ctx.fillStyle = "rgba(13,59,35,0.75)";
-      ctx.font = "700 14px Roboto, Arial";
-      ctx.fillText("Utolsó: " + last + "%", 12, 20);
+        // 🔹 % FELIRAT AZ OSZLOP ALÁ
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.font = "700 11px Roboto";
+        ctx.textAlign = "center";
+        ctx.fillText(
+          `${value}%`,
+          x + barWidth / 2,
+          h - 8
+        );
+      });
+
+      // 🔹 utolsó érték felül
+      const last = data[data.length - 1].v;
+      ctx.fillStyle = "rgba(0,0,0,0.65)";
+      ctx.font = "700 13px Roboto";
+      ctx.textAlign = "left";
+      ctx.fillText(`Utolsó: ${last}%`, 12, 18);
     }
+
+
 
     function rebuildChartsModal() {
       chartsWrap.innerHTML = "";
