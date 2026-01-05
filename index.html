@@ -604,11 +604,47 @@
     function pushHistory(key, value) {
       const obj = deviceCards.get(key);
       if (!obj) return;
-      const now = Date.now();
-      obj.lastUpdated = now;
-      obj.history.push({ t: now, v: value });
-      if (obj.history.length > 60) obj.history.shift(); // kb 60 pont
+
+      const now = new Date();
+      const hour = now.getHours();
+
+      // 🔹 csak napi 2 mérés: délelőtt és délután
+      const isMorning = hour >= 6 && hour <= 11;
+      const isAfternoon = hour >= 15 && hour <= 20;
+
+      if (!isMorning && !isAfternoon) return;
+
+      // 🔹 ne mentsünk duplán ugyanarra a napszakra
+      const last = obj.history[obj.history.length - 1];
+      if (last) {
+        const lastDate = new Date(last.t);
+
+        const sameDay =
+          lastDate.getFullYear() === now.getFullYear() &&
+          lastDate.getMonth() === now.getMonth() &&
+          lastDate.getDate() === now.getDate();
+
+        const lastHour = lastDate.getHours();
+        const samePeriod =
+          (lastHour >= 6 && lastHour <= 11 && isMorning) ||
+          (lastHour >= 15 && lastHour <= 20 && isAfternoon);
+
+        if (sameDay && samePeriod) return;
+      }
+
+      // 🔹 mentés
+      obj.history.push({
+        t: now.getTime(),
+        v: value
+      });
+
+      // 🔹 csak az utolsó 5 nap maradjon (max ~10 adat)
+      const fiveDaysAgo = now.getTime() - 5 * 24 * 60 * 60 * 1000;
+      obj.history = obj.history.filter(p => p.t >= fiveDaysAgo);
+
+      obj.lastUpdated = now.getTime();
     }
+
     function drawSimpleLineChart(canvas, history) {
       const ctx = canvas.getContext("2d");
       const w = canvas.width;
@@ -623,14 +659,14 @@
         return;
       }
 
-      // 🔹 csak az utolsó 12 mérés
-      const data = history.slice(-12);
+      // 🔹 csak az utolsó 10 mérés (5 nap × délelőtt+délután)
+      const data = history.slice(-10);
       const barCount = data.length;
 
       const paddingTop = 22;
       const paddingBottom = 28; // ⬅ HELY AZ ALSÓ % FELIRATNAK
       const paddingX = 18;
-      const gap = 8;
+      const gap = 20;
 
       const usableHeight = h - paddingTop - paddingBottom;
       const barWidth = (w - paddingX * 2 - gap * (barCount - 1)) / barCount;
@@ -662,8 +698,8 @@
         ctx.fill();
 
         // 🔹 % FELIRAT AZ OSZLOP ALÁ
-        ctx.fillStyle = "rgba(0,0,0,0.55)";
-        ctx.font = "700 11px Roboto";
+        ctx.fillStyle = "rgba(0,0,0,0.75)";
+        ctx.font = "800 13px Roboto";
         ctx.textAlign = "center";
         ctx.fillText(
           `${value}%`,
@@ -672,12 +708,7 @@
         );
       });
 
-      // 🔹 utolsó érték felül
-      const last = data[data.length - 1].v;
-      ctx.fillStyle = "rgba(0,0,0,0.65)";
-      ctx.font = "700 13px Roboto";
-      ctx.textAlign = "left";
-      ctx.fillText(`Utolsó: ${last}%`, 12, 18);
+      
     }
 
 
