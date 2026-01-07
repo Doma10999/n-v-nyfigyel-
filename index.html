@@ -1007,7 +1007,7 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
           //displayName: titleEl.textContent });
         //}
       });
-// Firebase: LED (csak ha van)
+          // Firebase: LED (csak ha van)
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
       get(ledLevelRef).then((snap) => {
         if (snap.exists()) {
@@ -1059,7 +1059,7 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
           .map(([t, v]) => ({ t: Number(t), v: Number(v) }))
           .filter(p => Number.isFinite(p.v))
           .sort((a,b) => a.t - b.t)
-          .slice(-100); // utolsó ~100 pont
+          .slice(-10); // ✅ CSAK A LEGFRISSEBB 10
 
         obj.history = entries;
         obj.lastUpdated = entries.at(-1)?.t || 0;
