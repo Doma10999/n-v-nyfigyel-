@@ -990,12 +990,28 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
         const displayPct = updateAccountGauge(currPercent, currCat);
         pushHistory(key, displayPct);
 
-        // 🔹 ÚJ: mentjük Firebase-be
+        // 🔹 HISTORY mentés max 10 elemre korlátozva
+        const historyBase = `users/${uid}/devices/${deviceId}/history`;
+        const historyRef = ref(db, historyBase);
         const now = Date.now();
-        await set(
-          ref(db, `users/${uid}/devices/${deviceId}/history/${now}`),
-          v
-        );
+
+        // 1️⃣ Új érték mentése
+        await set(ref(db, `${historyBase}/${now}`), v);
+
+        // 2️⃣ Lekérjük az aktuális history-t
+        const snap = await get(historyRef);
+        if (!snap.exists()) return;
+
+        const entries = Object.entries(snap.val())
+          .map(([t, val]) => ({ t: Number(t), v: val }))
+          .sort((a, b) => a.t - b.t);
+
+        // 3️⃣ Ha több mint 10 → töröljük a legrégebbieket
+        while (entries.length > 10) {
+          const oldest = entries.shift();
+          await set(ref(db, `${historyBase}/${oldest.t}`), null);
+        }
+
 
         //if (window.__maybeEmailNotify) {
           //window.__maybeEmailNotify({
