@@ -979,23 +979,44 @@
       });
 
      // Firebase: soil sensor + EMAIL riasztás
-const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
-      onValue(soilRef, async (snap) => {
-        if (!snap.exists()) return;
+    const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
+          onValue(soilRef, async (snap) => {
+            if (!snap.exists()) return;
 
-        const v = Number(snap.val());
-        if (!Number.isFinite(v)) return;
+            const v = Number(snap.val());
+            if (!Number.isFinite(v)) return;
 
-        currPercent = v;
-        const displayPct = updateAccountGauge(currPercent, currCat);
-        pushHistory(key, displayPct);
+            currPercent = v;
+            const displayPct = updateAccountGauge(currPercent, currCat);
+            pushHistory(key, displayPct);
 
-        // 🔹 ÚJ: mentjük Firebase-be
-        const now = Date.now();
-        await set(
-          ref(db, `users/${uid}/devices/${deviceId}/history/${now}`),
-          v
-        );
+            const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
+
+    // 1️⃣ lekérjük az aktuális history-t
+    const snapHist = await get(historyRef);
+
+    let entries = [];
+    if (snapHist.exists()) {
+      entries = Object.entries(snapHist.val())
+        .map(([t, val]) => ({ t: Number(t), v: Number(val) }))
+        .filter(p => Number.isFinite(p.v))
+        .sort((a, b) => a.t - b.t);
+    }
+
+    // 2️⃣ új adat hozzáadása
+    entries.push({ t: Date.now(), v });
+
+    // 3️⃣ csak a legfrissebb 10 marad
+    entries = entries.slice(-10);
+
+    // 4️⃣ TELJES history felülírása → régi adatok TÖRLŐDNEK
+    const newHistory = {};
+    for (const e of entries) {
+      newHistory[e.t] = e.v;
+    }
+
+    await set(historyRef, newHistory);
+
 
         //if (window.__maybeEmailNotify) {
           //window.__maybeEmailNotify({
@@ -1007,7 +1028,7 @@ const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
           //displayName: titleEl.textContent });
         //}
       });
-          // Firebase: LED (csak ha van)
+// Firebase: LED (csak ha van)
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
       get(ledLevelRef).then((snap) => {
         if (snap.exists()) {
