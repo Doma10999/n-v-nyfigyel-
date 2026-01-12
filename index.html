@@ -1004,7 +1004,7 @@
     }
 
     // 2️⃣ új adat hozzáadása
-    entries.push({ t: Date.now(), v });
+    entries.push({ t: Date.now(), v: displayPct });
 
     // 3️⃣ csak a legfrissebb 10 marad
     entries = entries.slice(-10);
