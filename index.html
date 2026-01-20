@@ -364,13 +364,45 @@
     }
 
 
-    /* Alapból a menü elemei rejtve vannak és a menü gomb helyén „ülnek” */
-    #addAccountBtn, #notifBellBtn, #chartsBtn { bottom: 25px; opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.92); }
+    /* 🔹 KÖZÖS ALAP POZÍCIÓ */
+    #menuBtn,
+    #addAccountBtn,
+    #notifBellBtn,
+    #chartsBtn {
+      position: fixed;
+      right: 25px;
+      bottom: calc(25px + env(safe-area-inset-bottom));
+    }
 
-    /* Menü nyitva: gombok feljönnek animációval */
-    body.menu-open #addAccountBtn { bottom: 115px; opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
-    body.menu-open #notifBellBtn  { bottom: 205px; opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
-    body.menu-open #chartsBtn     { bottom: 295px; opacity: 1; pointer-events: auto; transform: translateY(0) scale(1); }
+    /* 🔹 ALAPÁLLAPOT (rejtve) */
+    #addAccountBtn,
+    #notifBellBtn,
+    #chartsBtn {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(0) scale(0.9);
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    /* 🔹 NYITOTT MENÜ – CSAK TRANSFORM */
+    body.menu-open #addAccountBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-90px) scale(1);
+    }
+
+    body.menu-open #notifBellBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-170px) scale(1);
+    }
+
+    body.menu-open #chartsBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-250px) scale(1);
+    }
+
 
     #notifBellBtn.inactive {
       background: linear-gradient(145deg, #b0c4b1, #d0e6cd);
