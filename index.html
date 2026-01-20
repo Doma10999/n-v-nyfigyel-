@@ -2,7 +2,7 @@
 <html lang="hu">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
@@ -18,7 +18,10 @@
       color: #1b3a2a;
       text-align: center;
       padding: 20px;
+
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
     }
+
 
     h1 {
       text-align: center;
@@ -346,7 +349,12 @@
     }
 
     /* Menü gomb (mindig látszik) */
-    #menuBtn { bottom: 25px; font-size: 28px; z-index: 1003; }
+    #menuBtn {
+      bottom: calc(25px + env(safe-area-inset-bottom));
+      font-size: 28px;
+      z-index: 1003;
+    }
+
 
     /* Alapból a menü elemei rejtve vannak és a menü gomb helyén „ülnek” */
     #addAccountBtn, #notifBellBtn, #chartsBtn { bottom: 25px; opacity: 0; pointer-events: none; transform: translateY(12px) scale(0.92); }
