@@ -1,0 +1,1058 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+      overflow-x: hidden;
+      color: #1b3a2a;
+      text-align: center;
+
+      padding-left: 20px;
+      padding-right: 20px;
+
+      /* ⬇ SAFE AREA KOMPENZÁCIÓ */
+      padding-top: calc(env(safe-area-inset-top) + 16px);
+      padding-bottom: calc(env(safe-area-inset-bottom) + 20px);
+    }
+
+
+
+    h1 {
+      text-align: center;
+      font-size: clamp(2.1em, 6vw, 2.6em);
+      margin: 18px 0 22px;
+      color: #0d3b23;
+    }
+
+
+    .card {
+      position: relative;
+      background: rgba(255,255,255,0.9);
+      border-radius: 30px;
+      padding: 26px 22px 22px;
+      margin: 22px auto;
+      max-width: 420px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+      overflow: hidden;
+      transition: transform 0.35s ease, box-shadow 0.35s ease, outline 0.2s ease;
+      outline: 0px solid rgba(76,175,80,0);
+      cursor: pointer;
+    }
+
+    .card.selected {
+      outline: 3px solid rgba(76,175,80,0.35);
+      box-shadow: 0 26px 52px rgba(0,0,0,0.13);
+    }
+
+    .card::before, .card::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      opacity: 0.10;
+      animation: float 12s infinite linear;
+      pointer-events: none;
+    }
+
+    .card::before {
+      width: 200px; height: 200px;
+      background: #66bb6a;
+      top: -50px; right: -80px;
+    }
+
+    .card::after {
+      width: 150px; height: 150px;
+      background: #43a047;
+      bottom: -60px; left: -50px;
+      animation-duration: 16s;
+    }
+
+    @keyframes float {
+      0% { transform: translateY(0) rotate(0deg); }
+      50% { transform: translateY(-20px) rotate(180deg); }
+      100% { transform: translateY(0) rotate(360deg); }
+    }
+
+    .card:hover { transform: translateY(-7px); box-shadow: 0 28px 48px rgba(0,0,0,0.15); }
+
+    input, select, button {
+      width: 100%;
+      padding: 14px;
+      margin: 10px 0;
+      border-radius: 14px;
+      border: none;
+      font-size: 16px;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    input { background: #f0f7f3; }
+    input:focus { box-shadow: 0 0 0 4px rgba(102,187,106,0.25); }
+
+    select {
+      background: #f0f7f3;
+      padding-right: 40px;
+      cursor: pointer;
+    }
+
+    button {
+      background: linear-gradient(145deg, #66bb6a, #43a047);
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+    }
+
+    button:hover {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      transform: scale(1.03);
+    }
+
+    #logout { background: #ef5350; }
+    #logout:hover { background: #d32f2f; }
+
+    .gauge-container {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 18px auto 8px;
+    }
+
+    @media (max-width: 480px) {
+      .gauge-container { width: 180px; height: 180px; }
+    }
+
+    .gauge-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+    .gauge-bg { fill: none; stroke: #c8e6c9; stroke-width: 18; }
+    .gauge-fill {
+      fill: none;                 /* 🔑 EZ FONTOS */
+      stroke: #66bb6a;            /* 🔑 ALAP ZÖLD */
+      stroke-width: 18;
+      transition:
+        stroke-dashoffset 0.9s cubic-bezier(.34,1.56,.64,1),
+        stroke 0.4s ease;
+    }
+
+
+
+    .gauge-value {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%,-50%);
+      font-size: 32px;
+      font-weight: bold;
+      color: #1b3a2a;
+      text-shadow: 1px 1px 3px rgba(0,0,0,0.05);
+      line-height: 1;
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    @media (max-width: 480px) { .gauge-value { font-size: 24px; } }
+
+    .battery-box {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 6;
+      display: none;
+      background: none;
+      border-radius: 0px;
+      padding: 0px;
+      box-shadow:none;
+      backdrop-filter: blur(4px);
+    }
+    .battery-box img { width: 38px; display: block; }
+
+    .deleteBtn {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 40px; height: 40px;
+      background: #fff;
+      border: none;
+      border-radius: 50%;
+      box-shadow: 0 2px 10px rgba(220,0,60,0.10),0 1.5px 4px rgba(0,0,0,0.09);
+      color: #d32f2f;
+      font-weight: bold;
+      font-size: 26px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      transition: background 0.22s, color 0.22s, transform 0.14s;
+      z-index: 7;
+    }
+    .deleteBtn:hover {
+      background: #ffe3e3;
+      color: #b71c1c;
+      transform: scale(1.125);
+      box-shadow: 0 6px 16px rgba(220,0,60,0.19);
+    }
+
+    .title-row {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 4px;
+      margin-bottom: 10px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .plant-title-pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;                 /* kisebb távolság a szöveg és ceruza között */
+      padding:6px 14px;        /* ALACSONYABB pill */
+      border-radius:18px;      /* kicsit elegánsabb */
+      background:linear-gradient(
+        145deg,
+        rgba(102,187,106,0.32),
+        rgba(67,160,71,0.22)
+      );
+      font-weight:700;         /* kevésbé „tömbös” */
+      font-size:16px;          /* EZ A KULCS */
+      line-height:1.1;
+      white-space:nowrap;
+      width:fit-content;
+      max-width:100%;
+      box-shadow:0 10px 20px rgba(0,0,0,.07);
+    }
+
+
+    .edit-pill {
+      border: none;
+      width: auto;
+      padding: 8px 10px;
+      border-radius: 14px;
+      background: rgba(67,160,71,0.12);
+      color: #1b5e20;
+      font-size: 14px;
+      cursor: pointer;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.06);
+      transition: transform 0.2s ease, background 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    .edit-pill:hover { transform: scale(1.06); background: rgba(67,160,71,0.17); }
+
+    .name-edit-wrap {
+      display: none;
+      gap: 10px;
+      align-items: center;
+      justify-content: center;
+      margin: 8px 0 10px;
+      position: relative;
+      z-index: 2;
+    }
+
+    .name-edit-wrap input {
+      width: 72%;
+      margin: 0;
+      padding: 12px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(76,175,80,0.25);
+      background: rgba(240,247,243,0.9);
+    }
+
+    .icon-btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      color: #0d3b23;
+      background: rgba(255,255,255,0.85);
+      box-shadow: 0 10px 20px rgba(0,0,0,0.08);
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+    .icon-btn:hover { transform: scale(1.06); background: rgba(255,255,255,0.95); }
+
+    .name-badge{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:8px 16px;
+      border-radius:18px;
+      background:linear-gradient(
+        145deg,
+        rgba(102,187,106,0.25),
+        rgba(67,160,71,0.20)
+      );
+      color:#0d3b23;
+      font-weight:800;
+      margin:6px auto 12px;
+      width:fit-content;
+      max-width:100%;
+      white-space:nowrap;
+      box-shadow:0 14px 26px rgba(0,0,0,0.06);
+    }
+
+    
+
+    #plantData {
+      margin-top: 10vh;
+    }
+
+
+
+    .slider-container { margin-top: 8px; position: relative; z-index: 2; }
+    .led-slider {
+      width: 92%; margin: 12px auto 6px; display: block;
+      appearance: none; height: 18px; border-radius: 12px;
+      background: linear-gradient(90deg, #e7ffe0 0%, #4caf50 100%);
+      outline: none; transition: all 0.25s ease;
+    }
+    .led-slider::-webkit-slider-thumb {
+      appearance: none; width: 28px; height: 28px; border-radius: 50%;
+      background: #66bb6a; border: 3px solid #fff; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(76,175,80,0.2); transition: transform 0.25s ease;
+    }
+    .led-slider::-webkit-slider-thumb:hover { transform: scale(1.1); }
+
+    .slider-labels { font-weight: 700; color: #1b3a2a; opacity: 0.9; font-size: 14px; margin-bottom: 4px; }
+
+    /* Floating buttons */
+    #menuBtn, #addAccountBtn, #notifBellBtn, #chartsBtn {
+      position: fixed;
+      right: 25px;
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      transition: transform 0.28s ease, box-shadow 0.28s ease, opacity 0.28s ease, bottom 0.28s ease;
+      z-index: 1000;
+      color: #fff;
+      font-size: 32px;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+    }
+
+    /* Menü gomb (mindig látszik) */
+    #menuBtn {
+      bottom: calc(25px + env(safe-area-inset-bottom));
+      font-size: 28px;
+      z-index: 1003;
+    }
+
+
+    /* 🔹 KÖZÖS ALAP POZÍCIÓ */
+    #menuBtn,
+    #addAccountBtn,
+    #notifBellBtn,
+    #chartsBtn {
+      position: fixed;
+      right: 25px;
+      bottom: calc(25px + env(safe-area-inset-bottom));
+    }
+
+    /* 🔹 ALAPÁLLAPOT (rejtve) */
+    #addAccountBtn,
+    #notifBellBtn,
+    #chartsBtn {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(0) scale(0.9);
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    /* 🔹 NYITOTT MENÜ – CSAK TRANSFORM */
+    body.menu-open #addAccountBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-90px) scale(1);
+    }
+
+    body.menu-open #notifBellBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-170px) scale(1);
+    }
+
+    body.menu-open #chartsBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-250px) scale(1);
+    }
+
+
+    #notifBellBtn.inactive {
+      background: linear-gradient(145deg, #b0c4b1, #d0e6cd);
+      color: #7e917c;
+    }
+
+    #menuBtn:hover, #addAccountBtn:hover, #notifBellBtn:hover, #chartsBtn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    }
+
+    /* Modals */
+    #modal, #confirmModal, #notifModal, #chartsModal {
+      display: none;
+      position: fixed; left: 0; top: 0; width: 100vw; height: 100vh;
+      background: rgba(0,0,0,0.45);
+      justify-content: center; align-items: center;
+      z-index: 1100;
+      padding: 18px;
+    }
+
+    #modalContent, #confirmModalContent, #notifModalContent, #chartsModalContent {
+      background: #ffffffee;
+      padding: 30px 22px;
+      border-radius: 28px;
+      box-shadow: 0 20px 48px rgba(0,0,0,0.2);
+      width: 420px;
+      max-width: 95vw;
+      text-align: center;
+      position: relative;
+      animation: popIn 0.25s ease-out;
+      overflow: hidden;
+    }
+
+    @keyframes modalElastic {
+      0%   { transform: scale(0.85); opacity: 0; }
+      60%  { transform: scale(1.05); opacity: 1; }
+      100% { transform: scale(1); }
+    }
+
+    #modalContent,
+    #confirmModalContent,
+    #notifModalContent,
+    #chartsModalContent,
+    #plantTypeModal .modal-box {
+      animation: modalElastic 0.45s cubic-bezier(.34,1.56,.64,1);
+    }
+
+
+
+    #modalClose, #confirmClose, #notifModalClose, #chartsModalClose {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      font-size: 28px;
+      color: #999;
+      cursor: pointer;
+      transition: color 0.2s ease;
+      user-select: none;
+      z-index: 5;
+    }
+    #modalClose:hover, #confirmClose:hover, #notifModalClose:hover, #chartsModalClose:hover { color: #111; }
+
+    .charts-wrap {
+      max-height: 70vh;
+      overflow: auto;
+      padding: 10px 6px 2px;
+    }
+
+    .chart-card {
+      background: rgba(240,247,243,0.9);
+      border-radius: 22px;
+      padding: 14px 14px 12px;
+      margin: 12px 0;
+      box-shadow: 0 14px 26px rgba(0,0,0,0.07);
+      text-align: left;
+    }
+
+    .chart-title {
+      font-weight: 900;
+      color: #0d3b23;
+      font-size: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .chart-title small {
+      font-weight: 700;
+      opacity: 0.7;
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    canvas {
+      width: 100%;
+      height: 160px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.04);
+    }
+
+    
+
+    /* Confirm buttons */
+    .confirm-btn-group { display: flex; gap: 10px; justify-content: center; margin-top: 16px; }
+    .confirm-btn { width: 45%; padding: 12px 14px; border-radius: 14px; border: none; cursor: pointer; font-weight: 800; }
+    .confirm-igen { background: linear-gradient(145deg, #43a047, #66bb6a); color: #fff; }
+    .confirm-nem { background: #e0e8e5; color: #4b5a52; }
+
+    @media (max-width: 480px) {
+      h1 { font-size: 2.2em; margin: 20px 0; }
+      .card { margin: 18px 10px; padding: 24px 18px 18px; }
+      #notifBellBtn, #addAccountBtn, #chartsBtn { width: 52px; height: 52px; font-size: 22px; right: 18px; }
+      #addAccountBtn { font-size: 30px; }
+      #chartsBtn { font-size: 20px; }
+      #notifBellBtn { font-size: 20px; }
+    }
+
+    .plant-select {
+      background: #f0f7f3;
+      border-radius: 16px;
+      padding: 14px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 700;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,0.05);
+    }
+
+    .plant-select-arrow {
+      opacity: 0.6;
+      font-size: 18px;
+    }
+
+    #plantTypeModal .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.45);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1200;
+    }
+
+    #plantTypeModal .modal-box {
+      margin-top: env(safe-area-inset-top);
+      position: relative; /* 🔑 EZ A KULCS */
+      background: #fff;
+      border-radius: 22px;
+      padding: 18px;
+      width: 90%;
+      max-width: 340px;
+    }
+
+
+    .plant-option {
+      padding: 14px;
+      border-radius: 14px;
+      background: #f0f7f3;
+      margin-bottom: 10px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .plant-option:hover {
+      background: #dceee4;
+    }
+
+    /* Plant type modal close (X) */
+    #plantTypeModal .modal-close {
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      font-size: 26px;
+      color: #999;
+      cursor: pointer;
+      user-select: none;
+      transition: color 0.2s ease, transform 0.15s ease;
+    }
+
+    #plantTypeModal .modal-close:hover {
+      color: #111;
+      transform: scale(1.1);
+    }
+
+    /* ✅ Plant type modal – X gomb ugyanúgy, mint a kártyákon */
+    #plantTypeModal .modal-box {
+      position: relative;
+    }
+
+    #plantTypeModal .modal-close-btn {
+      position: absolute;
+
+      /* ⬆⬅ finomhangolt pozíció */
+      top: calc(0px + env(safe-area-inset-top));
+      right: 10px;
+
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+
+      background: #fff;
+      border: none;
+
+      color: #d32f2f;
+      font-size: 22px;
+      font-weight: 900;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      cursor: pointer;
+      box-shadow:
+        0 2px 10px rgba(220,0,60,0.10),
+        0 1.5px 4px rgba(0,0,0,0.09);
+
+      transition: background 0.2s ease,
+                  transform 0.15s ease,
+                  box-shadow 0.2s ease;
+
+      z-index: 10;
+    }
+
+
+    #plantTypeModal .modal-close-btn:hover {
+      background: #ffe3e3;
+      transform: scale(1.12);
+      box-shadow: 0 6px 16px rgba(220,0,60,0.18);
+    }
+
+    /* ============================= */
+    /* KÁRTYA BELÉPŐ ANIMÁCIÓ */
+    /* ============================= */
+
+    .card {
+      opacity: 0;
+      transform: translateY(40px) scale(0.96);
+      animation: cardIn 0.6s cubic-bezier(.34,1.56,.64,1) forwards;
+    }
+
+    @keyframes cardIn {
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ============================= */
+    /* KÁRTYA TÖRLÉS ANIMÁCIÓ */
+    /* ============================= */
+    .card.removing {
+      animation: cardOut 0.45s cubic-bezier(.4,0,.2,1) forwards;
+    }
+
+    @keyframes cardOut {
+      to {
+        opacity: 0;
+        transform: translateY(30px) scale(0.9);
+        height: 0;
+        margin: 0;
+        padding-top: 0;
+        padding-bottom: 0;
+      }
+    }
+    /* ============================= */
+    /* OFFLINE BADGE */
+    /* ============================= */
+    #offlineBadge {
+      position: fixed;
+      top: calc(env(safe-area-inset-top) + 8px);
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2000;
+
+      display: none;
+      align-items: center;
+      gap: 8px;
+
+      padding: 8px 14px;
+      border-radius: 16px;
+
+      background: rgba(239, 83, 80, 0.95);
+      color: #fff;
+      font-size: 13px;
+      font-weight: 700;
+
+      box-shadow: 0 8px 22px rgba(0,0,0,0.18);
+      animation: offlineSlide 0.4s cubic-bezier(.34,1.56,.64,1);
+    }
+
+    #offlineBadge i {
+      font-size: 14px;
+    }
+
+    @keyframes offlineSlide {
+      from {
+        transform: translate(-50%, -20px);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
+    
+    button:active,
+    .icon-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* ============================= */
+    /* EMAIL ÉRTESÍTÉS – MODERN UI   */
+    /* ============================= */
+
+    .notif-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .notif-item {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      gap: 12px;
+      padding: 14px;
+      border-radius: 18px;
+      background: rgba(240,247,243,0.95);
+      box-shadow:
+        inset 0 0 0 1px rgba(0,0,0,0.05),
+        0 10px 20px rgba(0,0,0,0.06);
+    }
+
+    .notif-checkbox {
+      width: 20px;
+      height: 20px;
+      accent-color: #43a047;
+    }
+
+    .notif-text {
+      flex: 1;
+    }
+
+    .notif-name {
+      font-weight: 800;
+      color: #0d3b23;
+      font-size: 15px;
+    }
+
+    .notif-email-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notif-email {
+      font-size: 12px;
+      opacity: 0.75;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .notif-email.empty {
+      opacity: 0.5;
+      font-style: italic;
+    }
+
+    .notif-email-delete {
+      width: 26px;
+      height: 26px;
+      min-width: 26px;          /* 🔑 ne zsugorodjon */
+      border-radius: 10px;
+      border: none;
+      background: rgba(239,83,80,0.15);
+      color: #d32f2f;
+      font-weight: 900;
+      cursor: pointer;
+
+      display: flex;            /* 🔑 középre igazítás */
+      align-items: center;
+      justify-content: center;
+
+      line-height: 1;           /* 🔑 ne tolja le az X-et */
+    }
+
+
+    /* Payment floating button */
+    #paymentBtn {
+      position: fixed;
+      right: 25px;
+      bottom: calc(25px + env(safe-area-inset-bottom));
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(0) scale(0.9);
+      transition: transform 0.28s ease, opacity 0.28s ease;
+    }
+
+    body.menu-open #paymentBtn {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-330px) scale(1);
+    }
+
+    #menuBtn, #addAccountBtn, #notifBellBtn, #chartsBtn, #paymentBtn {
+      position: fixed;
+      right: 25px;
+      width: 65px;
+      height: 65px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+      z-index: 1000;
+      color: #fff;
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+    }
+
+    #menuBtn:hover, #addAccountBtn:hover, #notifBellBtn:hover, #chartsBtn:hover, #paymentBtn:hover {
+      transform: scale(1.08);
+      box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+    }
+
+    .plan-badge {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      z-index: 8;
+      padding: 7px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    }
+
+    .plan-badge.free {
+      background: #eef4ef;
+      color: #52715c;
+    }
+
+    .plan-badge.plus {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      color: #fff;
+    }
+
+    /* Billing pages */
+    body.billing-page {
+      min-height: 100vh;
+      padding: 22px 16px 40px;
+      background: linear-gradient(135deg, #f0f7f3 0%, #e0f2f1 100%);
+    }
+
+    .billing-shell {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .billing-topbar {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 12px;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-decoration: none;
+      color: #1b3a2a;
+      font-weight: 700;
+      background: rgba(255,255,255,0.92);
+      border-radius: 999px;
+      padding: 10px 16px;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.08);
+    }
+
+    .billing-title {
+      margin: 10px 0 10px;
+    }
+
+    .billing-subtitle {
+      max-width: 760px;
+      margin: 0 auto 18px;
+      opacity: .8;
+      line-height: 1.55;
+    }
+
+    .billing-hero {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+      gap: 16px;
+      margin: 20px 0;
+    }
+
+    .billing-plan {
+      background: rgba(255,255,255,0.92);
+      border-radius: 26px;
+      padding: 22px;
+      text-align: left;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+    }
+
+    .billing-plan h2 {
+      margin-bottom: 10px;
+      color: #0d3b23;
+    }
+
+    .billing-plan ul {
+      list-style: none;
+      display: grid;
+      gap: 8px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .billing-plan.free {
+      border: 2px solid rgba(120,140,120,0.18);
+    }
+
+    .billing-plan.plus {
+      border: 2px solid rgba(67,160,71,0.3);
+    }
+
+    .billing-note, .billing-status, .billing-account-card {
+      background: rgba(255,255,255,0.92);
+      border-radius: 24px;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+    }
+
+    .billing-note, .billing-status {
+      padding: 18px 20px;
+      margin-bottom: 16px;
+      line-height: 1.55;
+    }
+
+    .billing-accounts {
+      display: grid;
+      gap: 16px;
+    }
+
+    .billing-account-card {
+      padding: 22px;
+      text-align: left;
+    }
+
+    .billing-account-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .billing-account-email {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0d3b23;
+      word-break: break-word;
+    }
+
+    .billing-account-uid {
+      margin-top: 6px;
+      font-size: 14px;
+      color: #47614d;
+      word-break: break-all;
+    }
+
+    .billing-account-uid code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 13px;
+    }
+
+    .billing-plan-pill {
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .5px;
+      white-space: nowrap;
+    }
+
+    .billing-plan-pill.free {
+      background: #eef4ef;
+      color: #52715c;
+    }
+
+    .billing-plan-pill.plus {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+      color: #fff;
+    }
+
+    .billing-meta {
+      display: grid;
+      gap: 6px;
+      margin-bottom: 16px;
+      color: #335140;
+    }
+
+    .billing-copy-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .copy-uid-btn {
+      width: auto;
+      min-width: 170px;
+      padding: 12px 16px;
+      margin: 0;
+    }
+
+    .copy-hint {
+      font-size: 13px;
+      opacity: .78;
+      line-height: 1.45;
+    }
+
+    .billing-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .pay-link-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-width: 220px;
+      text-decoration: none;
+      border-radius: 16px;
+      padding: 14px 18px;
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 10px 22px rgba(0,0,0,0.12);
+    }
+
+    .pay-link-btn.monthly {
+      background: linear-gradient(145deg, #43a047, #66bb6a);
+    }
+
+    .pay-link-btn.yearly {
+      background: linear-gradient(145deg, #2e7d32, #4caf50);
+    }
+
+    @media (max-width: 640px) {
+      #notifBellBtn, #addAccountBtn, #chartsBtn, #paymentBtn {
+        width: 52px;
+        height: 52px;
+        font-size: 22px;
+        right: 18px;
+      }
+
+      body.menu-open #addAccountBtn { transform: translateY(-78px) scale(1); }
+      body.menu-open #notifBellBtn { transform: translateY(-148px) scale(1); }
+      body.menu-open #chartsBtn { transform: translateY(-218px) scale(1); }
+      body.menu-open #paymentBtn { transform: translateY(-288px) scale(1); }
+
+      .pay-link-btn {
+        width: 100%;
+      }
+    }
