@@ -46,9 +46,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     const chartsBtn = document.getElementById("chartsBtn");
     const paymentBtn = document.getElementById("paymentBtn");
+    const menuBtn = document.getElementById("menuBtn");
     const chartsModal = document.getElementById("chartsModal");
     const chartsModalClose = document.getElementById("chartsModalClose");
+
     const chartsWrap = document.getElementById("chartsWrap");
+
+    const FLOATING_BUTTONS = [menuBtn, paymentBtn, chartsBtn, document.getElementById("notifBellBtn"), addAccountBtn];
+
+    function setFloatingMenuVisibility(visible) {
+      FLOATING_BUTTONS.forEach(btn => {
+        if (!btn) return;
+        btn.style.display = visible ? "flex" : "none";
+      });
+      if (!visible) {
+        document.body.classList.remove("menu-open");
+        if (menuBtn) menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+      }
+    }
 
     // ====== Tárolás (fiókok) ======
     const STORAGE_KEY = "storedAccounts_v2";
@@ -210,6 +225,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       accountsContainer.style.display = "none";
       addAccountBtn.style.display = "none";
       chartsBtn.style.display = "none";
+      setFloatingMenuVisibility(false);
       statusDiv.style.color = "#1b3a2a";
       statusDiv.textContent = "Nincs bejelentkezve";
     }
@@ -222,6 +238,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       accountsContainer.style.display = "block";
       addAccountBtn.style.display = "flex";
       chartsBtn.style.display = "flex";
+      setFloatingMenuVisibility(true);
     }
 
     // ====== Grafikon rajzolás (client-side history) ======

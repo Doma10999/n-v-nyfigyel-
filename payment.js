@@ -1,5 +1,5 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
 const firebaseConfig = {
@@ -14,8 +14,8 @@ const firebaseConfig = {
 };
 
 const STRIPE_LINKS = {
-  monthly: "https://buy.stripe.com/IDE_IRD_LINKET_CSERELD",
-  yearly: "https://buy.stripe.com/EVES_IRD_LINKET_CSERELD"
+  monthly: "https://buy.stripe.com/test_14AaEPdO1ek0grYdLr7g400",
+  yearly: "https://buy.stripe.com/test_cNi5kv8tH0tafnU36N7g401"
 };
 
 const STORAGE_KEY = "storedAccounts_v2";
@@ -44,6 +44,13 @@ function normalizePlan(v) {
   return String(v || "free").toLowerCase() === "plus" ? "plus" : "free";
 }
 
+function buildStripeUrl(baseUrl, uid, email = "") {
+  const url = new URL(baseUrl);
+  if (uid) url.searchParams.set("client_reference_id", uid);
+  if (email) url.searchParams.set("prefilled_email", email);
+  return url.toString();
+}
+
 async function loadPlan(uid) {
   const snap = await get(ref(db, `users/${uid}/subscription`));
   if (!snap.exists()) {
@@ -57,16 +64,18 @@ async function loadPlan(uid) {
   };
 }
 
-function createAccountCard(acc, sub) {
+function createAccountCard(acc, sub, isCurrentUser = false) {
   const wrapper = document.createElement("div");
   wrapper.className = "billing-account-card";
 
   const isPlus = sub.plan === "plus";
+  const monthlyUrl = buildStripeUrl(STRIPE_LINKS.monthly, acc.uid, acc.email || "");
+  const yearlyUrl = buildStripeUrl(STRIPE_LINKS.yearly, acc.uid, acc.email || "");
 
   wrapper.innerHTML = `
     <div class="billing-account-head">
       <div>
-        <div class="billing-account-email">${acc.email || "Fiók"}</div>
+        <div class="billing-account-email">${acc.email || "Fiók"}${isCurrentUser ? ' <span class="billing-current-tag">(aktuális)</span>' : ''}</div>
         <div class="billing-account-uid">UID: <code>${acc.uid}</code></div>
       </div>
       <span class="billing-plan-pill ${isPlus ? "plus" : "free"}">${isPlus ? "PLUS" : "FREE"}</span>
@@ -74,20 +83,21 @@ function createAccountCard(acc, sub) {
 
     <div class="billing-meta">
       <div><b>Aktuális csomag:</b> ${isPlus ? "Plus" : "Free"}</div>
-      <div><b>Lejárat:</b> ${formatDate(sub.expiresAt)}</div>
+      <div><b>Állapot:</b> ${sub.status || "inactive"}</div>
+      <div><b>Lejárat / következő forduló:</b> ${formatDate(sub.expiresAt)}</div>
     </div>
 
     <div class="billing-copy-row">
       <button class="copy-uid-btn" type="button"><i class="fa-solid fa-copy"></i> UID másolása</button>
-      <span class="copy-hint">Ezt add meg a Stripe oldalon a <b>uid</b> mezőbe.</span>
+      <span class="copy-hint">A Stripe link már tartalmazza az UID-t, de biztonságból a <b>UID</b> mezőbe is írd be ugyanezt.</span>
     </div>
 
     <div class="billing-actions">
-      <a class="pay-link-btn monthly" href="${STRIPE_LINKS.monthly}" target="_blank" rel="noopener noreferrer">
-        <i class="fa-solid fa-calendar-days"></i> Plus havi – 390 Ft
+      <a class="pay-link-btn monthly" href="${monthlyUrl}" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-calendar-days"></i> Plus havi – 490 Ft
       </a>
-      <a class="pay-link-btn yearly" href="${STRIPE_LINKS.yearly}" target="_blank" rel="noopener noreferrer">
-        <i class="fa-solid fa-crown"></i> Plus éves – 3000 Ft
+      <a class="pay-link-btn yearly" href="${yearlyUrl}" target="_blank" rel="noopener noreferrer">
+        <i class="fa-solid fa-crown"></i> Plus éves – 3999 Ft
       </a>
     </div>
   `;
@@ -108,11 +118,13 @@ function createAccountCard(acc, sub) {
   return wrapper;
 }
 
-async function init() {
+async function init(user = null) {
   const statusEl = document.getElementById("billingStatus");
   const accountsEl = document.getElementById("billingAccounts");
-
   const stored = getStoredAccounts();
+
+  accountsEl.innerHTML = "";
+
   if (stored.length === 0) {
     statusEl.textContent = "Nincs mentett fiók. Előbb jelentkezz be az alkalmazásban.";
     return;
@@ -120,15 +132,16 @@ async function init() {
 
   statusEl.textContent = "Fiókok betöltése...";
 
-  accountsEl.innerHTML = "";
   for (const acc of stored) {
     const sub = await loadPlan(acc.uid);
-    accountsEl.appendChild(createAccountCard(acc, sub));
+    accountsEl.appendChild(createAccountCard(acc, sub, !!user && user.uid === acc.uid));
   }
 
-  statusEl.textContent = auth.currentUser
-    ? "Fiókok betöltve. A Stripe oldalon a megfelelő UID-t add meg."
-    : "Fiókok betöltve. Ha több fiókod van, figyelj rá, hogy a megfelelő UID-t add meg a Stripe oldalon.";
+  statusEl.textContent = user
+    ? "A Stripe gombok már automatikusan továbbadják az UID-t és az emailt. A Stripe oldalon ellenőrizd, hogy az UID mezőben is a helyes azonosító szerepeljen."
+    : "Fiókok betöltve. A Stripe gombok automatikusan továbbadják az UID-t és az emailt, de a Stripe oldalon ellenőrizd az UID mezőt is.";
 }
 
-window.addEventListener("load", init);
+onAuthStateChanged(auth, (user) => {
+  init(user);
+});
