@@ -92,8 +92,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     };
 
     const FREE_PLAN_CATEGORIES = [
-      "🌾Mérsékelten száraz",
-      "🌱Nedvességkedvelő"
+      "🌿Kiegyensúlyozott vízigényű"
     ];
 
     const PLUS_PLAN_CATEGORIES = [
@@ -458,10 +457,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
       card.innerHTML = `
         <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
-        <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
-
-        <div class="battery-box">
-          <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku">
+        <div class="plan-badge-wrap">
+          <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
+          <div class="battery-box">
+            <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku">
+          </div>
         </div>
 
         <div class="title-row">
@@ -490,7 +490,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         </div>
 
         <div class="slider-container" style="display:none;">
-          <input type="range" min="0" max="100" step="1" value="0" class="led-slider" />
+          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" list="led-steps" />
           <div class="slider-labels"><span>Fény erő</span></div>
         </div>
 
@@ -540,7 +540,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
       function getFallbackCategoryForUid() {
         const allowed = window.__getAllowedCategoriesForUid(uid);
-        return allowed[0] || "🌾Mérsékelten száraz";
+        return allowed[0] || "🌿Kiegyensúlyozott vízigényű";
       }
 
       function refreshPlanBadgeAndRestrictions() {
@@ -770,14 +770,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       get(ledLevelRef).then((snap) => {
         if (snap.exists()) {
           sliderContainer.style.display = "block";
-          slider.value = Number(snap.val()) || 0;
+          slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
           onValue(ledLevelRef, (s2) => {
-            if (s2.exists()) slider.value = Number(s2.val()) || 0;
+            if (s2.exists()) slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
           });
           slider.addEventListener("input", async (e)=> {
             e.stopPropagation();
-            const newVal = parseInt(e.target.value, 10);
-            await set(ledLevelRef, newVal);
+            const snapped = Math.max(0, Math.min(100, Math.round((Number(e.target.value) || 0) / 10) * 10));
+            e.target.value = snapped;
+            await set(ledLevelRef, snapped);
           });
         } else {
           sliderContainer.style.display = "none";

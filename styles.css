@@ -151,10 +151,19 @@
 
     @media (max-width: 480px) { .gauge-value { font-size: 24px; } }
 
-    .battery-box {
+    .plan-badge-wrap {
       position: absolute;
       top: 16px;
       left: 16px;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    .battery-box {
+      position: static;
       z-index: 6;
       display: none;
       background: none;
@@ -815,9 +824,7 @@
     }
 
     .plan-badge {
-      position: absolute;
-      top: 16px;
-      left: 16px;
+      position: static;
       z-index: 8;
       padding: 7px 12px;
       border-radius: 999px;

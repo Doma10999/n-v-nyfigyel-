@@ -89,7 +89,7 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
 
     <div class="billing-copy-row">
       <button class="copy-uid-btn" type="button"><i class="fa-solid fa-copy"></i> UID másolása</button>
-      <span class="copy-hint">A Stripe link már tartalmazza az UID-t, de biztonságból a <b>UID</b> mezőbe is írd be ugyanezt.</span>
+      <span class="copy-hint">A sikeres fizetés után a Plus csomag általában 15 percen belül aktiválódik. Itt később a következő fordulót is látni fogod.</span>
     </div>
 
     <div class="billing-actions">
@@ -138,8 +138,8 @@ async function init(user = null) {
   }
 
   statusEl.textContent = user
-    ? "A Stripe gombok már automatikusan továbbadják az UID-t és az emailt. A Stripe oldalon ellenőrizd, hogy az UID mezőben is a helyes azonosító szerepeljen."
-    : "Fiókok betöltve. A Stripe gombok automatikusan továbbadják az UID-t és az emailt, de a Stripe oldalon ellenőrizd az UID mezőt is.";
+    ? "A fizetés után a Plus csomag aktiválása általában 15 percen belül megtörténik. A csomagodat és a következő fordulót itt tudod ellenőrizni."
+    : "Fiókok betöltve. Itt láthatod az aktuális csomagodat, és innen tudsz előfizetni a Plus csomagra.";
 }
 
 onAuthStateChanged(auth, (user) => {
