@@ -15,38 +15,53 @@
       <a class="back-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> Vissza</a>
     </div>
 
-    <h1 class="billing-title">Csomagok és fizetés 💳</h1>
-    <p class="billing-subtitle">
-      Itt tudod megnézni az aktuális csomagodat, a fiókod azonosítóját és az előfizetési lehetőségeket.
-    </p>
+    <section class="billing-intro-card">
+      <div class="billing-intro-icon">🌿</div>
+      <h1 class="billing-title">Csomagok és fizetés</h1>
+      <p class="billing-subtitle">
+        Itt láthatod az aktuális csomagodat, elindíthatod a Plus előfizetést,
+        vagy kezelheted a már meglévő előfizetésedet.
+      </p>
+      <div class="billing-trust-row">
+        <span><i class="fa-solid fa-shield-halved"></i> Biztonságos Stripe fizetés</span>
+        <span><i class="fa-solid fa-clock"></i> Aktiválás általában 15 percen belül</span>
+        <span><i class="fa-solid fa-rotate"></i> Automatikusan megújuló előfizetés</span>
+      </div>
+    </section>
 
     <div class="billing-hero">
       <div class="billing-plan free">
+        <div class="billing-plan-label">Alap csomag</div>
         <h2>Free</h2>
         <ul>
-          <li>1 kategória</li>
-          <li>Nincs email értesítés</li>
-          <li>Nincs grafikon</li>
+          <li><i class="fa-solid fa-check"></i> 1 növénykategória</li>
+          <li><i class="fa-solid fa-xmark"></i> Email értesítés nélkül</li>
+          <li><i class="fa-solid fa-xmark"></i> Grafikon nélkül</li>
         </ul>
       </div>
       <div class="billing-plan plus">
+        <div class="billing-plan-label plus">Ajánlott</div>
         <h2>Plus</h2>
         <ul>
-          <li>5 kategória</li>
-          <li>Email értesítés</li>
-          <li>Grafikon</li>
+          <li><i class="fa-solid fa-check"></i> 5 növénykategória</li>
+          <li><i class="fa-solid fa-check"></i> Email értesítés</li>
+          <li><i class="fa-solid fa-check"></i> Grafikonok</li>
         </ul>
       </div>
     </div>
 
-    <div class="billing-note">
-      <b>Fontos:</b> fizetésnél ellenőrizd, hogy az <b>UID</b> mezőben az itt látható azonosítód szerepeljen. Az aktiválás általában 15 percen belül történik meg, a rendszer automatikusan feldolgozza a sikeres előfizetést.
+    <div class="billing-note modern">
+      <div class="billing-note-icon"><i class="fa-solid fa-circle-info"></i></div>
+      <div>
+        <b>Fontos tudni:</b> a Plus havi és éves csomag automatikusan megújuló előfizetés.
+        Lemondás után a már kifizetett időszak végéig még használhatod a Plus funkciókat.
+      </div>
     </div>
 
     <div id="billingStatus" class="billing-status">Betöltés...</div>
     <div id="billingAccounts" class="billing-accounts"></div>
   </div>
 
-  <script type="module" src="payment.js"></script>
+  <script type="module" src="payment.js?v=20260514-final-portal"></script>
 </body>
 </html>
