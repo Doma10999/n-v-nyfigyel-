@@ -19,7 +19,7 @@ const STRIPE_LINKS = {
   yearly: "https://buy.stripe.com/cNibITfCBafp7AacVy0gw00"
 };
 
-// Stripe Customer Portal – előfizetés kezelése / lemondása
+// Stripe Customer Portal – előfizetés kezelése / lemondása / bankkártya / számlák
 const STRIPE_CUSTOMER_PORTAL_URL = "https://billing.stripe.com/p/login/cNibITfCBafp7AacVy0gw00";
 
 const STORAGE_KEY = "storedAccounts_v2";
@@ -42,14 +42,14 @@ function escapeHtml(value) {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
+    .replace(/\"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
 
-function formatDate(ts) {
-  if (!ts) return "—";
+function formatDate(ts, fallbackText = "—") {
+  if (!ts) return fallbackText;
   const d = new Date(Number(ts));
-  if (Number.isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return fallbackText;
   return d.toLocaleDateString("hu-HU", {
     year: "numeric",
     month: "2-digit",
@@ -74,6 +74,8 @@ function statusLabel(status) {
     canceled: "lemondva",
     cancelled: "lemondva",
     expired: "lejárt",
+    incomplete: "fizetés nem fejeződött be",
+    incomplete_expired: "sikertelen fizetés",
     inactive: "nincs aktív előfizetés",
     free: "ingyenes csomag"
   };
@@ -114,23 +116,23 @@ async function loadPlan(uid) {
 }
 
 function getRenewalText(sub) {
-  const date = formatDate(sub.expiresAt);
+  const date = formatDate(sub.expiresAt, sub.expiresAtText || "—");
 
   if (sub.plan !== "plus") {
-    return "Nincs aktív Plus előfizetés.";
+    return "Jelenleg Free csomagban vagy. Plusra váltás után elérhető lesz az email értesítés és a grafikon.";
   }
 
   if (sub.cancelAtPeriodEnd) {
-    return `Lemondva, de a Plus hozzáférés eddig megmarad: ${date}`;
+    return `Az előfizetés le van mondva, de a Plus hozzáférés eddig megmarad: ${date}.`;
   }
 
-  return `Következő számlázási forduló: ${date}`;
+  return `Az előfizetés aktív. A következő számlázási forduló: ${date}.`;
 }
 
 function createAccountCard(acc, sub, isCurrentUser = false) {
   const wrapper = document.createElement("div");
   const isPlus = sub.plan === "plus";
-  wrapper.className = `billing-account-card ${isPlus ? "is-plus" : "is-free"}`;
+  wrapper.className = `billing-account-card billing-account-card-pro ${isPlus ? "is-plus" : "is-free"}`;
 
   const safeEmail = escapeHtml(acc.email || "Fiók");
   const safeUid = escapeHtml(acc.uid || "");
@@ -138,17 +140,19 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
   const yearlyUrl = buildStripeUrl(STRIPE_LINKS.yearly, acc.uid, acc.email || "");
   const renewalText = getRenewalText(sub);
   const showManageButton = isPlus || !!sub.stripeCustomerId || !!sub.stripeSubscriptionId;
+  const currentDate = formatDate(sub.expiresAt, sub.expiresAtText || "—");
 
   wrapper.innerHTML = `
-    <div class="billing-account-head">
+    <div class="billing-account-head billing-account-head-pro">
       <div>
-        <div class="billing-account-label">Saját fiókod</div>
+        <div class="billing-account-label">Fiók</div>
         <div class="billing-account-email">${safeEmail}${isCurrentUser ? ' <span class="billing-current-tag">aktuális</span>' : ''}</div>
+        <div class="billing-account-subline">Ezhez a fiókhoz tartozik a csomag és az előfizetés.</div>
       </div>
       <span class="billing-plan-pill ${isPlus ? "plus" : "free"}">${isPlus ? "PLUS" : "FREE"}</span>
     </div>
 
-    <div class="billing-summary-grid">
+    <div class="billing-summary-grid billing-summary-grid-pro">
       <div class="billing-summary-item">
         <span>Aktuális csomag</span>
         <b>${isPlus ? "Plus" : "Free"}</b>
@@ -159,14 +163,27 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
       </div>
       <div class="billing-summary-item wide">
         <span>${sub.cancelAtPeriodEnd ? "Hozzáférés vége" : "Következő forduló"}</span>
-        <b>${isPlus ? formatDate(sub.expiresAt) : "—"}</b>
+        <b>${isPlus ? currentDate : "—"}</b>
       </div>
     </div>
 
     <div class="billing-renewal-message ${sub.cancelAtPeriodEnd ? "warning" : ""}">
-      <i class="fa-solid ${sub.cancelAtPeriodEnd ? "fa-circle-exclamation" : "fa-rotate"}"></i>
+      <i class="fa-solid ${sub.cancelAtPeriodEnd ? "fa-circle-exclamation" : (isPlus ? "fa-rotate" : "fa-circle-info")}"></i>
       <span>${escapeHtml(renewalText)}</span>
     </div>
+
+    ${showManageButton ? `
+      <div class="billing-cancel-panel">
+        <div>
+          <b>Előfizetés lemondása vagy módosítása</b>
+          <p>A Stripe ügyfélportálon tudod lemondani az előfizetést, bankkártyát cserélni és számlákat megnézni.</p>
+        </div>
+        <a class="cancel-subscription-btn" href="${STRIPE_CUSTOMER_PORTAL_URL}" target="_blank" rel="noopener noreferrer">
+          <i class="fa-solid fa-ban"></i>
+          Előfizetés kezelése / lemondás
+        </a>
+      </div>
+    ` : ""}
 
     <details class="billing-uid-details">
       <summary>Fiókazonosító megjelenítése fizetéshez</summary>
@@ -177,7 +194,7 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
       </div>
     </details>
 
-    <div class="billing-actions">
+    <div class="billing-actions billing-actions-pro">
       <a class="pay-link-btn monthly" href="${monthlyUrl}" target="_blank" rel="noopener noreferrer">
         <span class="btn-icon"><i class="fa-solid fa-calendar-days"></i></span>
         <span><b>Plus havi</b><small>490 Ft / hó</small></span>
@@ -195,8 +212,7 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
     </div>
 
     <div class="billing-help-box">
-      <b>Hogyan működik?</b><br>
-      A Plus előfizetés automatikusan megújul. Ha lemondod, a már kifizetett időszak végéig még megmarad a Plus hozzáférésed, utána a rendszer Free csomagra áll vissza.
+      <b>Röviden:</b> a Plus automatikusan megújul. Ha lemondod, a már kifizetett időszak végéig még megmarad a Plus hozzáférésed, utána a rendszer Free csomagra áll vissza.
     </div>
   `;
 

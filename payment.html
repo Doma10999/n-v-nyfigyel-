@@ -3,65 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Növényfigyelő – Csomagok</title>
+  <title>Növényfigyelő – Csomagok és előfizetés</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon2.png">
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=20260514-company-billing-v2">
 </head>
-<body class="billing-page">
-  <div class="billing-shell">
-    <div class="billing-topbar">
-      <a class="back-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> Vissza</a>
+<body class="billing-page billing-page-pro">
+  <div class="billing-shell billing-shell-pro">
+    <div class="billing-topbar billing-topbar-pro">
+      <a class="back-link back-link-pro" href="index.html"><i class="fa-solid fa-arrow-left"></i> Vissza</a>
+      <span class="secure-pill"><i class="fa-solid fa-lock"></i> Biztonságos Stripe fizetés</span>
     </div>
 
-    <section class="billing-intro-card">
-      <div class="billing-intro-icon">🌿</div>
-      <h1 class="billing-title">Csomagok és fizetés</h1>
-      <p class="billing-subtitle">
-        Itt láthatod az aktuális csomagodat, elindíthatod a Plus előfizetést,
-        vagy kezelheted a már meglévő előfizetésedet.
-      </p>
-      <div class="billing-trust-row">
-        <span><i class="fa-solid fa-shield-halved"></i> Biztonságos Stripe fizetés</span>
-        <span><i class="fa-solid fa-clock"></i> Aktiválás általában 15 percen belül</span>
-        <span><i class="fa-solid fa-rotate"></i> Automatikusan megújuló előfizetés</span>
+    <section class="billing-intro-card billing-intro-card-pro">
+      <div class="billing-brand-mark">🌱</div>
+      <div class="billing-intro-copy">
+        <span class="billing-eyebrow">Növényfigyelő Plus</span>
+        <h1 class="billing-title">Csomagok és előfizetés</h1>
+        <p class="billing-subtitle">
+          Itt látod az aktuális csomagodat, elindíthatod a Plus előfizetést, vagy kezelheted a már aktív előfizetésedet.
+        </p>
       </div>
     </section>
 
-    <div class="billing-hero">
-      <div class="billing-plan free">
-        <div class="billing-plan-label">Alap csomag</div>
-        <h2>Free</h2>
+    <section class="billing-comparison-pro" aria-label="Csomag összehasonlítás">
+      <article class="billing-plan-card-pro free">
+        <div class="plan-card-top">
+          <span class="plan-mini-label">Alap használat</span>
+          <h2>Free</h2>
+        </div>
         <ul>
           <li><i class="fa-solid fa-check"></i> 1 növénykategória</li>
-          <li><i class="fa-solid fa-xmark"></i> Email értesítés nélkül</li>
-          <li><i class="fa-solid fa-xmark"></i> Grafikon nélkül</li>
+          <li><i class="fa-solid fa-minus"></i> Nincs email értesítés</li>
+          <li><i class="fa-solid fa-minus"></i> Nincs grafikon</li>
         </ul>
-      </div>
-      <div class="billing-plan plus">
-        <div class="billing-plan-label plus">Ajánlott</div>
-        <h2>Plus</h2>
+      </article>
+
+      <article class="billing-plan-card-pro plus">
+        <div class="recommended-badge"><i class="fa-solid fa-crown"></i> Ajánlott</div>
+        <div class="plan-card-top">
+          <span class="plan-mini-label">Teljes élmény</span>
+          <h2>Plus</h2>
+        </div>
         <ul>
           <li><i class="fa-solid fa-check"></i> 5 növénykategória</li>
           <li><i class="fa-solid fa-check"></i> Email értesítés</li>
           <li><i class="fa-solid fa-check"></i> Grafikonok</li>
         </ul>
-      </div>
-    </div>
+      </article>
+    </section>
 
-    <div class="billing-note modern">
-      <div class="billing-note-icon"><i class="fa-solid fa-circle-info"></i></div>
-      <div>
-        <b>Fontos tudni:</b> a Plus havi és éves csomag automatikusan megújuló előfizetés.
-        Lemondás után a már kifizetett időszak végéig még használhatod a Plus funkciókat.
-      </div>
-    </div>
+    <section class="billing-info-strip">
+      <div><i class="fa-solid fa-clock"></i><b>Aktiválás:</b> általában 15 percen belül</div>
+      <div><i class="fa-solid fa-rotate"></i><b>Megújulás:</b> automatikus havi/éves előfizetés</div>
+      <div><i class="fa-solid fa-circle-xmark"></i><b>Lemondás:</b> a kifizetett időszak végéig Plus marad</div>
+    </section>
 
-    <div id="billingStatus" class="billing-status">Betöltés...</div>
-    <div id="billingAccounts" class="billing-accounts"></div>
+    <div id="billingStatus" class="billing-status billing-status-pro">Betöltés...</div>
+    <div id="billingAccounts" class="billing-accounts billing-accounts-pro"></div>
   </div>
 
-  <script type="module" src="payment.js?v=20260514-final-portal"></script>
+  <script type="module" src="payment.js?v=20260514-company-billing-v2"></script>
 </body>
 </html>
