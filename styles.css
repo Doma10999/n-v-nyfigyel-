@@ -2170,3 +2170,23 @@ body.menu-open #infoBtn { transform: translateY(-410px) scale(1); }
   body.menu-open #paymentBtn { transform: translateY(-288px) scale(1); }
   body.menu-open #infoBtn { transform: translateY(-358px) scale(1); }
 }
+
+
+/* Refined last update badge: shorter text, cleaner mobile layout */
+.last-update-badge,
+.device-last-update,
+.plant-last-update {
+  white-space: nowrap;
+}
+
+@media (max-width: 640px) {
+  .last-update-badge,
+  .device-last-update,
+  .plant-last-update {
+    font-size: 11px !important;
+    padding: 6px 9px !important;
+    max-width: 155px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

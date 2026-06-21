@@ -256,7 +256,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function formatLastMeasurementText(ts) {
       const formatted = formatChartTimestamp(ts);
-      return formatted ? `Utolsó frissítés: ${formatted}` : "Utolsó frissítés: nincs adat";
+      return formatted ? `${formatted}` : "nincs adat";
     }
 
     function updateLastMeasurementBadge(el, ts) {
@@ -577,7 +577,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           </div>
         </div>
 
-        <div class="last-update-pill" data-last-update>Utolsó frissítés: nincs adat</div>
+        <div class="last-update-pill" data-last-update>nincs adat</div>
 
         <div class="title-row">
           <div class="plant-title-pill">
