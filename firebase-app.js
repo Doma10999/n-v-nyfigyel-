@@ -251,6 +251,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       return `${d.getFullYear()}.${pad2(d.getMonth() + 1)}.${pad2(d.getDate())}-${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }
 
+    function formatLastMeasurementText(ts) {
+      const formatted = formatChartTimestamp(ts);
+      return formatted ? `Utolsó frissítés: ${formatted}` : "Utolsó frissítés: nincs adat";
+    }
+
+    function updateLastMeasurementBadge(el, ts) {
+      if (!el) return;
+      const n = Number(ts);
+      el.textContent = formatLastMeasurementText(n);
+      el.classList.toggle("has-data", Number.isFinite(n) && n > 0);
+    }
+
     function getChartDisplayTimestamp(item) {
       return Number(item?.lastMeasurementAt || item?.lastUpdated || 0);
     }
@@ -562,6 +574,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           </div>
         </div>
 
+        <div class="last-update-pill" data-last-update>Utolsó frissítés: nincs adat</div>
+
         <div class="title-row">
           <div class="plant-title-pill">
             <span class="plant-title">Rosso</span>
@@ -618,6 +632,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       const deleteBtn = card.querySelector(".deleteBtn");
       const titleEl = card.querySelector(".plant-title");
       const planBadgeEl = card.querySelector("[data-plan-badge]");
+      const lastUpdateEl = card.querySelector("[data-last-update]");
 
       const editBtn = card.querySelector(".edit-pill");
       const editWrap = card.querySelector(".name-edit-wrap");
@@ -662,6 +677,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         deviceMetaTimestamp: 0,
         airData: null
       });
+
+      updateLastMeasurementBadge(lastUpdateEl, 0);
 
       const plantTypeRef = ref(db, `users/${uid}/devices/${deviceId}/plantType`);
       const plantSelectValueEl = card.querySelector(".plant-select-value");
@@ -847,6 +864,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           obj.lastMeasurementAt = ts;
         }
 
+        updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt || ts || 0);
+
         try {
           const cacheKey = `plant_${uid}_${deviceId}`;
           const cached = localStorage.getItem(cacheKey);
@@ -898,6 +917,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
             if (obj) {
               obj.lastMeasurementAt = measurementTimestamp;
+              updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt || 0);
             }
 
             if (window.__isPlusForUid(uid)) {
