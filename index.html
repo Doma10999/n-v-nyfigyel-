@@ -64,6 +64,10 @@
     <i class="fa-solid fa-money-bill-wave"></i>
   </button>
 
+  <button id="infoBtn" style="display:none;" aria-label="Információ és használati útmutató" title="Információ">
+    <i class="fa-solid fa-circle-info"></i>
+  </button>
+
   <button id="menuBtn" style="display:none;" aria-label="Menü" title="Menü"><i class="fa-solid fa-bars"></i></button>
 
   <div id="notifModal">
@@ -110,6 +114,103 @@
       <div class="charts-wrap" id="chartsWrap"></div>
     </div>
   </div>
+
+  <div id="infoModal">
+    <div id="infoModalContent">
+      <button id="infoModalClose" aria-label="Bezárás">&times;</button>
+
+      <div class="info-modal-header">
+        <div class="info-modal-icon">🌱</div>
+        <div>
+          <h3>Használati útmutató</h3>
+          <p>Rövid, egyszerű magyarázat a Növényfigyelő használatához.</p>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h4>Mit mutat a nagy zöld kör?</h4>
+        <p>
+          A kör a növény aktuális talajnedvességét mutatja százalékban.
+          Minél nagyobb az érték, annál nedvesebb a föld.
+        </p>
+        <div class="info-tip good">Példa: 70–100% általában nedvesebb földet jelent.</div>
+      </div>
+
+      <div class="info-section">
+        <h4>Mikor kell öntözni?</h4>
+        <p>
+          Ez függ a kiválasztott növénytípustól. A kategória segít abban,
+          hogy a rendszer a növény vízigényéhez igazítsa az értéket.
+        </p>
+        <div class="info-tip warn">Ha az érték nagyon alacsony, érdemes ellenőrizni a földet.</div>
+      </div>
+
+      <div class="info-section">
+        <h4>Mit jelent az „Utolsó frissítés”?</h4>
+        <p>
+          Azt mutatja, mikor küldött utoljára adatot az eszköz.
+          Ha ez régi időpont, akkor lehet, hogy az eszköz nincs áram alatt,
+          nincs WiFi-n, vagy gyenge a kapcsolat.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Mit jelent az akku ikon?</h4>
+        <p>
+          Az akkumulátoros eszközöknél az akku töltöttségét mutatja.
+          Ha alacsony, tölteni kell az eszközt.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Mit csinál a fényerő csúszka?</h4>
+        <p>
+          A LED-es változatnál ezzel lehet állítani a növény világításának erősségét.
+          Ha 0%-on van, a LED kikapcsol.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Email értesítés</h4>
+        <p>
+          Plus csomagban kérhetsz email értesítést. A rendszer akkor küld emailt,
+          ha a növény nedvessége túl alacsonyra esik, vagy levegőminőséges eszköznél
+          rossz lesz a levegő.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Grafikon</h4>
+        <p>
+          A grafikon a korábbi méréseket mutatja. Így látható, hogyan változott a
+          növény állapota az idő alatt.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Levegőminőség</h4>
+        <p>
+          Csak azoknál az eszközöknél jelenik meg, amelyekben levegőminőség szenzor is van.
+          Ilyenkor az oldal jelzi, ha a levegő állapota romlik.
+        </p>
+      </div>
+
+      <div class="info-section">
+        <h4>Mit tegyek, ha nem frissül az adat?</h4>
+        <ol>
+          <li>Ellenőrizd, hogy az eszköz kap-e áramot.</li>
+          <li>Ellenőrizd, hogy működik-e a WiFi.</li>
+          <li>Várj pár percet, mert az eszköz nem mindig azonnal küld adatot.</li>
+          <li>Ha továbbra sem frissül, indítsd újra az eszközt.</li>
+        </ol>
+      </div>
+
+      <div class="info-footer">
+        A Növényfigyelő segít, de az öntözésnél mindig érdemes a földet is kézzel ellenőrizni.
+      </div>
+    </div>
+  </div>
+
 
   <div id="modal">
     <div id="modalContent">

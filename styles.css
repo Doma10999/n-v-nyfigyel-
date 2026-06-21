@@ -1950,3 +1950,223 @@ body.billing-page-pro {
     width: 100%;
   }
 }
+
+
+/* ===== Info modal / user guide ===== */
+#infoBtn {
+  position: fixed;
+  right: 25px;
+  bottom: calc(25px + env(safe-area-inset-bottom));
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 6px 22px rgba(0,0,0,0.2);
+  z-index: 1000;
+  color: #fff;
+  font-size: 27px;
+  background: linear-gradient(145deg, #43a047, #66bb6a);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(0) scale(0.9);
+  transition: transform 0.28s ease, opacity 0.28s ease, box-shadow 0.28s ease;
+}
+
+body.menu-open #infoBtn {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(-358px) scale(1);
+}
+
+#infoBtn:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.25);
+}
+
+#infoModal {
+  display: none;
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.45);
+  justify-content: center;
+  align-items: center;
+  z-index: 1200;
+  padding: 18px;
+}
+
+#infoModalContent {
+  width: 520px;
+  max-width: 95vw;
+  max-height: 88vh;
+  overflow-y: auto;
+  background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(240,247,243,.98));
+  border-radius: 30px;
+  box-shadow: 0 22px 55px rgba(0,0,0,0.24);
+  padding: 24px 20px 20px;
+  text-align: left;
+  position: relative;
+  animation: popIn 0.25s ease-out;
+}
+
+#infoModalClose {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 38px;
+  height: 38px;
+  border: none;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #d32f2f;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  font-size: 28px;
+  line-height: 1;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.info-modal-header {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 8px 42px 14px 4px;
+  border-bottom: 1px solid rgba(27,58,42,0.08);
+  margin-bottom: 12px;
+}
+
+.info-modal-icon {
+  width: 54px;
+  height: 54px;
+  min-width: 54px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #d8f3dc, #bdecc4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 27px;
+  box-shadow: 0 8px 18px rgba(76,175,80,0.16);
+}
+
+.info-modal-header h3 {
+  margin: 0 0 4px;
+  color: #0d3b23;
+  font-size: 24px;
+}
+
+.info-modal-header p {
+  margin: 0;
+  color: rgba(27,58,42,0.68);
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.info-section {
+  background: rgba(255,255,255,0.72);
+  border: 1px solid rgba(76,175,80,0.10);
+  border-radius: 20px;
+  padding: 14px 15px;
+  margin: 10px 0;
+  box-shadow: 0 7px 16px rgba(0,0,0,0.035);
+}
+
+.info-section h4 {
+  margin: 0 0 7px;
+  color: #1b3a2a;
+  font-size: 16px;
+}
+
+.info-section p,
+.info-section li {
+  color: rgba(27,58,42,0.78);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.info-section p {
+  margin: 0;
+}
+
+.info-section ol {
+  margin: 8px 0 0;
+  padding-left: 20px;
+}
+
+.info-tip {
+  margin-top: 10px;
+  border-radius: 14px;
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.35;
+  font-weight: 700;
+}
+
+.info-tip.good {
+  color: #1b5e20;
+  background: rgba(76,175,80,0.12);
+}
+
+.info-tip.warn {
+  color: #8a5b00;
+  background: rgba(255,193,7,0.18);
+}
+
+.info-footer {
+  margin-top: 14px;
+  padding: 14px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #43a047, #66bb6a);
+  color: #fff;
+  font-weight: 700;
+  line-height: 1.45;
+  text-align: center;
+  box-shadow: 0 10px 20px rgba(76,175,80,0.20);
+}
+
+@media (max-width: 640px) {
+  #infoBtn {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+    right: 18px;
+  }
+
+  body.menu-open #infoBtn {
+    transform: translateY(-358px) scale(1);
+  }
+
+  #infoModalContent {
+    max-height: 86vh;
+    padding: 20px 14px 16px;
+    border-radius: 24px;
+  }
+
+  .info-modal-header {
+    padding-right: 42px;
+  }
+
+  .info-modal-header h3 {
+    font-size: 21px;
+  }
+}
+
+
+/* Info button final menu spacing override */
+body.menu-open #addAccountBtn { transform: translateY(-90px) scale(1); }
+body.menu-open #notifBellBtn { transform: translateY(-170px) scale(1); }
+body.menu-open #chartsBtn { transform: translateY(-250px) scale(1); }
+body.menu-open #paymentBtn { transform: translateY(-330px) scale(1); }
+body.menu-open #infoBtn { transform: translateY(-410px) scale(1); }
+
+@media (max-width: 640px) {
+  body.menu-open #addAccountBtn { transform: translateY(-78px) scale(1); }
+  body.menu-open #notifBellBtn { transform: translateY(-148px) scale(1); }
+  body.menu-open #chartsBtn { transform: translateY(-218px) scale(1); }
+  body.menu-open #paymentBtn { transform: translateY(-288px) scale(1); }
+  body.menu-open #infoBtn { transform: translateY(-358px) scale(1); }
+}

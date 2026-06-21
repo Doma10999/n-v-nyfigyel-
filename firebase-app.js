@@ -46,13 +46,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     const chartsBtn = document.getElementById("chartsBtn");
     const paymentBtn = document.getElementById("paymentBtn");
+    const infoBtn = document.getElementById("infoBtn");
     const menuBtn = document.getElementById("menuBtn");
     const chartsModal = document.getElementById("chartsModal");
     const chartsModalClose = document.getElementById("chartsModalClose");
+    const infoModal = document.getElementById("infoModal");
+    const infoModalClose = document.getElementById("infoModalClose");
 
     const chartsWrap = document.getElementById("chartsWrap");
 
-    const FLOATING_BUTTONS = [menuBtn, paymentBtn, chartsBtn, document.getElementById("notifBellBtn"), addAccountBtn];
+    const FLOATING_BUTTONS = [menuBtn, infoBtn, paymentBtn, chartsBtn, document.getElementById("notifBellBtn"), addAccountBtn];
 
     function setFloatingMenuVisibility(visible) {
       FLOATING_BUTTONS.forEach(btn => {
@@ -1189,6 +1192,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         window.location.href = "payment.html";
       });
     }
+
+    if (infoBtn && infoModal) {
+      infoBtn.addEventListener("click", () => {
+        infoModal.style.display = "flex";
+        document.body.classList.remove("menu-open");
+        if (menuBtn) menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
+      });
+    }
+
+    if (infoModalClose && infoModal) {
+      infoModalClose.addEventListener("click", () => {
+        infoModal.style.display = "none";
+      });
+    }
+
+    window.addEventListener("click", (e) => {
+      if (e.target === infoModal) infoModal.style.display = "none";
+    });
 
     modalCloseBtn.addEventListener("click", () => { modal.style.display = "none"; });
     window.addEventListener("click", (e)=>{ if (e.target === modal) modal.style.display = "none"; });
