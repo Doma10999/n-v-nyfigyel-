@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Növényfigyelő – Csomagok</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon2.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body class="billing-page">
+  <div class="billing-shell">
+    <div class="billing-topbar">
+      <a class="back-link" href="index.html"><i class="fa-solid fa-arrow-left"></i> Vissza</a>
+    </div>
+
+    <h1 class="billing-title">Csomagok és fizetés 💳</h1>
+    <p class="billing-subtitle">
+      Itt tudod megnézni az aktuális csomagodat, a fiókod azonosítóját és az előfizetési lehetőségeket.
+    </p>
+
+    <div class="billing-hero">
+      <div class="billing-plan free">
+        <h2>Free</h2>
+        <ul>
+          <li>1 kategória</li>
+          <li>Nincs email értesítés</li>
+          <li>Nincs grafikon</li>
+        </ul>
+      </div>
+      <div class="billing-plan plus">
+        <h2>Plus</h2>
+        <ul>
+          <li>5 kategória</li>
+          <li>Email értesítés</li>
+          <li>Grafikon</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="billing-note">
+      <b>Fontos:</b> fizetésnél ellenőrizd, hogy az <b>UID</b> mezőben az itt látható azonosítód szerepeljen. Az aktiválás általában 15 percen belül történik meg, a rendszer automatikusan feldolgozza a sikeres előfizetést.
+    </div>
+
+    <div id="billingStatus" class="billing-status">Betöltés...</div>
+    <div id="billingAccounts" class="billing-accounts"></div>
+  </div>
+
+  <script type="module" src="payment.js?v=20260412v1"></script>
+</body>
+</html>

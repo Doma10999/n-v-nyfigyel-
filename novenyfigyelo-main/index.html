@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Növényfigyelő</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Növényfigyelő">
+  <link rel="apple-touch-icon" href="icon2.png">
+
+
+  <link rel="stylesheet" href="styles.css?v=20260406v4">
+
+  
+
+  <script type="module" src="firebase-app.js?v=20260412v1"></script>
+
+  
+    <!-- Email értesítés (Google Apps Script Web App) -->
+  <script src="notifications.js?v=20260406v4"></script>
+
+  
+
+
+</head>
+
+<body>
+  <div id="offlineBadge">
+    <i class="fa-solid fa-wifi-slash"></i>
+    Offline mód – az adatok nem frissülnek
+  </div>
+
+  <h1>Növényfigyelő 🌱</h1>
+
+  <div class="card" id="plantData">
+    <form id="loginForm">
+      <h3>Bejelentkezés</h3>
+      <input type="email" id="email" placeholder="Email" required><br>
+      <input type="password" id="password" placeholder="Jelszó" required><br>
+      <button type="submit">Belépés</button>
+    </form>
+    <button id="logout">Kijelentkezés</button>
+    <p id="status">Nincs bejelentkezve</p>
+    <div class="gauge-container" style="display:none"></div>
+  </div>
+
+  <div id="accountsContainer"></div>
+
+  <button id="addAccountBtn" style="display:none;" title="Fiók hozzáadása">+</button>
+
+  <button id="notifBellBtn" style="display:none;" aria-label="Email értesítés" title="Email értesítés">
+    <i class="fa-solid fa-bell"></i>
+  </button>
+
+  <button id="chartsBtn" style="display:none;" aria-label="Grafikonok" title="Grafikonok">
+    <i class="fa-solid fa-chart-line"></i>
+  </button>
+
+  <button id="paymentBtn" style="display:none;" aria-label="Csomagok és fizetés" title="Csomagok és fizetés">
+    <i class="fa-solid fa-money-bill-wave"></i>
+  </button>
+
+  <button id="menuBtn" style="display:none;" aria-label="Menü" title="Menü"><i class="fa-solid fa-bars"></i></button>
+
+  <div id="notifModal">
+    <div id="notifModalContent">
+      <span id="notifModalClose">&times;</span>
+      <h3>Email értesítés</h3>
+      <p style="margin-top:6px;">Küldjön emailt, ha a kijelzett érték <b>35% alá</b> esik, vagy ha a levegő minősége <b>rossz</b> lesz.</p>
+
+      <div id="notifDeviceList" style="text-align:left; margin-top:16px;"></div>
+
+      <div style="margin-top:14px; text-align:left;">
+        <label for="notifEmailInput" style="font-weight:700; font-size:13px; opacity:.85; display:block; margin-bottom:6px;">
+          Email cím (a kijelölt növényekhez)
+        </label>
+        <input id="notifEmailInput" type="email" placeholder="pl. drobni.dominik@gmail.com" style="width:100%; padding:12px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.08); outline:none;" />
+        <div style="margin-top:6px; font-size:12px; opacity:.7;">
+          Csak a kipipált növényekhez mentjük el ezt az email címet.
+        </div>
+      </div>
+
+
+      <div style="margin-top:18px; display:flex; gap:10px; justify-content:center;">
+        <button id="notifSave" style="background:linear-gradient(145deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:16px;cursor:pointer;width:auto;">
+          Mentés
+        </button>
+        <button id="notifCancel" style="background:#e0e8e5;color:#555;border:none;border-radius:12px;padding:10px 18px;font-size:16px;cursor:pointer;width:auto;">
+          Mégse
+        </button>
+      </div>
+
+      <p style="margin-top:12px; opacity:.75; font-size:13px;">
+        Tipp: pipáld ki azokat a növényeket, amelyeknél kérsz értesítést.
+      </p>
+    </div>
+  </div>
+
+<div id="chartsModal">
+    <div id="chartsModalContent">
+      <span id="chartsModalClose">&times;</span>
+      <h3 style="color:#0d3b23; margin-bottom:6px;">Grafikonok</h3>
+      <p style="opacity:.75; font-size:13px; margin-bottom:10px;">
+        Csak megjelenítés — frissül, ahogy jönnek az adatok.
+      </p>
+      <div class="charts-wrap" id="chartsWrap"></div>
+    </div>
+  </div>
+
+  <div id="modal">
+    <div id="modalContent">
+      <span id="modalClose">&times;</span>
+      <h3>Fiók hozzáadása</h3>
+      <form id="addNewAccountForm">
+        <input type="email" id="newAccountEmail" placeholder="Email"><br>
+        <input type="password" id="newAccountPass" placeholder="Jelszó"><br>
+        <button type="submit">Belépés</button>
+      </form>
+      <p id="addAccountStatus"></p>
+    </div>
+  </div>
+
+  <div id="confirmModal">
+    <div id="confirmModalContent">
+      <span id="confirmClose">&times;</span>
+      <h3 id="confirmText">Biztosan törlöd ezt a fiókot?</h3>
+      <div class="confirm-btn-group">
+        <button class="confirm-btn confirm-igen" id="confirmIgenBtn">Igen</button>
+        <button class="confirm-btn confirm-nem" id="confirmNemBtn">Nem</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="service-worker-register.js"></script>
+  <script src="offline-status.js"></script>
+
+
+  <div id="plantTypeModal" style="display:none;">
+    <div class="modal">
+      <div class="modal-box">
+        <button class="modal-close-btn" id="plantTypeClose" aria-label="Bezárás">✖</button>
+        <h3>Válassz kategóriát</h3>
+        <p style="margin:8px 0 14px; font-size:13px; opacity:.7;">
+          A kiválasztás hatással van a százalék értékelésre
+        </p>
+
+
+        <div class="plant-option" data-value="🌵Szárazkedvelő">🌵 Szárazkedvelő</div>
+        <div class="plant-option" data-value="🌾Mérsékelten száraz">🌾 Mérsékelten száraz</div>
+        <div class="plant-option" data-value="🌿Kiegyensúlyozott vízigényű">🌿 Kiegyensúlyozott vízigényű</div>
+        <div class="plant-option" data-value="🌱Nedvességkedvelő">🌱 Nedvességkedvelő</div>
+        <div class="plant-option" data-value="💧Vízigényes">💧 Vízigényes</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="plant-type-modal.js"></script>
+
+
+
+
+</body>
+</html>

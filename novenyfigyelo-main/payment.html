@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Növényfigyelő – Csomagok és előfizetés</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon2.png">
+  <link rel="stylesheet" href="styles.css?v=20260514-company-billing-v2">
+</head>
+<body class="billing-page billing-page-pro">
+  <div class="billing-shell billing-shell-pro">
+    <div class="billing-topbar billing-topbar-pro">
+      <a class="back-link back-link-pro" href="index.html"><i class="fa-solid fa-arrow-left"></i> Vissza</a>
+      <span class="secure-pill"><i class="fa-solid fa-lock"></i> Biztonságos Stripe fizetés</span>
+    </div>
+
+    <section class="billing-intro-card billing-intro-card-pro">
+      <div class="billing-brand-mark">🌱</div>
+      <div class="billing-intro-copy">
+        <span class="billing-eyebrow">Növényfigyelő Plus</span>
+        <h1 class="billing-title">Csomagok és előfizetés</h1>
+        <p class="billing-subtitle">
+          Itt látod az aktuális csomagodat, elindíthatod a Plus előfizetést, vagy kezelheted a már aktív előfizetésedet.
+        </p>
+      </div>
+    </section>
+
+    <section class="billing-comparison-pro" aria-label="Csomag összehasonlítás">
+      <article class="billing-plan-card-pro free">
+        <div class="plan-card-top">
+          <span class="plan-mini-label">Alap használat</span>
+          <h2>Free</h2>
+        </div>
+        <ul>
+          <li><i class="fa-solid fa-check"></i> 1 növénykategória</li>
+          <li><i class="fa-solid fa-minus"></i> Nincs email értesítés</li>
+          <li><i class="fa-solid fa-minus"></i> Nincs grafikon</li>
+        </ul>
+      </article>
+
+      <article class="billing-plan-card-pro plus">
+        <div class="recommended-badge"><i class="fa-solid fa-crown"></i> Ajánlott</div>
+        <div class="plan-card-top">
+          <span class="plan-mini-label">Teljes élmény</span>
+          <h2>Plus</h2>
+        </div>
+        <ul>
+          <li><i class="fa-solid fa-check"></i> 5 növénykategória</li>
+          <li><i class="fa-solid fa-check"></i> Email értesítés</li>
+          <li><i class="fa-solid fa-check"></i> Grafikonok</li>
+        </ul>
+      </article>
+    </section>
+
+    <section class="billing-info-strip">
+      <div><i class="fa-solid fa-clock"></i><b>Aktiválás:</b> általában 15 percen belül</div>
+      <div><i class="fa-solid fa-rotate"></i><b>Megújulás:</b> automatikus havi/éves előfizetés</div>
+      <div><i class="fa-solid fa-circle-xmark"></i><b>Lemondás:</b> a kifizetett időszak végéig Plus marad</div>
+    </section>
+
+    <div id="billingStatus" class="billing-status billing-status-pro">Betöltés...</div>
+    <div id="billingAccounts" class="billing-accounts billing-accounts-pro"></div>
+  </div>
+
+  <script type="module" src="payment.js?v=20260514-company-billing-v2"></script>
+</body>
+</html>
