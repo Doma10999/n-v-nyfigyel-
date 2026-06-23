@@ -256,7 +256,7 @@
 
           closeNotifModal();
           updateBellUI();
-          alert("Mentve! Email értesítések beállítva.");
+          window.showAppToast ? window.showAppToast("Email értesítések beállítva.", "Mentve") : alert("Mentve! Email értesítések beállítva.");
         });
       }
 

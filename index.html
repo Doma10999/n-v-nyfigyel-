@@ -40,7 +40,12 @@
     <form id="loginForm">
       <h3>Bejelentkezés</h3>
       <input type="email" id="email" placeholder="Email" required><br>
-      <input type="password" id="password" placeholder="Jelszó" required><br>
+      <div class="password-field">
+        <input type="password" id="password" placeholder="Jelszó" required>
+        <button type="button" class="password-eye" data-target="password" aria-label="Jelszó megjelenítése">
+          <i class="fa-solid fa-eye"></i>
+        </button>
+      </div>
       <button type="submit">Belépés</button>
     </form>
     <button id="logout">Kijelentkezés</button>
@@ -219,7 +224,12 @@
       <h3>Fiók hozzáadása</h3>
       <form id="addNewAccountForm">
         <input type="email" id="newAccountEmail" placeholder="Email"><br>
-        <input type="password" id="newAccountPass" placeholder="Jelszó"><br>
+        <div class="password-field">
+          <input type="password" id="newAccountPass" placeholder="Jelszó">
+          <button type="button" class="password-eye" data-target="newAccountPass" aria-label="Jelszó megjelenítése">
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </div>
         <button type="submit">Belépés</button>
       </form>
       <p id="addAccountStatus"></p>
@@ -236,6 +246,60 @@
       </div>
     </div>
   </div>
+
+
+  <div id="appToast" class="app-toast" role="status" aria-live="polite">
+    <div class="app-toast-icon"><i class="fa-solid fa-check"></i></div>
+    <div class="app-toast-text">
+      <strong id="appToastTitle">Sikeres mentés</strong>
+      <span id="appToastMessage">A beállítások elmentve.</span>
+    </div>
+  </div>
+
+  <script>
+    window.showAppToast = function(message, title) {
+      const toast = document.getElementById("appToast");
+      const titleEl = document.getElementById("appToastTitle");
+      const msgEl = document.getElementById("appToastMessage");
+      if (!toast || !msgEl || !titleEl) {
+        alert(message || "Mentve.");
+        return;
+      }
+
+      titleEl.textContent = title || "Sikeres mentés";
+      msgEl.textContent = message || "A beállítások elmentve.";
+
+      toast.classList.remove("show");
+      void toast.offsetWidth;
+      toast.classList.add("show");
+
+      clearTimeout(window.__appToastTimer);
+      window.__appToastTimer = setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+    };
+
+    document.addEventListener("DOMContentLoaded", function() {
+      document.querySelectorAll(".password-eye").forEach(function(btn) {
+        btn.addEventListener("click", function() {
+          const targetId = btn.getAttribute("data-target");
+          const input = document.getElementById(targetId);
+          const icon = btn.querySelector("i");
+          if (!input) return;
+
+          const visible = input.type === "text";
+          input.type = visible ? "password" : "text";
+
+          if (icon) {
+            icon.classList.toggle("fa-eye", visible);
+            icon.classList.toggle("fa-eye-slash", !visible);
+          }
+
+          btn.setAttribute("aria-label", visible ? "Jelszó megjelenítése" : "Jelszó elrejtése");
+        });
+      });
+    });
+  </script>
 
   <script src="service-worker-register.js"></script>
   <script src="offline-status.js"></script>
