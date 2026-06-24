@@ -974,22 +974,45 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 // Firebase: LED (csak ha van)
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
-      get(ledLevelRef).then((snap) => {
+
+      // Biztosabb LED felismerés:
+      // 1) ha van ledLevel mező, mutatja a csúszkát
+      // 2) ha a firmwareVersion LED-es kódra utal, de a ledLevel még hiányzik, létrehozza 0-val
+      const firmwareText = String(data.firmwareVersion || "").toUpperCase();
+      const looksLikeLedDevice = firmwareText.includes("_LED") || firmwareText.includes("ESP_LED") || firmwareText.includes("LED_");
+
+      function showLedSlider(value) {
+        sliderContainer.style.display = "block";
+        slider.value = Math.round((Number(value) || 0) / 10) * 10;
+      }
+
+      get(ledLevelRef).then(async (snap) => {
         if (snap.exists()) {
-          sliderContainer.style.display = "block";
-          slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
-          onValue(ledLevelRef, (s2) => {
-            if (s2.exists()) slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
-          });
+          showLedSlider(snap.val());
+        } else if (looksLikeLedDevice) {
+          await set(ledLevelRef, 0);
+          showLedSlider(0);
+        } else {
+          sliderContainer.style.display = "none";
+          return;
+        }
+
+        onValue(ledLevelRef, (s2) => {
+          if (s2.exists()) showLedSlider(s2.val());
+        });
+
+        if (!slider.dataset.bound) {
+          slider.dataset.bound = "1";
           slider.addEventListener("input", async (e)=> {
             e.stopPropagation();
             const snapped = Math.max(0, Math.min(100, Math.round((Number(e.target.value) || 0) / 10) * 10));
             e.target.value = snapped;
             await set(ledLevelRef, snapped);
           });
-        } else {
-          sliderContainer.style.display = "none";
         }
+      }).catch((err) => {
+        console.warn("LED csúszka ellenőrzési hiba:", err);
+        sliderContainer.style.display = "none";
       });
 
       // Firebase: battery (csak ha van)
