@@ -3,7 +3,7 @@
 
   /* Service worker */
   if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("/service-worker.js").catch((error) => {
+    navigator.serviceWorker.register("/service-worker.js?v=20260820v1").catch((error) => {
       console.warn("Service worker registration failed:", error);
     });
   }

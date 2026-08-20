@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20260809-push-v1";
+const CACHE_NAME = "novenyfigyelo-cache-v20260820-mobile-history-v1";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {

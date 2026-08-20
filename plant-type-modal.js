@@ -5,7 +5,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const plantTypeModal = document.getElementById("plantTypeModal");
   const plantTypeClose = document.getElementById("plantTypeClose");
+  const plantTypeBox = document.querySelector("#plantTypeModal .modal-box");
   const allOptions = Array.from(document.querySelectorAll(".plant-option"));
+
+  if (!plantTypeModal || !plantTypeClose || !plantTypeBox) return;
 
   function getAllowedCategories(uid) {
     if (window.__getAllowedCategoriesForUid) {
@@ -73,8 +76,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   const plantTypeBackdrop = document.querySelector("#plantTypeModal .modal");
-  plantTypeBackdrop.addEventListener("click", () => {
-    plantTypeModal.style.display = "none";
+  plantTypeBox.addEventListener("click", (e) => e.stopPropagation());
+  plantTypeBackdrop.addEventListener("click", (e) => {
+    if (e.target === plantTypeBackdrop) plantTypeModal.style.display = "none";
   });
 
   window.addEventListener("keydown", (e) => {

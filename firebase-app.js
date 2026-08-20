@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, get, update } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { getDatabase, ref, onValue, set, get, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
@@ -109,6 +109,19 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     const userPlanCache = new Map();
     window.__userPlanCache = userPlanCache;
 
+    const HISTORY_LIMIT = 10;
+    const HISTORY_INACTIVE_STATUSES = new Set([
+      "free",
+      "inactive",
+      "canceled",
+      "cancelled",
+      "expired",
+      "incomplete",
+      "incomplete_expired",
+      "unpaid",
+      "paused"
+    ]);
+
     function normalizePlan(value) {
       return String(value || "free").toLowerCase() === "plus" ? "plus" : "free";
     }
@@ -128,6 +141,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       const entry = userPlanCache.get(uid) || {};
       return normalizePlan(entry.plan) === "plus";
     };
+
+    function normalizeExpiryTimestamp(value) {
+      const raw = Number(value || 0);
+      if (!Number.isFinite(raw) || raw <= 0) return 0;
+      return raw < 1e12 ? raw * 1000 : raw;
+    }
+
+    function isHistoryEnabledForUid(uid) {
+      const entry = userPlanCache.get(uid) || {};
+      if (normalizePlan(entry.plan) !== "plus") return false;
+
+      const status = String(entry.status || "").trim().toLowerCase();
+      if (HISTORY_INACTIVE_STATUSES.has(status)) return false;
+
+      const expiresAt = normalizeExpiryTimestamp(entry.expiresAt);
+      return expiresAt <= 0 || expiresAt > Date.now();
+    }
+
+    window.__isHistoryEnabledForUid = isHistoryEnabledForUid;
 
     function getPlanBadgeText(uid) {
       return window.__isPlusForUid(uid) ? "PLUS" : "FREE";
@@ -182,6 +214,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         };
         userPlanCache.set(uid, normalized);
         emitPlanRefresh();
+        enforceHistoryPolicyForUser(uid).catch((error) => {
+          console.warn("History szabály alkalmazási hiba:", error);
+        });
       });
     }
 
@@ -293,7 +328,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         if (last && last.v === entry.v) continue;
         normalized.push(entry);
       }
-      return normalized.slice(-7);
+      return normalized.slice(-HISTORY_LIMIT);
     }
 
     function entriesToHistoryObject(entries) {
@@ -302,6 +337,42 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         output[entry.t] = entry.v;
       }
       return output;
+    }
+
+    function historyValueToEntries(value) {
+      if (!value || typeof value !== "object") return [];
+      return Object.entries(value)
+        .map(([t, v]) => ({ t: Number(t), v: Number(v) }))
+        .filter(item => Number.isFinite(item.t) && Number.isFinite(item.v));
+    }
+
+    async function enforceHistoryPolicyForUser(uid) {
+      const devicesRef = ref(db, `users/${uid}/devices`);
+      const devicesSnap = await get(devicesRef);
+      if (!devicesSnap.exists()) return;
+
+      const devices = devicesSnap.val() || {};
+      const deviceIds = Object.keys(devices);
+
+      if (!isHistoryEnabledForUid(uid)) {
+        await Promise.all(deviceIds.map((deviceId) => {
+          const history = devices[deviceId]?.history;
+          if (!history || typeof history !== "object") return Promise.resolve();
+          return remove(ref(db, `users/${uid}/devices/${deviceId}/history`));
+        }));
+        return;
+      }
+
+      await Promise.all(deviceIds.map((deviceId) => {
+        const history = devices[deviceId]?.history;
+        if (!history || typeof history !== "object") return Promise.resolve();
+
+        const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
+        return runTransaction(historyRef, (currentValue) => {
+          if (!currentValue || typeof currentValue !== "object") return currentValue;
+          return entriesToHistoryObject(historyValueToEntries(currentValue));
+        });
+      }));
     }
 
     function updateDeviceHistoryState(key, entries) {
@@ -330,34 +401,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     async function appendHistoryIfChanged(uid, deviceId, displayPct, changeTimestamp = 0) {
-      if (!window.__isPlusForUid(uid)) return;
+      if (!isHistoryEnabledForUid(uid)) return;
 
       const key = `${uid}|${deviceId}`;
       const obj = deviceCards.get(key);
       if (!obj) return;
 
-      const currentEntries = normalizeHistoryEntries(obj.history || []);
-      const lastEntry = currentEntries[currentEntries.length - 1];
-
-      if (lastEntry && Number(lastEntry.v) === Number(displayPct)) {
-        obj.history = currentEntries;
-        obj.lastUpdated = lastEntry.t || 0;
-        obj.lastMeasurementAt = Number(changeTimestamp) > 0 ? Number(changeTimestamp) : (obj.lastMeasurementAt || lastEntry.t || 0);
-        return;
-      }
-
       const safeTimestamp = Number(changeTimestamp) > 0 ? Number(changeTimestamp) : 0;
       if (!(safeTimestamp > 0)) {
-        obj.history = currentEntries;
-        obj.lastUpdated = lastEntry?.t || 0;
         return;
       }
 
-      const nextEntries = normalizeHistoryEntries([...currentEntries, { t: safeTimestamp, v: displayPct }]);
       const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
+      const transaction = await runTransaction(historyRef, (currentValue) => {
+        const currentEntries = normalizeHistoryEntries(historyValueToEntries(currentValue));
+        const lastEntry = currentEntries[currentEntries.length - 1];
 
-      await set(historyRef, entriesToHistoryObject(nextEntries));
-      updateDeviceHistoryState(key, nextEntries);
+        if (lastEntry && Number(lastEntry.v) === Number(displayPct)) {
+          return entriesToHistoryObject(currentEntries);
+        }
+
+        return entriesToHistoryObject([
+          ...currentEntries,
+          { t: safeTimestamp, v: Number(displayPct) }
+        ]);
+      });
+
+      if (transaction.committed) {
+        updateDeviceHistoryState(key, historyValueToEntries(transaction.snapshot.val()));
+      }
     }
 
     // ====== Grafikon rajzolás (client-side history) ======
@@ -398,9 +470,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         v: value
       });
 
-      // 🔹 csak az utolsó 5 nap maradjon (max ~10 adat)
-      const fiveDaysAgo = now.getTime() - 5 * 24 * 60 * 60 * 1000;
-      obj.history = obj.history.filter(p => p.t >= fiveDaysAgo);
+      // 🔹 a helyi előzmény sem nőhet 10 elem fölé
+      obj.history = normalizeHistoryEntries(obj.history);
 
       obj.lastUpdated = now.getTime();
     }
@@ -485,7 +556,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       const items = Array.from(deviceCards.entries())
         .filter(([key]) => {
           const uid = key.split("|")[0];
-          return window.__isPlusForUid(uid);
+          return isHistoryEnabledForUid(uid);
         })
         .map(([key, obj]) => ({ key, ...obj }));
       items.sort((a,b)=> getChartDisplayTimestamp(b) - getChartDisplayTimestamp(a));
@@ -523,14 +594,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function openChartsModal() {
       const activeUid = window.jelenlegiUID;
-      if (activeUid && !window.__isPlusForUid(activeUid)) {
+      if (activeUid && !isHistoryEnabledForUid(activeUid)) {
         alert("A grafikon csak Plus csomagban érhető el.");
         return;
       }
 
       const eligibleItems = Array.from(deviceCards.entries()).filter(([key]) => {
         const uid = key.split("|")[0];
-        return window.__isPlusForUid(uid);
+        return isHistoryEnabledForUid(uid);
       });
 
       if (eligibleItems.length === 0) {
@@ -569,7 +640,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
       card.innerHTML = `
-        <button class="deleteBtn" aria-label="Fiók törlése">✖</button>
+        <button class="deleteBtn" type="button" aria-label="Fiók törlése"><span class="close-x-icon" aria-hidden="true"></span></button>
         <div class="plan-badge-wrap">
           <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
           <div class="battery-box">
@@ -923,7 +994,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
               updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt || 0);
             }
 
-            if (window.__isPlusForUid(uid)) {
+            if (isHistoryEnabledForUid(uid)) {
               await appendHistoryIfChanged(uid, deviceId, displayPct, measurementTimestamp);
             } else if (obj) {
               obj.history = [];
@@ -1019,7 +1090,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const obj = deviceCards.get(key);
         if (!obj) return;
 
-        if (!window.__isPlusForUid(uid)) {
+        if (!isHistoryEnabledForUid(uid)) {
           obj.history = [];
           obj.lastUpdated = 0;
           if (chartsModal.style.display === "flex") rebuildChartsModal();

@@ -109,7 +109,9 @@
         if (item.email) {
           const del = document.createElement("button");
           del.className = "notif-email-delete";
-          del.textContent = "✕";
+          del.type = "button";
+          del.setAttribute("aria-label", `${item.name || "Növény"} email címének törlése`);
+          del.innerHTML = '<span class="close-x-icon" aria-hidden="true"></span>';
 
           del.addEventListener("click", async (e) => {
             e.stopPropagation();
