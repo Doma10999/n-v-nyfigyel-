@@ -7,7 +7,9 @@
       scope: "/",
       updateViaCache: "none"
     }).then((registration) => {
-      return registration.update();
+      return registration.active
+        ? registration.update()
+        : undefined;
     }).catch((error) => {
       console.warn("Service worker registration failed:", error);
     });

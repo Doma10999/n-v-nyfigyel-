@@ -617,9 +617,11 @@
           }
         }
 
-        registration.update().catch((error) => {
-          console.warn("Service worker update check failed:", error);
-        });
+        if (registration.active) {
+          registration.update().catch((error) => {
+            console.warn("Service worker update check failed:", error);
+          });
+        }
 
         return withTimeout(
           navigator.serviceWorker.ready,
