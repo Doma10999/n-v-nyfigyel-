@@ -714,7 +714,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           </div>
         </div>
 
-        <div style="margin-top:16px; position:relative; z-index:2;">
+        <div class="plant-select-wrap">
           <div class="plant-select" data-uid="${uid}" data-device="${deviceId}">
             <span class="plant-select-value">Válassz kategóriát</span>
             <span class="plant-select-arrow">▾</span>
@@ -1235,14 +1235,18 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     // ====== Login / fiók hozzáadás ======
     window.addEventListener("load", async () => {
-      const stored = getStoredAccounts();
-      if (stored.length > 0) {
-        hideLoginScreen();
-        for (const acc of stored) {
-          await addAccountByUid(acc.uid, acc.email || "Fiók");
+      try {
+        const stored = getStoredAccounts();
+        if (stored.length > 0) {
+          hideLoginScreen();
+          for (const acc of stored) {
+            await addAccountByUid(acc.uid, acc.email || "Fiók");
+          }
+        } else {
+          showLoginScreen();
         }
-      } else {
-        showLoginScreen();
+      } finally {
+        window.dispatchEvent(new CustomEvent("app-content-ready"));
       }
     });
 
