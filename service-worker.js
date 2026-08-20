@@ -1,12 +1,16 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20260820-mobile-history-v1";
+const CACHE_NAME = "novenyfigyelo-cache-v20260820-plus-push-v2";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) =>
       cache.addAll([
-        "index.html",
-        "offline.html"
+        "/",
+        "/index.html",
+        "/offline.html",
+        "/manifest.json",
+        "/pwa-icon-192.png",
+        "/pwa-icon-512.png"
       ])
     )
   );
@@ -46,6 +50,19 @@ self.addEventListener("fetch", (event) => {
    NÖVÉNYFIGYELŐ WEB PUSH
    ========================================================= */
 
+function getSafeAppUrl(rawUrl) {
+  try {
+    const candidate = new URL(rawUrl || "/", self.location.origin);
+    if (candidate.origin === self.location.origin) {
+      return candidate.href;
+    }
+  } catch (error) {
+    // Hibás vagy másik domainre mutató URL esetén az app főoldala nyílik meg.
+  }
+
+  return new URL("/", self.location.origin).href;
+}
+
 self.addEventListener("push", (event) => {
   let data = {};
 
@@ -73,11 +90,11 @@ self.addEventListener("push", (event) => {
 
     icon:
       data.icon ||
-      "/icon2.png",
+      "/pwa-icon-192.png",
 
     badge:
       data.badge ||
-      "/icon2.png",
+      "/pwa-icon-192.png",
 
     tag:
       data.tag ||
@@ -87,8 +104,7 @@ self.addEventListener("push", (event) => {
 
     data: {
       url:
-        data.url ||
-        "/",
+        getSafeAppUrl(data.url),
 
       type:
         data.type ||
@@ -116,10 +132,9 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const targetUrl = new URL(
-    event.notification?.data?.url || "/",
-    self.location.origin
-  ).href;
+  const targetUrl = getSafeAppUrl(
+    event.notification?.data?.url
+  );
 
   event.waitUntil(
     self.clients

@@ -161,6 +161,7 @@
     function openNotifModal() {
       const m = document.getElementById("notifModal");
       if (m) m.style.display = "flex";
+      window.__refreshPushState?.();
     }
     function closeNotifModal() {
       const m = document.getElementById("notifModal");

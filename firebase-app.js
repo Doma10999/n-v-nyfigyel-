@@ -108,6 +108,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     const userPlanCache = new Map();
     window.__userPlanCache = userPlanCache;
+    const subscriptionListenerUids = new Set();
 
     const HISTORY_LIMIT = 10;
     const HISTORY_INACTIVE_STATUSES = new Set([
@@ -132,31 +133,50 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         : [...FREE_PLAN_CATEGORIES];
     }
 
-    window.__getAllowedCategoriesForUid = function(uid) {
-      const entry = userPlanCache.get(uid) || {};
-      return getAllowedCategoriesForPlan(entry.plan);
-    };
-
-    window.__isPlusForUid = function(uid) {
-      const entry = userPlanCache.get(uid) || {};
-      return normalizePlan(entry.plan) === "plus";
-    };
-
     function normalizeExpiryTimestamp(value) {
       const raw = Number(value || 0);
       if (!Number.isFinite(raw) || raw <= 0) return 0;
       return raw < 1e12 ? raw * 1000 : raw;
     }
 
-    function isHistoryEnabledForUid(uid) {
-      const entry = userPlanCache.get(uid) || {};
+    function normalizeSubscriptionData(data = {}, emailValue = "") {
+      return {
+        plan: normalizePlan(data.plan),
+        expiresAt: Number(data.expiresAt || 0),
+        status: String(data.status || "inactive"),
+        cancelAtPeriodEnd: !!data.cancelAtPeriodEnd,
+        email: data.email || emailValue || "",
+        updatedAt: Number(data.updatedAt || 0)
+      };
+    }
+
+    function isActivePlusSubscription(entry = {}) {
       if (normalizePlan(entry.plan) !== "plus") return false;
 
       const status = String(entry.status || "").trim().toLowerCase();
-      if (HISTORY_INACTIVE_STATUSES.has(status)) return false;
-
       const expiresAt = normalizeExpiryTimestamp(entry.expiresAt);
-      return expiresAt <= 0 || expiresAt > Date.now();
+      if (expiresAt > 0 && expiresAt <= Date.now()) return false;
+
+      const keepsAccessUntilPeriodEnd =
+        entry.cancelAtPeriodEnd === true &&
+        (status === "canceled" || status === "cancelled") &&
+        (expiresAt <= 0 || expiresAt > Date.now());
+
+      return !HISTORY_INACTIVE_STATUSES.has(status) || keepsAccessUntilPeriodEnd;
+    }
+
+    function isActivePlusForUid(uid) {
+      return isActivePlusSubscription(userPlanCache.get(uid) || {});
+    }
+
+    window.__getAllowedCategoriesForUid = function(uid) {
+      return getAllowedCategoriesForPlan(isActivePlusForUid(uid) ? "plus" : "free");
+    };
+
+    window.__isPlusForUid = isActivePlusForUid;
+
+    function isHistoryEnabledForUid(uid) {
+      return isActivePlusForUid(uid);
     }
 
     window.__isHistoryEnabledForUid = isHistoryEnabledForUid;
@@ -171,6 +191,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function emitPlanRefresh() {
       window.dispatchEvent(new CustomEvent("subscription-plan-updated"));
+    }
+
+    function cacheUserSubscription(uid, data, emailValue = "") {
+      const normalized = normalizeSubscriptionData(data, emailValue);
+      userPlanCache.set(uid, normalized);
+      emitPlanRefresh();
+      return normalized;
     }
 
     async function ensureUserSubscriptionDefaults(uid, emailValue = "") {
@@ -201,19 +228,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       }
     }
 
+    async function loadUserSubscription(uid, emailValue = "") {
+      const snap = await get(ref(db, `users/${uid}/subscription`));
+      const data = snap.exists() ? (snap.val() || {}) : {};
+      return cacheUserSubscription(uid, data, emailValue);
+    }
+
     function listenToUserSubscription(uid, emailValue = "") {
+      if (subscriptionListenerUids.has(uid)) return;
+      subscriptionListenerUids.add(uid);
+
       const subRef = ref(db, `users/${uid}/subscription`);
       onValue(subRef, (snap) => {
         const data = snap.exists() ? (snap.val() || {}) : {};
-        const normalized = {
-          plan: normalizePlan(data.plan),
-          expiresAt: Number(data.expiresAt || 0),
-          status: String(data.status || "inactive"),
-          email: data.email || emailValue || "",
-          updatedAt: Number(data.updatedAt || 0)
-        };
-        userPlanCache.set(uid, normalized);
-        emitPlanRefresh();
+        cacheUserSubscription(uid, data, emailValue);
         enforceHistoryPolicyForUser(uid).catch((error) => {
           console.warn("History szabály alkalmazási hiba:", error);
         });
@@ -593,12 +621,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function openChartsModal() {
-      const activeUid = window.jelenlegiUID;
-      if (activeUid && !isHistoryEnabledForUid(activeUid)) {
-        alert("A grafikon csak Plus csomagban érhető el.");
-        return;
-      }
-
       const eligibleItems = Array.from(deviceCards.entries()).filter(([key]) => {
         const uid = key.split("|")[0];
         return isHistoryEnabledForUid(uid);
@@ -1189,9 +1211,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     // ====== Fiók betöltés: UID -> devices -> minden eszköz külön kártya ======
     async function addAccountByUid(uid, emailLabel) {
       await ensureUserSubscriptionDefaults(uid, emailLabel || "");
-      if (!userPlanCache.has(uid)) {
-        listenToUserSubscription(uid, emailLabel || "");
-      }
+      await loadUserSubscription(uid, emailLabel || "");
+      listenToUserSubscription(uid, emailLabel || "");
 
       const devicesSnap = await get(ref(db, `users/${uid}/devices`));
       if (!devicesSnap.exists()) return;
