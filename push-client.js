@@ -10,6 +10,8 @@
   const STATUS_ID = "webPushStatusText";
 
   let refreshBusy = false;
+  let registrationPromise = null;
+  let vapidPublicKeyPromise = null;
 
 
   /* =====================================================
@@ -48,19 +50,66 @@
     }
 
     if (/Android/i.test(navigator.userAgent)) {
-      return "android-web";
+      return isStandalone()
+        ? "android-pwa"
+        : "android-web";
     }
 
     return "web";
   }
 
 
+  function getBasicPushErrorCode() {
+    if (!window.isSecureContext) {
+      return "secure_context_required";
+    }
+
+    if (!("serviceWorker" in navigator)) {
+      return "service_worker_not_supported";
+    }
+
+    if (!("Notification" in window)) {
+      return "push_not_supported";
+    }
+
+    return "";
+  }
+
+
   function pushSupported() {
-    return (
-      "serviceWorker" in navigator &&
-      "PushManager" in window &&
-      "Notification" in window
-    );
+    return !getBasicPushErrorCode();
+  }
+
+
+  function errorWithCode(code) {
+    const error = new Error(code);
+    error.code = code;
+    return error;
+  }
+
+
+  function withTimeout(
+    promise,
+    timeoutMs,
+    code
+  ) {
+    return new Promise((resolve, reject) => {
+      const timer = window.setTimeout(
+        () => reject(errorWithCode(code)),
+        timeoutMs
+      );
+
+      Promise.resolve(promise).then(
+        (value) => {
+          window.clearTimeout(timer);
+          resolve(value);
+        },
+        (error) => {
+          window.clearTimeout(timer);
+          reject(error);
+        }
+      );
+    });
   }
 
 
@@ -459,36 +508,31 @@
 
 
   async function getVapidPublicKey() {
+    if (!vapidPublicKeyPromise) {
+      vapidPublicKeyPromise = (async () => {
+        const response = await fetch(
+          WORKER_BASE + "/vapid-public-key",
+          { cache: "no-store" }
+        );
 
-    const response =
-      await fetch(
-        WORKER_BASE +
-          "/vapid-public-key",
-        {
-          cache: "no-store"
+        if (!response.ok) {
+          throw errorWithCode("vapid_key_unavailable");
         }
-      );
 
+        const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(
-        "vapid_key_unavailable"
-      );
+        if (!data?.publicKey) {
+          throw errorWithCode("vapid_key_missing");
+        }
+
+        return data.publicKey;
+      })().catch((error) => {
+        vapidPublicKeyPromise = null;
+        throw error;
+      });
     }
 
-
-    const data =
-      await response.json();
-
-
-    if (!data?.publicKey) {
-      throw new Error(
-        "vapid_key_missing"
-      );
-    }
-
-
-    return data.publicKey;
+    return vapidPublicKeyPromise;
   }
 
 
@@ -552,23 +596,64 @@
      ===================================================== */
 
   async function getRegistration() {
-
-    if (
-      !(
-        "serviceWorker"
-        in navigator
-      )
-    ) {
-
-      throw new Error(
-        "service_worker_not_supported"
-      );
+    if (!("serviceWorker" in navigator)) {
+      throw errorWithCode("service_worker_not_supported");
     }
 
+    if (!registrationPromise) {
+      registrationPromise = (async () => {
+        let registration = await navigator.serviceWorker.getRegistration("/");
 
-    return navigator
-      .serviceWorker
-      .ready;
+        if (!registration) {
+          try {
+            registration = await navigator.serviceWorker.register(
+              "/service-worker.js",
+              { scope: "/" }
+            );
+          } catch (error) {
+            const wrappedError = errorWithCode("service_worker_registration_failed");
+            wrappedError.cause = error;
+            throw wrappedError;
+          }
+        }
+
+        registration.update().catch((error) => {
+          console.warn("Service worker update check failed:", error);
+        });
+
+        return withTimeout(
+          navigator.serviceWorker.ready,
+          15000,
+          "service_worker_timeout"
+        );
+      })().catch((error) => {
+        registrationPromise = null;
+        throw error;
+      });
+    }
+
+    return registrationPromise;
+  }
+
+
+  async function getPushRegistration() {
+    const basicErrorCode = getBasicPushErrorCode();
+    if (basicErrorCode) {
+      throw errorWithCode(basicErrorCode);
+    }
+
+    const registration = await getRegistration();
+    const pushManager = registration?.pushManager;
+
+    if (
+      !pushManager ||
+      typeof pushManager.getSubscription !== "function" ||
+      typeof pushManager.subscribe !== "function"
+    ) {
+      throw errorWithCode("push_not_supported");
+    }
+
+    return registration;
   }
 
 
@@ -586,6 +671,8 @@
         error?.message ||
         ""
       );
+
+    const errorName = String(error?.name || "");
 
 
     if (
@@ -650,16 +737,46 @@
     }
 
 
-    if (
-      code ===
-      "permission_denied"
-    ) {
+    if (code === "permission_denied" || errorName === "NotAllowedError") {
 
       return (
         "Az értesítések le vannak " +
         "tiltva a böngészőben. " +
         "Engedélyezd őket a webhely " +
         "beállításainál."
+      );
+    }
+
+
+    if (
+      code === "push_not_supported" ||
+      code === "service_worker_not_supported" ||
+      errorName === "NotSupportedError"
+    ) {
+      if (/Android/i.test(navigator.userAgent)) {
+        return (
+          "Ezen a telefonos böngészőn nincs Web Push támogatás. " +
+          "Nyisd meg a Növényfigyelőt Chrome-ban, telepítsd az alkalmazást, " +
+          "majd az appból kapcsold be a Push értesítést."
+        );
+      }
+
+      return "Ez a böngésző nem támogatja a Web Push értesítéseket.";
+    }
+
+
+    if (code === "secure_context_required") {
+      return "A Push értesítés csak biztonságos HTTPS-kapcsolaton használható.";
+    }
+
+
+    if (
+      code === "service_worker_timeout" ||
+      code === "service_worker_registration_failed"
+    ) {
+      return (
+        "Az értesítési rendszer nem indult el. " +
+        "Zárd be, majd nyisd meg újra az alkalmazást, és próbáld ismét."
       );
     }
 
@@ -707,31 +824,19 @@
 
     try {
 
-      if (!pushSupported()) {
-        throw new Error(
-          "push_not_supported"
-        );
-      }
-
-
       if (
         isIOS() &&
         !isStandalone()
       ) {
-
-        const error =
-          new Error(
-            "ios_home_screen_required"
-          );
-
-        error.code =
-          "ios_home_screen_required";
-
-        throw error;
+        throw errorWithCode("ios_home_screen_required");
       }
 
+      if (!pushSupported()) {
+        throw errorWithCode(getBasicPushErrorCode() || "push_not_supported");
+      }
 
       const user =
+        window.__auth?.currentUser ||
         await currentFirebaseUser();
 
 
@@ -740,20 +845,6 @@
           "not_logged_in"
         );
       }
-
-
-      /*
-       * A Worker itt szerveroldalon
-       * ellenőrzi, hogy valóban
-       * aktív PLUS felhasználó-e.
-       */
-
-      await api(
-        "/subscription-status",
-        {
-          method: "GET"
-        }
-      );
 
 
       let permission =
@@ -789,7 +880,7 @@
 
 
       const registration =
-        await getRegistration();
+        await getPushRegistration();
 
 
       let subscription =
@@ -901,7 +992,7 @@
     try {
 
       const registration =
-        await getRegistration();
+        await getPushRegistration();
 
 
       const subscription =
@@ -1007,10 +1098,25 @@
       }
 
 
-      if (!pushSupported()) {
-
+      if (
+        isIOS() &&
+        !isStandalone()
+      ) {
         setStatus(
-          "Ez a böngésző nem támogatja a Web Push értesítéseket.",
+          friendlyError(errorWithCode("ios_home_screen_required")),
+          "warn"
+        );
+        setButtons({
+          enable: false,
+          disable: false
+        });
+        return;
+      }
+
+
+      if (!pushSupported()) {
+        setStatus(
+          friendlyError(errorWithCode(getBasicPushErrorCode() || "push_not_supported")),
           "warn"
         );
 
@@ -1019,6 +1125,20 @@
           disable: false
         });
 
+        return;
+      }
+
+
+      let registration;
+
+      try {
+        registration = await getPushRegistration();
+      } catch (error) {
+        setStatus(friendlyError(error), "warn");
+        setButtons({
+          enable: false,
+          disable: false
+        });
         return;
       }
 
@@ -1031,25 +1151,6 @@
 
         setStatus(
           "Jelentkezz be a push értesítések használatához."
-        );
-
-        setButtons({
-          enable: false,
-          disable: false
-        });
-
-        return;
-      }
-
-
-      if (
-        isIOS() &&
-        !isStandalone()
-      ) {
-
-        setStatus(
-          "iPhone-on add hozzá a Növényfigyelőt a Főképernyőhöz, majd onnan nyisd meg a push bekapcsolásához.",
-          "warn"
         );
 
         setButtons({
@@ -1099,6 +1200,11 @@
       }
 
 
+      getVapidPublicKey().catch((error) => {
+        console.warn("VAPID key preload failed:", error);
+      });
+
+
       if (
         Notification.permission ===
         "denied"
@@ -1116,10 +1222,6 @@
 
         return;
       }
-
-
-      const registration =
-        await getRegistration();
 
 
       const localSubscription =
