@@ -2344,3 +2344,474 @@ body.menu-open #infoBtn { transform: translateY(-410px) scale(1); }
     border-radius: 22px;
   }
 }
+
+/* ============================= */
+/* TELEPÍTETT APP – INDÍTÓ ANIMÁCIÓ */
+/* ============================= */
+.plant-select-wrap {
+  position: relative;
+  z-index: 2;
+  margin-top: 16px;
+}
+
+#appLaunchSplash {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  overflow: hidden;
+  padding:
+    max(24px, env(safe-area-inset-top))
+    24px
+    max(24px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 50% 37%, rgba(102, 187, 106, 0.22), transparent 28%),
+    radial-gradient(circle at 16% 12%, rgba(141, 214, 151, 0.20), transparent 30%),
+    radial-gradient(circle at 88% 82%, rgba(38, 105, 78, 0.12), transparent 32%),
+    linear-gradient(155deg, #f5fbf7 0%, #e8f5ee 55%, #dff1e9 100%);
+  color: #0d3b23;
+  opacity: 1;
+  visibility: visible;
+  transition:
+    opacity 0.48s ease,
+    visibility 0.48s ease,
+    filter 0.48s ease;
+}
+
+html.pwa-standalone #appLaunchSplash {
+  display: flex;
+}
+
+html.app-launching,
+html.app-launching body {
+  overflow: hidden;
+}
+
+#appLaunchSplash::before,
+#appLaunchSplash::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+#appLaunchSplash::before {
+  width: min(78vw, 360px);
+  height: min(78vw, 360px);
+  top: -22%;
+  right: -34%;
+  border: 1px solid rgba(67, 160, 71, 0.14);
+  box-shadow:
+    0 0 0 38px rgba(67, 160, 71, 0.035),
+    0 0 0 78px rgba(67, 160, 71, 0.025);
+  animation: launchBackdropDrift 6s ease-in-out infinite alternate;
+}
+
+#appLaunchSplash::after {
+  width: min(64vw, 290px);
+  height: min(64vw, 290px);
+  bottom: -25%;
+  left: -30%;
+  background: rgba(102, 187, 106, 0.07);
+  animation: launchBackdropDrift 7s ease-in-out 0.2s infinite alternate-reverse;
+}
+
+.app-launch-stage {
+  position: relative;
+  width: 188px;
+  height: 188px;
+  display: grid;
+  place-items: center;
+  margin-bottom: 20px;
+  isolation: isolate;
+}
+
+.app-launch-logo {
+  position: relative;
+  z-index: 4;
+  width: 126px;
+  height: 126px;
+  overflow: hidden;
+  border-radius: 40px;
+  background: #264f55;
+  box-shadow:
+    0 24px 48px rgba(20, 73, 55, 0.22),
+    0 8px 18px rgba(20, 73, 55, 0.16),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.10);
+  transform-origin: 50% 70%;
+  animation: launchLogoLand 0.92s cubic-bezier(.22, 1.45, .42, 1) both;
+}
+
+.app-launch-logo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(125deg, rgba(255,255,255,0.18), transparent 36%);
+  opacity: 0;
+  transform: translateX(-80%);
+  animation: launchLogoShine 1.15s ease 0.52s both;
+}
+
+.app-launch-logo img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.app-launch-ring {
+  position: absolute;
+  z-index: 1;
+  inset: 15px;
+  border-radius: 50%;
+  border: 2px solid rgba(67, 160, 71, 0.23);
+  opacity: 0;
+}
+
+.app-launch-ring.ring-one {
+  animation: launchRing 1.35s cubic-bezier(.2, .75, .25, 1) 0.08s infinite;
+}
+
+.app-launch-ring.ring-two {
+  animation: launchRing 1.35s cubic-bezier(.2, .75, .25, 1) 0.48s infinite;
+}
+
+.app-launch-leaf {
+  position: absolute;
+  z-index: 5;
+  top: 16px;
+  width: 38px;
+  height: 22px;
+  opacity: 0;
+  background: linear-gradient(145deg, #8bc34a, #43a047);
+  box-shadow: 0 8px 16px rgba(56, 142, 60, 0.16);
+}
+
+.app-launch-leaf::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  right: 7px;
+  top: 50%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.app-launch-leaf.leaf-left {
+  left: 46px;
+  border-radius: 100% 8% 100% 8%;
+  transform-origin: 100% 100%;
+  animation: launchLeafLeft 0.65s cubic-bezier(.22, 1.35, .42, 1) 0.44s forwards;
+}
+
+.app-launch-leaf.leaf-right {
+  right: 46px;
+  border-radius: 8% 100% 8% 100%;
+  transform-origin: 0 100%;
+  animation: launchLeafRight 0.65s cubic-bezier(.22, 1.35, .42, 1) 0.52s forwards;
+}
+
+.app-launch-drop {
+  position: absolute;
+  z-index: 6;
+  top: 59px;
+  left: 50%;
+  width: 17px;
+  height: 22px;
+  border-radius: 70% 35% 65% 40%;
+  background: linear-gradient(145deg, #81d4fa, #1e88e5);
+  box-shadow: 0 6px 14px rgba(30, 136, 229, 0.30);
+  opacity: 0;
+  transform: translate(-50%, -36px) rotate(45deg) scale(0.5);
+  animation: launchDrop 0.70s cubic-bezier(.26, 1.3, .42, 1) 0.68s forwards;
+}
+
+.app-launch-title {
+  position: relative;
+  z-index: 2;
+  font-size: 28px;
+  line-height: 1.12;
+  font-weight: 800;
+  letter-spacing: -0.6px;
+  opacity: 0;
+  transform: translateY(15px);
+  animation: launchTextUp 0.55s ease 0.62s forwards;
+}
+
+.app-launch-subtitle {
+  position: relative;
+  z-index: 2;
+  margin-top: 7px;
+  color: #608071;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.18px;
+  opacity: 0;
+  transform: translateY(12px);
+  animation: launchTextUp 0.55s ease 0.74s forwards;
+}
+
+.app-launch-progress {
+  position: relative;
+  z-index: 2;
+  width: 152px;
+  height: 4px;
+  margin-top: 22px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.12);
+  opacity: 0;
+  animation: launchProgressAppear 0.3s ease 0.82s forwards;
+}
+
+.app-launch-progress span {
+  display: block;
+  width: 46%;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #43a047, #8bc34a);
+  box-shadow: 0 0 12px rgba(67, 160, 71, 0.35);
+  animation: launchProgressMove 1s cubic-bezier(.42, 0, .35, 1) 0.82s infinite;
+}
+
+#appLaunchSplash.is-leaving {
+  opacity: 0;
+  visibility: hidden;
+  filter: blur(5px);
+}
+
+#appLaunchSplash.is-leaving .app-launch-stage,
+#appLaunchSplash.is-leaving .app-launch-title,
+#appLaunchSplash.is-leaving .app-launch-subtitle,
+#appLaunchSplash.is-leaving .app-launch-progress {
+  transform: scale(1.035);
+  transition: transform 0.48s ease;
+}
+
+@keyframes launchLogoLand {
+  0% { opacity: 0; transform: translateY(32px) scale(0.62) rotate(-6deg); }
+  65% { opacity: 1; transform: translateY(-5px) scale(1.045) rotate(2deg); }
+  100% { opacity: 1; transform: translateY(0) scale(1) rotate(0); }
+}
+
+@keyframes launchLogoShine {
+  0% { opacity: 0; transform: translateX(-80%); }
+  30% { opacity: 1; }
+  100% { opacity: 0; transform: translateX(90%); }
+}
+
+@keyframes launchRing {
+  0% { opacity: 0.52; transform: scale(0.70); }
+  72% { opacity: 0.12; }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+
+@keyframes launchLeafLeft {
+  0% { opacity: 0; transform: translate(11px, 15px) rotate(38deg) scale(0.25); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(-22deg) scale(1); }
+}
+
+@keyframes launchLeafRight {
+  0% { opacity: 0; transform: translate(-11px, 15px) rotate(-38deg) scale(0.25); }
+  100% { opacity: 1; transform: translate(0, 0) rotate(22deg) scale(1); }
+}
+
+@keyframes launchDrop {
+  0% { opacity: 0; transform: translate(-50%, -36px) rotate(45deg) scale(0.5); }
+  70% { opacity: 1; transform: translate(-50%, 4px) rotate(45deg) scale(1.08); }
+  100% { opacity: 1; transform: translate(-50%, 0) rotate(45deg) scale(1); }
+}
+
+@keyframes launchTextUp {
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes launchProgressAppear {
+  to { opacity: 1; }
+}
+
+@keyframes launchProgressMove {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(325%); }
+}
+
+@keyframes launchBackdropDrift {
+  to { transform: translate3d(12px, 16px, 0) scale(1.04); }
+}
+
+/* ============================= */
+/* TELEPÍTETT APP – KOMPAKT MOBIL NÉZET */
+/* ============================= */
+@media (max-width: 480px) {
+  html.pwa-standalone body:not(.billing-page):not(.billing-page-pro) {
+    padding-left: 16px;
+    padding-right: 16px;
+    padding-top: calc(env(safe-area-inset-top) + 10px);
+  }
+
+  html.pwa-standalone body > h1 {
+    margin: 13px 0 15px;
+    font-size: 29px;
+    line-height: 1.15;
+    letter-spacing: -0.7px;
+  }
+
+  html.pwa-standalone #accountsContainer .card {
+    margin: 14px auto;
+    padding: 19px 16px 16px;
+    border-radius: 26px;
+    max-width: 284px;
+  }
+
+  html.pwa-standalone #accountsContainer .card::before {
+    width: 170px;
+    height: 170px;
+  }
+
+  html.pwa-standalone #accountsContainer .card::after {
+    width: 125px;
+    height: 125px;
+  }
+
+  html.pwa-standalone .plan-badge-wrap {
+    top: 13px;
+    left: 13px;
+    gap: 5px;
+  }
+
+  html.pwa-standalone .plan-badge {
+    padding: 6px 10px;
+    font-size: 11px;
+  }
+
+  html.pwa-standalone .battery-box img {
+    width: 31px;
+  }
+
+  html.pwa-standalone .deleteBtn {
+    top: 13px;
+    right: 13px;
+    width: 36px;
+    height: 36px;
+    font-size: 22px;
+  }
+
+  html.pwa-standalone .last-update-pill {
+    margin: 1px auto 8px;
+    padding: 6px 10px;
+    max-width: calc(100% - 96px);
+    font-size: 10.5px;
+  }
+
+  html.pwa-standalone .title-row {
+    gap: 7px;
+    margin-top: 2px;
+    margin-bottom: 7px;
+  }
+
+  html.pwa-standalone .plant-title-pill {
+    gap: 4px;
+    padding: 5px 11px;
+    border-radius: 16px;
+    font-size: 14px;
+  }
+
+  html.pwa-standalone .edit-pill {
+    padding: 7px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+  }
+
+  html.pwa-standalone .gauge-container {
+    width: 150px;
+    height: 150px;
+    margin: 11px auto 5px;
+  }
+
+  html.pwa-standalone .gauge-value {
+    font-size: 22px;
+  }
+
+  html.pwa-standalone .slider-container {
+    margin-top: 6px;
+  }
+
+  html.pwa-standalone .led-slider {
+    width: 90%;
+    height: 14px;
+    margin: 9px auto 4px;
+  }
+
+  html.pwa-standalone .led-slider::-webkit-slider-thumb {
+    width: 24px;
+    height: 24px;
+  }
+
+  html.pwa-standalone .slider-labels {
+    margin-bottom: 2px;
+    font-size: 12px;
+  }
+
+  html.pwa-standalone .air-quality-card {
+    margin-top: 9px;
+    padding: 11px;
+    border-radius: 16px;
+  }
+
+  html.pwa-standalone .air-quality-metrics {
+    gap: 7px;
+  }
+
+  html.pwa-standalone .air-metric {
+    padding: 8px 7px 7px;
+  }
+
+  html.pwa-standalone .plant-select-wrap {
+    margin-top: 11px;
+  }
+
+  html.pwa-standalone .plant-select {
+    padding: 11px 13px;
+    border-radius: 14px;
+    font-size: 13px;
+  }
+
+  html.pwa-standalone .plant-select-arrow {
+    font-size: 15px;
+  }
+
+  html.pwa-standalone #menuBtn,
+  html.pwa-standalone #addAccountBtn,
+  html.pwa-standalone #notifBellBtn,
+  html.pwa-standalone #chartsBtn,
+  html.pwa-standalone #paymentBtn,
+  html.pwa-standalone #infoBtn {
+    right: 18px;
+    width: 54px;
+    height: 54px;
+  }
+
+  html.pwa-standalone #menuBtn {
+    bottom: calc(18px + env(safe-area-inset-bottom));
+    font-size: 24px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #appLaunchSplash *,
+  #appLaunchSplash::before,
+  #appLaunchSplash::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+
+  #appLaunchSplash,
+  #appLaunchSplash.is-leaving {
+    transition-duration: 0.08s;
+    filter: none;
+  }
+}

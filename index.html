@@ -15,11 +15,11 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20260820v1">
+  <link rel="stylesheet" href="styles.css?v=20260820v3">
 
   
 
-  <script type="module" src="firebase-app.js?v=20260820v2"></script>
+  <script type="module" src="firebase-app.js?v=20260820v3"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
@@ -31,6 +31,60 @@
 </head>
 
 <body>
+  <div id="appLaunchSplash" role="status" aria-label="A Növényfigyelő betöltése">
+    <div class="app-launch-stage" aria-hidden="true">
+      <span class="app-launch-ring ring-one"></span>
+      <span class="app-launch-ring ring-two"></span>
+      <span class="app-launch-leaf leaf-left"></span>
+      <span class="app-launch-leaf leaf-right"></span>
+      <span class="app-launch-drop"></span>
+      <div class="app-launch-logo">
+        <img src="/pwa-icon-192.png" alt="">
+      </div>
+    </div>
+    <div class="app-launch-title">Növényfigyelő</div>
+    <div class="app-launch-subtitle">Kapcsolódás a növényeidhez</div>
+    <div class="app-launch-progress" aria-hidden="true"><span></span></div>
+  </div>
+
+  <script>
+    (() => {
+      const splash = document.getElementById("appLaunchSplash");
+      const standalone =
+        window.matchMedia("(display-mode: standalone)").matches ||
+        window.navigator.standalone === true;
+
+      if (!splash || !standalone) {
+        splash?.remove();
+        return;
+      }
+
+      const startedAt = performance.now();
+      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const minimumVisibleMs = reducedMotion ? 280 : 1450;
+      let closing = false;
+
+      document.documentElement.classList.add("pwa-standalone", "app-launching");
+
+      const closeSplash = () => {
+        if (closing) return;
+
+        const remaining = Math.max(0, minimumVisibleMs - (performance.now() - startedAt));
+        window.setTimeout(() => {
+          if (closing) return;
+          closing = true;
+          splash.classList.add("is-leaving");
+          document.documentElement.classList.remove("app-launching");
+          window.setTimeout(() => splash.remove(), reducedMotion ? 80 : 520);
+        }, remaining);
+      };
+
+      window.addEventListener("app-content-ready", closeSplash, { once: true });
+      window.addEventListener("load", () => window.setTimeout(closeSplash, 1800), { once: true });
+      window.setTimeout(closeSplash, 4500);
+    })();
+  </script>
+
   <div id="offlineBadge">
     <i class="fa-solid fa-wifi-slash"></i>
     Offline mód – az adatok nem frissülnek
