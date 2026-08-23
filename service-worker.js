@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20260820-compact-splash-v3";
+const CACHE_NAME = "novenyfigyelo-cache-v20260823-web-push-v4";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {
@@ -101,6 +101,17 @@ self.addEventListener("push", (event) => {
       "novenyfigyelo",
 
     renotify: true,
+
+    silent: false,
+
+    vibrate: [120, 70, 120],
+
+    timestamp:
+      Number(data.timestamp) ||
+      Date.now(),
+
+    requireInteraction:
+      data.type === "battery_critical",
 
     data: {
       url:

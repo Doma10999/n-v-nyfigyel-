@@ -7,6 +7,7 @@
   const UI_ID = "webPushSettingsBox";
   const ENABLE_ID = "webPushEnableBtn";
   const DISABLE_ID = "webPushDisableBtn";
+  const TEST_ID = "webPushTestBtn";
   const STATUS_ID = "webPushStatusText";
 
   let refreshBusy = false;
@@ -140,6 +141,7 @@
   function setButtons({
     enable = false,
     disable = false,
+    test = false,
     busy = false
   } = {}) {
 
@@ -148,6 +150,9 @@
 
     const disableBtn =
       document.getElementById(DISABLE_ID);
+
+    const testBtn =
+      document.getElementById(TEST_ID);
 
     if (enableBtn) {
       enableBtn.style.display =
@@ -164,6 +169,15 @@
 
       disableBtn.disabled = busy;
       disableBtn.style.opacity =
+        busy ? ".65" : "1";
+    }
+
+    if (testBtn) {
+      testBtn.style.display =
+        test ? "inline-flex" : "none";
+
+      testBtn.disabled = busy;
+      testBtn.style.opacity =
         busy ? ".65" : "1";
     }
   }
@@ -319,6 +333,27 @@
           Push kikapcsolása
         </button>
 
+
+        <button
+          id="${TEST_ID}"
+          type="button"
+          style="
+            display:none;
+            align-items:center;
+            justify-content:center;
+            background:#ffffff;
+            color:#1d6f45;
+            border:1px solid rgba(30,90,65,.18);
+            border-radius:12px;
+            padding:10px 14px;
+            font-weight:750;
+            cursor:pointer;
+            width:auto;
+          "
+        >
+          Teszt értesítés
+        </button>
+
       </div>
 
 
@@ -374,6 +409,14 @@
       ?.addEventListener(
         "click",
         disablePush
+      );
+
+
+    document
+      .getElementById(TEST_ID)
+      ?.addEventListener(
+        "click",
+        testPushDelivery
       );
   }
 
@@ -689,6 +732,19 @@
     }
 
 
+    if (code === "push_subscription_not_found") {
+      return (
+        "A telefon push-regisztrációja hiányzik. " +
+        "Kapcsold ki, majd újra be a push értesítést."
+      );
+    }
+
+
+    if (code === "test_rate_limited") {
+      return "Várj fél percet a következő teszt értesítés előtt.";
+    }
+
+
     if (
       code ===
       "subscription_access_denied"
@@ -815,6 +871,7 @@
     setButtons({
       enable: true,
       disable: false,
+      test: false,
       busy: true
     });
 
@@ -946,6 +1003,7 @@
       setButtons({
         enable: false,
         disable: true,
+        test: true,
         busy: false
       });
 
@@ -967,6 +1025,47 @@
       setButtons({
         enable: true,
         disable: false,
+        test: false,
+        busy: false
+      });
+    }
+  }
+
+
+  /* =====================================================
+     TESZT ÉRTESÍTÉS
+     ===================================================== */
+
+  async function testPushDelivery() {
+
+    setButtons({
+      enable: false,
+      disable: true,
+      test: true,
+      busy: true
+    });
+
+    setStatus("Teszt értesítés küldése…");
+
+    try {
+      const result = await api("/test", { method: "POST" });
+
+      if (!Number(result?.sent || 0)) {
+        throw errorWithCode("push_subscription_not_found");
+      }
+
+      setStatus(
+        "Teszt értesítés elküldve. Néhány másodpercen belül meg kell érkeznie. ✅",
+        "ok"
+      );
+    } catch (error) {
+      console.error("Push test error:", error);
+      setStatus(friendlyError(error), "error");
+    } finally {
+      setButtons({
+        enable: false,
+        disable: true,
+        test: true,
         busy: false
       });
     }
@@ -982,6 +1081,7 @@
     setButtons({
       enable: false,
       disable: true,
+      test: false,
       busy: true
     });
 
@@ -1046,6 +1146,7 @@
       setButtons({
         enable: true,
         disable: false,
+        test: false,
         busy: false
       });
 
@@ -1067,6 +1168,7 @@
       setButtons({
         enable: false,
         disable: true,
+        test: true,
         busy: false
       });
     }
@@ -1169,9 +1271,11 @@
        * a Cloudflare Workerben.
        */
 
+      let serverState;
+
       try {
 
-        await api(
+        serverState = await api(
           "/subscription-status",
           {
             method: "GET"
@@ -1199,6 +1303,20 @@
         }
 
         throw error;
+      }
+
+
+      if (!serverState?.activePlus) {
+        setStatus(
+          "A push értesítés csak aktív Plus csomagban érhető el.",
+          "warn"
+        );
+        setButtons({
+          enable: false,
+          disable: false,
+          test: false
+        });
+        return;
       }
 
 
@@ -1234,6 +1352,22 @@
 
       if (localSubscription) {
 
+        /*
+         * A böngésző helyi feliratkozása önmagában nem elég. Minden
+         * állapotellenőrzésnél újraszinkronizáljuk a Worker KV-t, így egy
+         * törölt vagy elveszett szerveres regisztráció magától helyreáll.
+         */
+        await api(
+          "/subscribe",
+          {
+            method: "POST",
+            body: JSON.stringify({
+              subscription: localSubscription.toJSON(),
+              platform: detectPlatform()
+            })
+          }
+        );
+
         setStatus(
           "Push értesítések bekapcsolva ezen az eszközön. ✅",
           "ok"
@@ -1241,7 +1375,8 @@
 
         setButtons({
           enable: false,
-          disable: true
+          disable: true,
+          test: true
         });
 
       } else {
@@ -1252,7 +1387,8 @@
 
         setButtons({
           enable: true,
-          disable: false
+          disable: false,
+          test: false
         });
       }
 
