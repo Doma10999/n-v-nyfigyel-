@@ -18,7 +18,10 @@ const WEB_PUSH_SOIL_THRESHOLD = 35;
 const WEB_PUSH_BATTERY_LOW = 25;
 const WEB_PUSH_BATTERY_CRITICAL = 10;
 const WEB_PUSH_BATTERY_REARM = 40;
-const WEB_PUSH_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const WEB_PUSH_SOIL_COOLDOWN_MS = 6 * 60 * 60 * 1000;
+const WEB_PUSH_AIR_COOLDOWN_MS = 3 * 60 * 60 * 1000;
+const WEB_PUSH_BATTERY_LOW_COOLDOWN_MS = 12 * 60 * 60 * 1000;
+const WEB_PUSH_BATTERY_CRITICAL_COOLDOWN_MS = 3 * 60 * 60 * 1000;
 const WEB_PUSH_FRESH_MS = 12 * 60 * 60 * 1000;
 
 function webPushConfig_() {
@@ -190,11 +193,14 @@ function webPushHasActivePlus_(subscription) {
 
   if (expiresAt > 0 && expiresAt < 100000000000) expiresAt *= 1000;
 
+  const expiredByDate = expiresAt > 0 && expiresAt <= Date.now();
+  const canceledButPaid =
+    (status === "canceled" || status === "cancelled") &&
+    expiresAt > Date.now();
+
   const inactiveStatuses = [
     "free",
     "inactive",
-    "canceled",
-    "cancelled",
     "expired",
     "incomplete",
     "incomplete_expired",
@@ -204,8 +210,8 @@ function webPushHasActivePlus_(subscription) {
 
   return (
     plan === "plus" &&
-    inactiveStatuses.indexOf(status) === -1 &&
-    !(expiresAt > 0 && expiresAt <= Date.now())
+    !expiredByDate &&
+    (canceledButPaid || inactiveStatuses.indexOf(status) === -1)
   );
 }
 
@@ -245,8 +251,135 @@ function webPushPlantName_(device, deviceId) {
 function webPushAirIsBad_(air) {
   const data = air || {};
   if (data.bad === true) return true;
+
   const status = String(data.status || "").trim().toLowerCase();
-  return status.indexOf("rossz") !== -1 || status.indexOf("nagyon") !== -1;
+  if (status.indexOf("rossz") !== -1 || status.indexOf("nagyon") !== -1) {
+    return true;
+  }
+
+  const aqi = Number(data.aqi);
+  const tvoc = Number(data.tvoc);
+  const eco2 = Number(
+    typeof data.eco2 !== "undefined" ? data.eco2 : data.eCO2
+  );
+
+  return (
+    (Number.isFinite(aqi) && aqi >= 4) ||
+    (Number.isFinite(tvoc) && tvoc >= 600) ||
+    (Number.isFinite(eco2) && eco2 >= 1200)
+  );
+}
+
+function webPushTimestampMs_(value) {
+  const numeric = Number(value);
+  if (Number.isFinite(numeric) && numeric > 0) {
+    return numeric < 100000000000 ? numeric * 1000 : numeric;
+  }
+
+  const parsed = Date.parse(String(value || ""));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : 0;
+}
+
+function webPushMeasurementAt_(device) {
+  const data = device || {};
+  return [
+    data.lastMeasurementAt,
+    data.lastSeen,
+    data.lastUpdated,
+    data.updatedAt,
+    data.timestamp,
+    data.measuredAt,
+    data.sensorUpdatedAt,
+    data.lastSensorUpdate
+  ]
+    .map(webPushTimestampMs_)
+    .reduce(function (latest, value) {
+      return Math.max(latest, value);
+    }, 0);
+}
+
+function webPushCanonicalEmail_(value) {
+  const email = String(value || "").trim().toLowerCase();
+  const at = email.lastIndexOf("@");
+  if (at <= 0) return "";
+
+  let local = email.slice(0, at);
+  let domain = email.slice(at + 1);
+
+  if (domain === "gmail.com" || domain === "googlemail.com") {
+    local = local.split("+")[0].replace(/\./g, "");
+    domain = "gmail.com";
+  }
+
+  return local && domain ? local + "@" + domain : "";
+}
+
+function webPushAccountEmails_(user) {
+  const data = user || {};
+  return [
+    data.subscription && data.subscription.email,
+    data.email,
+    data.profile && data.profile.email,
+    data.account && data.account.email
+  ]
+    .map(webPushCanonicalEmail_)
+    .filter(Boolean);
+}
+
+function webPushRelatedUids_(users, primaryUid) {
+  const primary = String(primaryUid || "");
+  const primaryEmails = new Set(webPushAccountEmails_(users[primary] || {}));
+  const result = [primary];
+
+  if (!primaryEmails.size) return result;
+
+  Object.keys(users || {}).forEach(function (uid) {
+    if (uid === primary) return;
+
+    const related = webPushAccountEmails_(users[uid] || {}).some(function (email) {
+      return primaryEmails.has(email);
+    });
+
+    if (related) result.push(uid);
+  });
+
+  return result;
+}
+
+function webPushSendForUser_(users, primaryUid, title, body, type, tag) {
+  const candidates = webPushRelatedUids_(users, primaryUid);
+  const summary = {
+    sent: 0,
+    removed: 0,
+    failed: 0,
+    subscriptions: 0
+  };
+
+  for (let index = 0; index < candidates.length; index++) {
+    try {
+      const result = webPushSend_(
+        candidates[index],
+        title,
+        body,
+        type,
+        tag
+      ) || {};
+
+      summary.sent += Number(result.sent || 0);
+      summary.removed += Number(result.removed || 0);
+      summary.failed += Number(result.failed || 0);
+      summary.subscriptions += Number(result.subscriptions || 0);
+
+      if (Number(result.sent || 0) > 0) return summary;
+    } catch (error) {
+      summary.failed += 1;
+      console.error(
+        "Push küldési hiba [" + candidates[index] + "]: " + error
+      );
+    }
+  }
+
+  return summary;
 }
 
 function checkWebPushAlerts() {
@@ -266,17 +399,15 @@ function checkWebPushAlerts() {
       Object.keys(devices).forEach(function (deviceId) {
         try {
           const device = devices[deviceId] || {};
-
-          // Ugyanaz a kijelölés szabályozza az e-mailt és a push riasztást.
           if (!device.emailNotifEnabled) return;
 
           const patch = {};
           const plantName = webPushPlantName_(device, deviceId);
-          const lastMeasurementAt = Number(
-            device.lastMeasurementAt || device.lastSeen || 0
-          );
-          const fresh =
-            lastMeasurementAt > 0 && now - lastMeasurementAt <= WEB_PUSH_FRESH_MS;
+          const lastMeasurementAt = webPushMeasurementAt_(device);
+          const stale =
+            lastMeasurementAt > 0 &&
+            now - lastMeasurementAt > WEB_PUSH_FRESH_MS;
+          const staleText = stale ? " (utolsó ismert mérés)" : "";
 
           const soil = Number(
             typeof device.sensorValue !== "undefined"
@@ -286,17 +417,23 @@ function checkWebPushAlerts() {
           const lastSoilPushAt = Number(device.lastSoilPushAt || 0);
 
           if (
-            fresh &&
             Number.isFinite(soil) &&
             soil <= WEB_PUSH_SOIL_THRESHOLD &&
-            now - lastSoilPushAt >= WEB_PUSH_COOLDOWN_MS
+            now - lastSoilPushAt >= WEB_PUSH_SOIL_COOLDOWN_MS
           ) {
-            const result = webPushSend_(
+            const result = webPushSendForUser_(
+              users,
               uid,
               "💧 Ideje meglocsolni!",
-              plantName + " nedvessége " + Math.round(soil) + "%-ra csökkent.",
+              plantName + " nedvessége " + Math.round(soil) +
+                "%-ra csökkent" + staleText + ".",
               "soil_low",
               "soil_" + deviceId
+            );
+
+            console.log(
+              "soil_low [" + uid + "/" + deviceId + "] " +
+                JSON.stringify(result)
             );
 
             if (Number(result.sent || 0) > 0) patch.lastSoilPushAt = now;
@@ -313,44 +450,71 @@ function checkWebPushAlerts() {
               device.pushBatteryState ||
                 (device.pushBatteryArmed === false ? "low" : "ok")
             );
+            const legacyBatteryAt = Number(device.lastBatteryPushAt || 0);
 
             if (battery >= WEB_PUSH_BATTERY_REARM) {
               if (previousBatteryState !== "ok") patch.pushBatteryState = "ok";
               patch.pushBatteryArmed = true;
-            } else if (fresh && battery <= WEB_PUSH_BATTERY_CRITICAL) {
-              if (previousBatteryState !== "critical") {
-                const result = webPushSend_(
+            } else if (battery <= WEB_PUSH_BATTERY_CRITICAL) {
+              const lastCriticalAt = Number(
+                device.lastBatteryCriticalPushAt ||
+                  (previousBatteryState === "critical" ? legacyBatteryAt : 0)
+              );
+
+              if (
+                now - lastCriticalAt >=
+                WEB_PUSH_BATTERY_CRITICAL_COOLDOWN_MS
+              ) {
+                const result = webPushSendForUser_(
+                  users,
                   uid,
                   "🪫 Kritikus akkumulátor",
-                  plantName +
-                    " eszközének töltöttsége " +
-                    Math.max(0, Math.round(battery)) +
-                    "%.",
+                  plantName + " eszközének töltöttsége " +
+                    Math.max(0, Math.round(battery)) + "%" + staleText + ".",
                   "battery_critical",
                   "battery_" + deviceId
                 );
 
-                if (Number(result.sent || 0) > 0) {
-                  patch.lastBatteryPushAt = now;
-                  patch.pushBatteryState = "critical";
-                  patch.pushBatteryArmed = false;
-                }
-              }
-            } else if (fresh && battery <= WEB_PUSH_BATTERY_LOW) {
-              if (previousBatteryState === "ok") {
-                const result = webPushSend_(
-                  uid,
-                  "🔋 Alacsony akkumulátor",
-                  plantName +
-                    " eszközének töltöttsége " +
-                    Math.max(0, Math.round(battery)) +
-                    "%.",
-                  "battery_low",
-                  "battery_" + deviceId
+                console.log(
+                  "battery_critical [" + uid + "/" + deviceId + "] " +
+                    JSON.stringify(result)
                 );
 
                 if (Number(result.sent || 0) > 0) {
                   patch.lastBatteryPushAt = now;
+                  patch.lastBatteryCriticalPushAt = now;
+                  patch.pushBatteryState = "critical";
+                  patch.pushBatteryArmed = false;
+                }
+              }
+            } else if (battery <= WEB_PUSH_BATTERY_LOW) {
+              const lastLowAt = Number(
+                device.lastBatteryLowPushAt ||
+                  (previousBatteryState === "low" ? legacyBatteryAt : 0)
+              );
+
+              if (
+                now - lastLowAt >=
+                WEB_PUSH_BATTERY_LOW_COOLDOWN_MS
+              ) {
+                const result = webPushSendForUser_(
+                  users,
+                  uid,
+                  "🔋 Alacsony akkumulátor",
+                  plantName + " eszközének töltöttsége " +
+                    Math.max(0, Math.round(battery)) + "%" + staleText + ".",
+                  "battery_low",
+                  "battery_" + deviceId
+                );
+
+                console.log(
+                  "battery_low [" + uid + "/" + deviceId + "] " +
+                    JSON.stringify(result)
+                );
+
+                if (Number(result.sent || 0) > 0) {
+                  patch.lastBatteryPushAt = now;
+                  patch.lastBatteryLowPushAt = now;
                   patch.pushBatteryState = "low";
                   patch.pushBatteryArmed = false;
                 }
@@ -360,17 +524,24 @@ function checkWebPushAlerts() {
 
           const air = device.airQuality || {};
           const lastAirPushAt = Number(device.lastAirPushAt || 0);
+
           if (
-            fresh &&
             webPushAirIsBad_(air) &&
-            now - lastAirPushAt >= WEB_PUSH_COOLDOWN_MS
+            now - lastAirPushAt >= WEB_PUSH_AIR_COOLDOWN_MS
           ) {
-            const result = webPushSend_(
+            const result = webPushSendForUser_(
+              users,
               uid,
               "🌬️ Szellőztetés javasolt",
-              plantName + " környezetében romlott a levegő minősége.",
+              plantName + " környezetében romlott a levegő minősége" +
+                staleText + ".",
               "air_bad",
               "air_" + deviceId
+            );
+
+            console.log(
+              "air_bad [" + uid + "/" + deviceId + "] " +
+                JSON.stringify(result)
             );
 
             if (Number(result.sent || 0) > 0) patch.lastAirPushAt = now;
