@@ -1,18 +1,18 @@
 /**
- * Növényfigyelő – valódi Web Push riasztások
+ * Növényfigyelő – valódi, háttérben futó Web Push riasztások
  *
- * A „Növényfigyelő Push” Google Apps Script projektben fut.
- * A már meglévő Script Properties értékeket használja:
- *   - FIREBASE_DB_URL
- *   - SERVICE_ACCOUNT
- *   - NTFY_TEST_UID (vagy opcionálisan PUSH_TEST_UID)
+ * Két biztonságos hitelesítési módot támogat:
+ *   1. meglévő SERVICE_ACCOUNT Script Property (régi projektek);
+ *   2. a script tulajdonosának rövid életű Google OAuth/ID tokenje.
  *
- * Nem használ publikus vagy megosztott push titkot. A Cloudflare Workernek
- * rövid életű, a Firebase service accounttal aláírt JWT-t küld.
+ * Privát kulcs vagy jelszó nem kerül a forráskódba.
  */
 
 const WEB_PUSH_WORKER_URL =
   "https://novenyfigyelo-push.drobnidominik.workers.dev";
+const WEB_PUSH_FIREBASE_DB_URL =
+  "https://plant-monitor-3976f-default-rtdb.europe-west1.firebasedatabase.app";
+const WEB_PUSH_FIREBASE_PROJECT_ID = "plant-monitor-3976f";
 const WEB_PUSH_CHECK_INTERVAL_MIN = 5;
 const WEB_PUSH_SOIL_THRESHOLD = 35;
 const WEB_PUSH_BATTERY_LOW = 25;
@@ -31,20 +31,30 @@ function webPushConfig_() {
   ).trim();
 
   let serviceAccount = {};
-  try {
-    serviceAccount = JSON.parse(rawServiceAccount);
-  } catch (error) {
-    throw new Error("A SERVICE_ACCOUNT Script Property nem érvényes JSON.");
+  if (rawServiceAccount) {
+    try {
+      serviceAccount = JSON.parse(rawServiceAccount);
+    } catch (error) {
+      throw new Error("A SERVICE_ACCOUNT Script Property nem érvényes JSON.");
+    }
   }
 
+  const clientEmail = String(serviceAccount.client_email || "").trim();
+  const privateKey = String(serviceAccount.private_key || "").replace(/\\n/g, "\n");
+
   return {
-    dbUrl: String(properties.getProperty("FIREBASE_DB_URL") || "")
+    dbUrl: String(
+      properties.getProperty("FIREBASE_DB_URL") || WEB_PUSH_FIREBASE_DB_URL
+    )
       .trim()
       .replace(/\/+$/, ""),
-    projectId: String(serviceAccount.project_id || "").trim(),
-    clientEmail: String(serviceAccount.client_email || "").trim(),
+    projectId: String(
+      serviceAccount.project_id || WEB_PUSH_FIREBASE_PROJECT_ID
+    ).trim(),
+    clientEmail: clientEmail,
     privateKeyId: String(serviceAccount.private_key_id || "").trim(),
-    privateKey: String(serviceAccount.private_key || "").replace(/\\n/g, "\n"),
+    privateKey: privateKey,
+    useServiceAccount: Boolean(clientEmail && privateKey),
     workerUrl: String(
       properties.getProperty("PUSH_WORKER_URL") || WEB_PUSH_WORKER_URL
     )
@@ -61,9 +71,6 @@ function webPushConfig_() {
 function webPushAssertConfig_(cfg) {
   const missing = [];
   if (!cfg.dbUrl) missing.push("FIREBASE_DB_URL");
-  if (!cfg.projectId) missing.push("SERVICE_ACCOUNT.project_id");
-  if (!cfg.clientEmail) missing.push("SERVICE_ACCOUNT.client_email");
-  if (!cfg.privateKey) missing.push("SERVICE_ACCOUNT.private_key");
   if (!cfg.workerUrl) missing.push("PUSH_WORKER_URL");
 
   if (missing.length) {
@@ -86,12 +93,16 @@ function webPushSignJwt_(header, claims, privateKey) {
 }
 
 function webPushAccessToken_() {
+  const cfg = webPushConfig_();
+  webPushAssertConfig_(cfg);
+
+  if (!cfg.useServiceAccount) {
+    return ScriptApp.getOAuthToken();
+  }
+
   const cache = CacheService.getScriptCache();
   const cached = cache.get("webPushFirebaseAccessToken");
   if (cached) return cached;
-
-  const cfg = webPushConfig_();
-  webPushAssertConfig_(cfg);
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -133,6 +144,16 @@ function webPushAccessToken_() {
 function webPushAdminJwt_() {
   const cfg = webPushConfig_();
   webPushAssertConfig_(cfg);
+
+  if (!cfg.useServiceAccount) {
+    const identityToken = ScriptApp.getIdentityToken();
+    if (!identityToken) {
+      throw new Error(
+        "Hiányzik a Google azonosító token. Engedélyezd az openid és userinfo.email jogosultságokat."
+      );
+    }
+    return identityToken;
+  }
 
   const now = Math.floor(Date.now() / 1000);
   const header = { alg: "RS256", typ: "JWT" };
@@ -382,6 +403,63 @@ function webPushSendForUser_(users, primaryUid, title, body, type, tag) {
   return summary;
 }
 
+function webPushDecodeJwtPayload_(token) {
+  const parts = String(token || "").split(".");
+  if (parts.length !== 3) throw new Error("Érvénytelen Google azonosító token.");
+  const decoded = Utilities.newBlob(
+    Utilities.base64DecodeWebSafe(parts[1])
+  ).getDataAsString();
+  return JSON.parse(decoded || "{}");
+}
+
+function webPushSha256Base64Url_(value) {
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    String(value || ""),
+    Utilities.Charset.UTF_8
+  );
+  return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");
+}
+
+function diagnoseWebPushAccess() {
+  const cfg = webPushConfig_();
+  webPushAssertConfig_(cfg);
+
+  const accessToken = webPushAccessToken_();
+  const users = webPushFirebaseGet_("users", accessToken) || {};
+  const identity = webPushDecodeJwtPayload_(webPushAdminJwt_());
+  const effectiveEmail = webPushCanonicalEmail_(
+    Session.getEffectiveUser().getEmail()
+  );
+  const identityEmail = webPushCanonicalEmail_(identity.email);
+  const relatedUids = Object.keys(users).filter(function (uid) {
+    return webPushAccountEmails_(users[uid] || {}).indexOf(effectiveEmail) !== -1;
+  });
+  const audience = Array.isArray(identity.aud)
+    ? identity.aud.join(" ")
+    : String(identity.aud || "");
+
+  const result = {
+    ok: true,
+    authMode: cfg.useServiceAccount ? "service_account" : "google_user",
+    firebaseUsers: Object.keys(users).length,
+    relatedAccounts: relatedUids.length,
+    activePlusAccounts: relatedUids.filter(function (uid) {
+      return webPushHasActivePlus_((users[uid] || {}).subscription);
+    }).length,
+    identityEmailMatches: Boolean(
+      effectiveEmail && identityEmail && effectiveEmail === identityEmail
+    ),
+    identityEmailVerified:
+      identity.email_verified === true || identity.email_verified === "true",
+    audienceHash: webPushSha256Base64Url_(audience),
+    subjectHash: webPushSha256Base64Url_(identity.sub)
+  };
+
+  Logger.log(JSON.stringify(result));
+  return result;
+}
+
 function checkWebPushAlerts() {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(15000)) return;
@@ -587,12 +665,40 @@ function setupWebPushSystem() {
 function sendTestWebPush() {
   const cfg = webPushConfig_();
   webPushAssertConfig_(cfg);
-  if (!cfg.testUid) {
-    throw new Error("Hiányzik a PUSH_TEST_UID vagy NTFY_TEST_UID beállítás.");
+
+  if (cfg.testUid) {
+    const directResult = webPushSend_(
+      cfg.testUid,
+      "🌱 Növényfigyelő teszt",
+      "A push értesítés megfelelően működik ezen az eszközön.",
+      "test",
+      "novenyfigyelo_test"
+    );
+    Logger.log(JSON.stringify(directResult));
+    return directResult;
   }
 
-  const result = webPushSend_(
-    cfg.testUid,
+  const accessToken = webPushAccessToken_();
+  const users = webPushFirebaseGet_("users", accessToken) || {};
+  const effectiveEmail = webPushCanonicalEmail_(
+    Session.getEffectiveUser().getEmail()
+  );
+  const candidates = Object.keys(users).filter(function (uid) {
+    return (
+      webPushHasActivePlus_((users[uid] || {}).subscription) &&
+      webPushAccountEmails_(users[uid] || {}).indexOf(effectiveEmail) !== -1
+    );
+  });
+
+  if (!candidates.length) {
+    throw new Error(
+      "Nem található aktív Plus-fiók a script Google-fiókjához."
+    );
+  }
+
+  const result = webPushSendForUser_(
+    users,
+    candidates[0],
     "🌱 Növényfigyelő teszt",
     "A push értesítés megfelelően működik ezen az eszközön.",
     "test",
