@@ -415,13 +415,33 @@ function webPushSha256Base64Url_(value) {
   return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, "");
 }
 
+function webPushGoogleProfile_(accessToken) {
+  const response = UrlFetchApp.fetch(
+    "https://openidconnect.googleapis.com/v1/userinfo",
+    {
+      method: "get",
+      headers: { Authorization: "Bearer " + accessToken },
+      muteHttpExceptions: true
+    }
+  );
+
+  const code = response.getResponseCode();
+  if (code >= 300) {
+    throw new Error("Google profil ellenőrzési hiba (" + code + ").");
+  }
+
+  return JSON.parse(response.getContentText() || "{}");
+}
+
 function diagnoseWebPushAccess() {
   const cfg = webPushConfig_();
   webPushAssertConfig_(cfg);
 
   const accessToken = webPushAccessToken_();
   const users = webPushFirebaseGet_("users", accessToken) || {};
-  const identity = webPushDecodeJwtPayload_(webPushAdminJwt_());
+  const identity = cfg.useServiceAccount
+    ? webPushDecodeJwtPayload_(webPushAdminJwt_())
+    : webPushGoogleProfile_(accessToken);
   const effectiveEmail = webPushCanonicalEmail_(
     Session.getEffectiveUser().getEmail()
   );
@@ -445,9 +465,11 @@ function diagnoseWebPushAccess() {
       effectiveEmail && identityEmail && effectiveEmail === identityEmail
     ),
     identityEmailVerified:
-      identity.email_verified === true || identity.email_verified === "true",
-    audienceHash: webPushSha256Base64Url_(audience),
-    subjectHash: webPushSha256Base64Url_(identity.sub)
+      identity.email_verified === true ||
+      identity.email_verified === "true" ||
+      identity.verified_email === true,
+    audienceHash: audience ? webPushSha256Base64Url_(audience) : "",
+    subjectHash: webPushSha256Base64Url_(identity.sub || identityEmail)
   };
 
   Logger.log(JSON.stringify(result));
