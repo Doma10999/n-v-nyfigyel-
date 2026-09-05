@@ -146,13 +146,7 @@ function webPushAdminJwt_() {
   webPushAssertConfig_(cfg);
 
   if (!cfg.useServiceAccount) {
-    const identityToken = ScriptApp.getIdentityToken();
-    if (!identityToken) {
-      throw new Error(
-        "Hiányzik a Google azonosító token. Engedélyezd az openid és userinfo.email jogosultságokat."
-      );
-    }
-    return identityToken;
+    return webPushAccessToken_();
   }
 
   const now = Math.floor(Date.now() / 1000);
