@@ -9,6 +9,7 @@
   const DISABLE_ID = "webPushDisableBtn";
   const TEST_ID = "webPushTestBtn";
   const STATUS_ID = "webPushStatusText";
+  const VAPID_STORAGE_KEY = "novenyfigyelo-current-vapid-key";
 
   let refreshBusy = false;
   let registrationPromise = null;
@@ -702,6 +703,93 @@
   }
 
 
+  function sameBytes(left, right) {
+    if (!left || !right || left.byteLength !== right.byteLength) {
+      return false;
+    }
+
+    const leftBytes = new Uint8Array(left);
+    const rightBytes = new Uint8Array(right);
+
+    for (let i = 0; i < leftBytes.length; i += 1) {
+      if (leftBytes[i] !== rightBytes[i]) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+
+  function readStoredVapidKey() {
+    try {
+      return window.localStorage.getItem(VAPID_STORAGE_KEY) || "";
+    } catch (_) {
+      return "";
+    }
+  }
+
+
+  function storeVapidKey(publicKey) {
+    try {
+      window.localStorage.setItem(VAPID_STORAGE_KEY, publicKey);
+    } catch (_) {}
+  }
+
+
+  async function subscribeWithPublicKey(registration, publicKey) {
+    const subscription = await registration.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: urlBase64ToUint8Array(publicKey)
+    });
+
+    storeVapidKey(publicKey);
+    return subscription;
+  }
+
+
+  async function ensureCurrentVapidSubscription(registration, subscription) {
+    if (!subscription) {
+      return null;
+    }
+
+    const publicKey = await getVapidPublicKey();
+    const expectedKey = urlBase64ToUint8Array(publicKey);
+    const currentKey = subscription?.options?.applicationServerKey || null;
+    const storedKey = readStoredVapidKey();
+
+    if (
+      (currentKey && sameBytes(currentKey, expectedKey)) ||
+      (!currentKey && storedKey === publicKey)
+    ) {
+      storeVapidKey(publicKey);
+      return subscription;
+    }
+
+    /*
+     * Régi VAPID-kulccsal létrehozott helyi feliratkozás. A push szolgáltató
+     * az ilyen végpontot nem tudja az új kulccsal kézbesíteni, ezért egyszer
+     * automatikusan lecseréljük, majd az új végpontot visszaszinkronizáljuk.
+     */
+    try {
+      await api("/unsubscribe", {
+        method: "POST",
+        body: JSON.stringify({ endpoint: subscription.endpoint })
+      });
+    } catch (error) {
+      console.warn("Old push subscription cleanup failed:", error);
+    }
+
+    try {
+      await subscription.unsubscribe();
+    } catch (error) {
+      console.warn("Old local push subscription cleanup failed:", error);
+    }
+
+    return subscribeWithPublicKey(registration, publicKey);
+  }
+
+
   /* =====================================================
      HIBAÜZENETEK
      ===================================================== */
@@ -948,26 +1036,24 @@
           .getSubscription();
 
 
-      if (!subscription) {
+      if (subscription) {
+        subscription =
+          await ensureCurrentVapidSubscription(
+            registration,
+            subscription
+          );
+      }
 
+
+      if (!subscription) {
         const publicKey =
           await getVapidPublicKey();
 
-
         subscription =
-          await registration
-            .pushManager
-            .subscribe({
-
-              userVisibleOnly:
-                true,
-
-              applicationServerKey:
-                urlBase64ToUint8Array(
-                  publicKey
-                )
-
-            });
+          await subscribeWithPublicKey(
+            registration,
+            publicKey
+          );
       }
 
 
@@ -1344,13 +1430,19 @@
       }
 
 
-      const localSubscription =
+      let localSubscription =
         await registration
           .pushManager
           .getSubscription();
 
 
       if (localSubscription) {
+
+        localSubscription =
+          await ensureCurrentVapidSubscription(
+            registration,
+            localSubscription
+          );
 
         /*
          * A böngésző helyi feliratkozása önmagában nem elég. Minden
