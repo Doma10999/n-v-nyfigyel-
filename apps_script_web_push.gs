@@ -256,6 +256,24 @@ function webPushSend_(uid, title, body, type, tag) {
   return JSON.parse(text);
 }
 
+function webPushDisplaySoil_(rawValue, plantType) {
+  const value = Number(rawValue);
+  if (!Number.isFinite(value)) return NaN;
+
+  const categories = {
+    "🌵Szárazkedvelő": { min: 10, max: 40 },
+    "🌾Mérsékelten száraz": { min: 20, max: 45 },
+    "🌿Kiegyensúlyozott vízigényű": { min: 30, max: 60 },
+    "🌱Nedvességkedvelő": { min: 50, max: 80 },
+    "💧Vízigényes": { min: 70, max: 100 }
+  };
+  const range = categories[String(plantType || "").trim()];
+  if (!range) return value;
+  if (value < range.min) return 0;
+  if (value > range.max) return 100;
+  return Math.round(((value - range.min) / (range.max - range.min)) * 100);
+}
+
 function webPushPlantName_(device, deviceId) {
   return (
     String(device.displayName || device.plantName || deviceId || "Növény").trim() ||
@@ -503,11 +521,12 @@ function checkWebPushAlerts() {
             now - lastMeasurementAt > WEB_PUSH_FRESH_MS;
           const staleText = stale ? " (utolsó ismert mérés)" : "";
 
-          const soil = Number(
+          const rawSoil = Number(
             typeof device.sensorValue !== "undefined"
               ? device.sensorValue
               : device.soil
           );
+          const soil = webPushDisplaySoil_(rawSoil, device.plantType);
           const lastSoilPushAt = Number(device.lastSoilPushAt || 0);
 
           if (
