@@ -510,15 +510,14 @@
     }
 
 
-    const response =
-      await fetch(
-        WORKER_BASE + path,
-        {
-          ...options,
-          headers,
-          cache: "no-store"
-        }
-      );
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 12000);
+    let response;
+    try {
+      response = await fetch(WORKER_BASE + path, {
+        ...options, headers, cache: "no-store", signal: controller.signal
+      });
+    } finally { clearTimeout(timer); }
 
 
     let data = {};
@@ -1515,76 +1514,17 @@
      LOGIN FIGYELÉS
      ===================================================== */
 
-  function startWatcher() {
-
-    let previousUid = null;
-
-
-    const check =
-      async () => {
-
-        const auth =
-          window.__auth;
-
-        const uid =
-          auth?.currentUser?.uid ||
-          null;
-
-
-        if (
-          uid !== previousUid
-        ) {
-
-          previousUid =
-            uid;
-
-          await refreshPushState();
-        }
-      };
-
-
-    check();
-
-
-    setInterval(
-      check,
-      2500
-    );
+  // Loaded only when the user opens notification settings. No background polling.
+  function refreshIfVisible() {
+    const host = document.getElementById("notifModalContent");
+    if (host?.closest("dialog")?.open && !document.hidden) refreshPushState();
   }
-
-
-  /* =====================================================
-     INDÍTÁS
-     ===================================================== */
-
-  document.addEventListener(
-    "DOMContentLoaded",
-    () => {
-
-      createUi();
-
-      refreshPushState();
-
-      startWatcher();
-
-    }
-  );
-
-
-  /*
-   * Ha a Plus / Free csomag
-   * megváltozik, újra ellenőrizzük.
-   */
-
-  window.addEventListener(
-    "subscription-plan-updated",
-    () => {
-
-      refreshPushState();
-
-    }
-  );
-
+  function initializePushUi() { createUi(); refreshIfVisible(); }
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initializePushUi, { once: true });
+  } else { initializePushUi(); }
+  window.addEventListener("auth-state-updated", refreshIfVisible);
+  window.addEventListener("subscription-plan-updated", refreshIfVisible);
 
   /*
    * Debug / későbbi használat.
