@@ -1,390 +1,63 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="hu">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#2e7d32">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f7f2">
+  <meta name="description" content="Egy kis figyelem, sok új levél. Kövesd növényeid nedvességét, világítását és állapotát egy helyen.">
   <meta name="mobile-web-app-capable" content="yes">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
-  <link rel="manifest" href="/manifest.json?v=20260820v2">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="Növényfigyelő">
+  <title>Növényfigyelő · A növényeid, egy helyen</title>
+  <link rel="icon" href="/assets/app-icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
-
-
-  <link rel="stylesheet" href="styles.css?v=20260820v3">
-
-  
-
-  <script type="module" src="firebase-app.js?v=20260820v3"></script>
-
-  
-    <!-- Email értesítés (Google Apps Script Web App) -->
-  <script src="notifications.js?v=20260820v2"></script>
-
-  
-
-
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/styles.css?v=20261024.1">
+  <script type="module" src="/app.js?v=20261024.1"></script>
+  <script src="/service-worker-register.js?v=20261024.1" defer></script>
 </head>
-
 <body>
-  <div id="appLaunchSplash" role="status" aria-label="A Növényfigyelő betöltése">
-    <div class="app-launch-stage" aria-hidden="true">
-      <span class="app-launch-ring ring-one"></span>
-      <span class="app-launch-ring ring-two"></span>
-      <span class="app-launch-leaf leaf-left"></span>
-      <span class="app-launch-leaf leaf-right"></span>
-      <span class="app-launch-drop"></span>
-      <div class="app-launch-logo">
-        <img src="/pwa-icon-192.png" alt="">
-      </div>
+  <a class="skip-link" href="#main">Ugrás a tartalomra</a>
+  <aside class="sidebar" aria-label="Főmenü">
+    <a class="brand" href="/" aria-label="Növényfigyelő kezdőlap"><span class="brand-mark" data-icon="leaf"></span><span>Növény<span class="brand-light">figyelő</span><small>TERET ADUNK A NÖVEKEDÉSNEK</small></span></a>
+    <span class="nav-caption">A TE KIS KERTED</span>
+    <nav class="main-nav">
+      <button class="nav-item active" data-action="overview" aria-current="page"><span data-icon="grid"></span><span>Áttekintés</span><span class="nav-count" id="navCount">0</span></button>
+      <button class="nav-item" data-action="charts"><span data-icon="chart"></span><span>Mérési előzmények</span></button>
+      <button class="nav-item" data-action="notifications"><span data-icon="bell"></span><span>Értesítések</span><span class="nav-dot" id="notifDot" hidden></span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <button class="install-card" data-action="install"><span class="install-card-icon" data-icon="phone"></span><strong>A kerted mindig veled</strong><span>Tedd a kezdőképernyődre.</span><span class="install-link">Alkalmazás telepítése <span data-icon="arrow"></span></span></button>
+      <button class="nav-item" data-action="help"><span data-icon="help"></span>Segítség és útmutató</button>
+      <button class="profile-button" data-action="accounts"><span class="avatar" id="profileInitial">N</span><span class="profile-text"><strong id="profileName">A növényeid otthona</strong><small id="profilePlan">Növényfigyelő</small></span><span data-icon="settings"></span></button>
+      <span class="sidebar-credit">Gondoskodás, ami gyökeret ereszt.</span>
     </div>
-    <div class="app-launch-title">Növényfigyelő</div>
-    <div class="app-launch-subtitle">Kapcsolódás a növényeidhez</div>
-    <div class="app-launch-progress" aria-hidden="true"><span></span></div>
+  </aside>
+  <div class="page">
+    <header class="topbar"><div class="breadcrumb"><span data-icon="leaf"></span><span>A növényeim</span><span class="breadcrumb-sep">/</span><strong id="pageLabel">Áttekintés</strong></div><div class="topbar-actions"><span class="connection" id="connectionStatus" role="status"><span class="status-dot"></span><span>Kapcsolódás</span></span><button class="icon-button mobile-install" data-action="install" aria-label="Alkalmazás telepítése"><span data-icon="download"></span></button><button class="icon-button" data-action="notifications" aria-label="Értesítések megnyitása"><span data-icon="bell"></span></button><button class="avatar top-avatar" data-action="accounts" aria-label="Fiókjaim">N</button></div></header>
+    <div class="connection-banner" id="connectionBanner" role="status" hidden></div>
+    <div class="demo-banner" id="demoBanner" hidden><span><strong>Bemutató mód</strong> · Mintaadatokkal nézel körül.</span><button data-action="exit-demo">Belépek a saját kertembe <span data-icon="arrow"></span></button></div>
+    <main id="main">
+      <section id="loginView" class="login-view" aria-labelledby="welcomeTitle">
+        <div class="welcome-panel"><span class="eyebrow"><span class="tiny-line"></span> ZÖLDEBB, NYUGODTABB HÉTKÖZNAPOK</span><h1 id="welcomeTitle">Egy kis figyelem.<br><em>Sok új levél.</em></h1><p>Tudd, mire van szükségük a növényeidnek.<br>Egyszerűen, egy pillantással.</p><div class="welcome-garden" id="welcomeGarden"></div><div class="welcome-chips"><span><span data-icon="drop"></span>Nedvesség követése</span><span><span data-icon="bell"></span>Figyelmes értesítések</span></div></div>
+        <div class="login-panel"><span class="eyebrow">JÓ, HOGY ITT VAGY</span><h2>Üdv a kis kertedben.</h2><p>Lépj be, és nézd meg, hogy vannak a növényeid.</p><form id="loginForm"><label for="email">Email-cím</label><input type="email" name="email" id="email" placeholder="nev@pelda.hu" autocomplete="username" required maxlength="254"><label for="password">Jelszó</label><div class="password-field"><input type="password" name="password" id="password" placeholder="A jelszavad" autocomplete="current-password" required><button type="button" class="icon-button password-eye" data-password="password" aria-label="Jelszó megjelenítése"><span data-icon="eye"></span></button></div><div class="form-status" id="loginStatus" role="status">A biztonságos kapcsolat betöltése…</div><button type="submit" class="button primary full-width" id="loginSubmit" disabled>Belépés a kertembe <span data-icon="arrow"></span></button></form><div class="login-divider"><span>vagy először nézz körül</span></div><a class="button secondary full-width" href="/?demo=1">Kipróbálom a bemutatót <span data-icon="leaf"></span></a><p class="login-note"><span data-icon="info"></span>A meglévő Növényfigyelő-fiókoddal tudsz belépni.</p></div>
+      </section>
+      <section id="dashboardView" hidden aria-labelledby="dashboardTitle">
+        <div class="dashboard-heading"><div><span class="eyebrow" id="todayLabel">A TE KIS ZÖLD VILÁGOD</span><h1 id="dashboardTitle">Jó itt növekedni.</h1><p id="dashboardSubtitle">Nézz körül a kertedben — minden növény számít.</p></div><button class="button primary" data-action="add-account"><span data-icon="plus"></span>Fiók hozzáadása</button></div>
+        <div class="summary-grid" aria-label="Kertem összesítése"><button class="summary-card" data-filter="all"><span class="summary-icon green" data-icon="leaf"></span><span><small>Összes növény</small><strong id="totalCount">0 <span>növény</span></strong></span><span class="summary-arrow" data-icon="arrow"></span></button><button class="summary-card" data-filter="good"><span class="summary-icon sage" data-icon="check"></span><span><small>Rendben vannak</small><strong id="goodCount">0 <span>növény</span></strong></span><span class="summary-arrow" data-icon="arrow"></span></button><button class="summary-card" data-filter="attention"><span class="summary-icon peach" data-icon="drop"></span><span><small>Figyelmet kérnek</small><strong id="attentionCount">0 <span>növény</span></strong></span><span class="summary-arrow" data-icon="arrow"></span></button></div>
+        <section class="plants-section" aria-labelledby="plantsTitle"><div class="section-heading"><div><h2 id="plantsTitle">A növényeim <span id="plantCount" class="count-badge">0</span></h2><p>Apró jelekből nagy odafigyelés.</p></div><label class="search-field"><span data-icon="search"></span><input id="plantSearch" type="search" placeholder="Növény keresése…" aria-label="Növény keresése" autocomplete="off"></label></div><div class="filter-row" role="group" aria-label="Növények szűrése"><button class="filter active" data-filter="all" aria-pressed="true">Mindegyik <span id="filterAllCount">0</span></button><button class="filter" data-filter="attention" aria-pressed="false">Figyelmet kér</button><button class="filter" data-filter="good" aria-pressed="false">Rendben van</button><span class="updated-note"><span data-icon="refresh"></span>Automatikus adatfrissítés</span></div><div class="plants-grid" id="plantsGrid" aria-busy="false"></div><div class="empty-state" id="emptyState" hidden><span data-icon="leaf"></span><h3>Itt lesz a saját kis kerted.</h3><p>A fiókodhoz tartozó eszközök automatikusan megjelennek az első mérés után.</p><button class="button secondary" data-action="help">Hogyan működik?</button></div></section>
+        <div class="garden-hero"><div class="hero-copy"><span class="hero-kicker"><span class="status-dot"></span>EGY KIS GONDOSKODÁS, MINDEN NAP</span><h2 id="heroTitle">A zöld nyugalom<br><em>itt kezdődik.</em></h2><p id="heroDescription">A legutóbbi mérések segítenek eldönteni,<br>melyik növényedre figyelj ma.</p><button class="text-button" data-action="attention">Megnézem az állapotukat <span data-icon="arrow"></span></button></div><div class="hero-garden" id="heroGarden"></div><span class="hero-note"><span data-icon="leaf"></span>Kis lépések. Új levelek.</span></div>
+        <div class="dashboard-footer"><span><span data-icon="leaf"></span>A gondoskodás a figyelemmel kezdődik.</span><button class="text-button" data-action="help">Mit jelentenek az értékek? <span data-icon="info"></span></button></div>
+      </section>
+    </main>
+    <footer class="page-footer"><span>Növényfigyelő</span><span>A zöldebb hétköznapokért.</span></footer>
   </div>
-
-  <script>
-    (() => {
-      const splash = document.getElementById("appLaunchSplash");
-      const standalone =
-        window.matchMedia("(display-mode: standalone)").matches ||
-        window.navigator.standalone === true;
-
-      if (!splash || !standalone) {
-        splash?.remove();
-        return;
-      }
-
-      const startedAt = performance.now();
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      const minimumVisibleMs = reducedMotion ? 280 : 1450;
-      let closing = false;
-
-      document.documentElement.classList.add("pwa-standalone", "app-launching");
-
-      const closeSplash = () => {
-        if (closing) return;
-
-        const remaining = Math.max(0, minimumVisibleMs - (performance.now() - startedAt));
-        window.setTimeout(() => {
-          if (closing) return;
-          closing = true;
-          splash.classList.add("is-leaving");
-          document.documentElement.classList.remove("app-launching");
-          window.setTimeout(() => splash.remove(), reducedMotion ? 80 : 520);
-        }, remaining);
-      };
-
-      window.addEventListener("app-content-ready", closeSplash, { once: true });
-      window.addEventListener("load", () => window.setTimeout(closeSplash, 1800), { once: true });
-      window.setTimeout(closeSplash, 4500);
-    })();
-  </script>
-
-  <div id="offlineBadge">
-    <i class="fa-solid fa-wifi-slash"></i>
-    Offline mód – az adatok nem frissülnek
-  </div>
-
-  <h1>Növényfigyelő 🌱</h1>
-
-  <div class="card" id="plantData">
-    <form id="loginForm">
-      <h3>Bejelentkezés</h3>
-      <input type="email" id="email" placeholder="Email" required><br>
-      <div class="password-field">
-        <input type="password" id="password" placeholder="Jelszó" required>
-        <button type="button" class="password-eye" data-target="password" aria-label="Jelszó megjelenítése">
-          <i class="fa-solid fa-eye"></i>
-        </button>
-      </div>
-      <button type="submit">Belépés</button>
-    </form>
-    <button id="logout">Kijelentkezés</button>
-    <p id="status">Nincs bejelentkezve</p>
-    <div class="gauge-container" style="display:none"></div>
-  </div>
-
-  <div id="accountsContainer"></div>
-
-  <button id="addAccountBtn" style="display:none;" title="Fiók hozzáadása">+</button>
-
-  <button id="notifBellBtn" style="display:none;" aria-label="Email értesítés" title="Email értesítés">
-    <i class="fa-solid fa-bell"></i>
-  </button>
-
-  <button id="chartsBtn" style="display:none;" aria-label="Grafikonok" title="Grafikonok">
-    <i class="fa-solid fa-chart-line"></i>
-  </button>
-
-  <button id="paymentBtn" style="display:none;" aria-label="Csomagok és fizetés" title="Csomagok és fizetés">
-    <i class="fa-solid fa-money-bill-wave"></i>
-  </button>
-
-  <button id="infoBtn" style="display:none;" aria-label="Információ és használati útmutató" title="Információ">
-    <i class="fa-solid fa-circle-info"></i>
-  </button>
-
-  <button id="menuBtn" style="display:none;" aria-label="Menü" title="Menü"><i class="fa-solid fa-bars"></i></button>
-
-  <div id="notifModal">
-    <div id="notifModalContent">
-      <span id="notifModalClose">&times;</span>
-      <h3>Email értesítés</h3>
-      <p style="margin-top:6px;">Küldjön emailt, ha a kijelzett érték <b>35% alá</b> esik, vagy ha a levegő minősége <b>rossz</b> lesz.</p>
-
-      <div id="notifDeviceList" style="text-align:left; margin-top:16px;"></div>
-
-      <div style="margin-top:14px; text-align:left;">
-        <label for="notifEmailInput" style="font-weight:700; font-size:13px; opacity:.85; display:block; margin-bottom:6px;">
-          Email cím (a kijelölt növényekhez)
-        </label>
-        <input id="notifEmailInput" type="email" placeholder="pl. nev@email.hu" autocomplete="email" style="width:100%; padding:12px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.08); outline:none;" />
-        <div style="margin-top:6px; font-size:12px; opacity:.7;">
-          Csak a kipipált növényekhez mentjük el ezt az email címet.
-        </div>
-      </div>
-
-
-      <div style="margin-top:18px; display:flex; gap:10px; justify-content:center;">
-        <button id="notifSave" style="background:linear-gradient(145deg,#43a047,#66bb6a);color:#fff;border:none;border-radius:12px;padding:10px 18px;font-size:16px;cursor:pointer;width:auto;">
-          Mentés
-        </button>
-        <button id="notifCancel" style="background:#e0e8e5;color:#555;border:none;border-radius:12px;padding:10px 18px;font-size:16px;cursor:pointer;width:auto;">
-          Mégse
-        </button>
-      </div>
-
-      <p style="margin-top:12px; opacity:.75; font-size:13px;">
-        Tipp: pipáld ki azokat a növényeket, amelyeknél kérsz értesítést.
-      </p>
-    </div>
-  </div>
-
-<div id="chartsModal">
-    <div id="chartsModalContent">
-      <span id="chartsModalClose">&times;</span>
-      <h3 style="color:#0d3b23; margin-bottom:6px;">Grafikonok</h3>
-      <p style="opacity:.75; font-size:13px; margin-bottom:10px;">
-        Csak megjelenítés — frissül, ahogy jönnek az adatok.
-      </p>
-      <div class="charts-wrap" id="chartsWrap"></div>
-    </div>
-  </div>
-
-  <div id="infoModal">
-    <div id="infoModalContent">
-      <button id="infoModalClose" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button>
-
-      <div class="info-modal-header">
-        <div class="info-modal-icon">🌱</div>
-        <div>
-          <h3>Használati útmutató</h3>
-          <p>Rövid, egyszerű magyarázat a Növényfigyelő használatához.</p>
-        </div>
-      </div>
-
-      <div class="info-section">
-        <h4>Mit mutat a nagy zöld kör?</h4>
-        <p>
-          A kör a növény aktuális talajnedvességét mutatja százalékban.
-          Minél nagyobb az érték, annál nedvesebb a föld.
-        </p>
-        <div class="info-tip good">Példa: 70–100% általában nedvesebb földet jelent.</div>
-      </div>
-
-      <div class="info-section">
-        <h4>Mikor kell öntözni?</h4>
-        <p>
-          Ez függ a kiválasztott növénytípustól. A kategória segít abban,
-          hogy a rendszer a növény vízigényéhez igazítsa az értéket.
-        </p>
-        <div class="info-tip warn">Ha az érték nagyon alacsony, érdemes ellenőrizni a földet.</div>
-      </div>
-
-      <div class="info-section">
-        <h4>Mit jelent az „Utolsó frissítés”?</h4>
-        <p>
-          Azt mutatja, mikor küldött utoljára adatot az eszköz.
-          Ha ez régi időpont, akkor lehet, hogy az eszköz nincs áram alatt,
-          nincs WiFi-n, vagy gyenge a kapcsolat.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Mit jelent az akku ikon?</h4>
-        <p>
-          Az akkumulátoros eszközöknél az akku töltöttségét mutatja.
-          Ha alacsony, tölteni kell az eszközt.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Mit csinál a fényerő csúszka?</h4>
-        <p>
-          A LED-es változatnál ezzel lehet állítani a növény világításának erősségét.
-          Ha 0%-on van, a LED kikapcsol.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Email értesítés</h4>
-        <p>
-          Plus csomagban kérhetsz email értesítést. A rendszer akkor küld emailt,
-          ha a növény nedvessége túl alacsonyra esik, vagy levegőminőséges eszköznél
-          rossz lesz a levegő.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Grafikon</h4>
-        <p>
-          A grafikon a korábbi méréseket mutatja. Így látható, hogyan változott a
-          növény állapota az idő alatt.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Levegőminőség</h4>
-        <p>
-          Csak azoknál az eszközöknél jelenik meg, amelyekben levegőminőség szenzor is van.
-          Ilyenkor az oldal jelzi, ha a levegő állapota romlik.
-        </p>
-      </div>
-
-      <div class="info-section">
-        <h4>Mit tegyek, ha nem frissül az adat?</h4>
-        <ol>
-          <li>Nézd meg, hogy az eszköz kap-e áramot vagy fel van-e töltve.</li>
-          <li>Ellenőrizd, hogy a lakásban működik-e a WiFi.</li>
-          <li>Várj egy kicsit, mert az eszköz időközönként küldi az adatokat.</li>
-          <li>Ha továbbra sem frissül, nyomd meg röviden a tartó alján lévő reset gombot.</li>
-          <li>Új WiFi beállításakor reset után megjelenik a <b>NovenyFigyelo</b> WiFi hálózat. Csatlakozz rá, majd add meg az otthoni WiFi adatait.</li>
-        </ol>
-      </div>
-
-      <div class="info-footer">
-        A Növényfigyelő segít időben észrevenni, ha a növényed figyelmet igényel.
-      </div>
-    </div>
-  </div>
-
-
-  <div id="modal">
-    <div id="modalContent">
-      <span id="modalClose">&times;</span>
-      <h3>Fiók hozzáadása</h3>
-      <form id="addNewAccountForm">
-        <input type="email" id="newAccountEmail" placeholder="Email"><br>
-        <div class="password-field">
-          <input type="password" id="newAccountPass" placeholder="Jelszó">
-          <button type="button" class="password-eye" data-target="newAccountPass" aria-label="Jelszó megjelenítése">
-            <i class="fa-solid fa-eye"></i>
-          </button>
-        </div>
-        <button type="submit">Belépés</button>
-      </form>
-      <p id="addAccountStatus"></p>
-    </div>
-  </div>
-
-  <div id="confirmModal">
-    <div id="confirmModalContent">
-      <span id="confirmClose">&times;</span>
-      <h3 id="confirmText">Biztosan törlöd ezt a fiókot?</h3>
-      <div class="confirm-btn-group">
-        <button class="confirm-btn confirm-igen" id="confirmIgenBtn">Igen</button>
-        <button class="confirm-btn confirm-nem" id="confirmNemBtn">Nem</button>
-      </div>
-    </div>
-  </div>
-
-
-  <div id="appToast" class="app-toast" role="status" aria-live="polite">
-    <div class="app-toast-icon"><i class="fa-solid fa-check"></i></div>
-    <div class="app-toast-text">
-      <strong id="appToastTitle">Sikeres mentés</strong>
-      <span id="appToastMessage">A beállítások elmentve.</span>
-    </div>
-  </div>
-
-  <script>
-    window.showAppToast = function(message, title) {
-      const toast = document.getElementById("appToast");
-      const titleEl = document.getElementById("appToastTitle");
-      const msgEl = document.getElementById("appToastMessage");
-      if (!toast || !msgEl || !titleEl) {
-        alert(message || "Mentve.");
-        return;
-      }
-
-      titleEl.textContent = title || "Sikeres mentés";
-      msgEl.textContent = message || "A beállítások elmentve.";
-
-      toast.classList.remove("show");
-      void toast.offsetWidth;
-      toast.classList.add("show");
-
-      clearTimeout(window.__appToastTimer);
-      window.__appToastTimer = setTimeout(() => {
-        toast.classList.remove("show");
-      }, 2600);
-    };
-
-    document.addEventListener("DOMContentLoaded", function() {
-      document.querySelectorAll(".password-eye").forEach(function(btn) {
-        btn.addEventListener("click", function() {
-          const targetId = btn.getAttribute("data-target");
-          const input = document.getElementById(targetId);
-          const icon = btn.querySelector("i");
-          if (!input) return;
-
-          const visible = input.type === "text";
-          input.type = visible ? "password" : "text";
-
-          if (icon) {
-            icon.classList.toggle("fa-eye", visible);
-            icon.classList.toggle("fa-eye-slash", !visible);
-          }
-
-          btn.setAttribute("aria-label", visible ? "Jelszó megjelenítése" : "Jelszó elrejtése");
-        });
-      });
-    });
-  </script>
-
-  <script src="service-worker-register.js?v=20260906push3"></script>
-  <script src="push-client.js?v=20260906push3"></script>
-  <script src="offline-status.js"></script>
-
-
-  <div id="plantTypeModal" style="display:none;">
-    <div class="modal">
-      <div class="modal-box">
-        <button class="modal-close-btn" id="plantTypeClose" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button>
-        <h3>Válassz kategóriát</h3>
-        <p style="margin:8px 0 14px; font-size:13px; opacity:.7;">
-          A kiválasztás hatással van a százalék értékelésre
-        </p>
-
-
-        <div class="plant-option" data-value="🌵Szárazkedvelő">🌵 Szárazkedvelő</div>
-        <div class="plant-option" data-value="🌾Mérsékelten száraz">🌾 Mérsékelten száraz</div>
-        <div class="plant-option" data-value="🌿Kiegyensúlyozott vízigényű">🌿 Kiegyensúlyozott vízigényű</div>
-        <div class="plant-option" data-value="🌱Nedvességkedvelő">🌱 Nedvességkedvelő</div>
-        <div class="plant-option" data-value="💧Vízigényes">💧 Vízigényes</div>
-      </div>
-    </div>
-  </div>
-
-  <script src="plant-type-modal.js?v=20260820v1"></script>
-
-
-
-
+  <nav class="mobile-nav" aria-label="Mobil menü"><button class="active" data-action="overview" aria-label="Áttekintés"><span data-icon="grid"></span><span>Kertem</span></button><button data-action="charts"><span data-icon="chart"></span><span>Előzmények</span></button><button data-action="notifications"><span data-icon="bell"></span><span>Értesítések</span></button><button data-action="accounts"><span data-icon="user"></span><span>Fiókom</span></button></nav>
+  <dialog id="detailDialog" class="dialog detail-dialog" aria-labelledby="detailTitle"><div id="detailContent"></div></dialog>
+  <dialog id="appDialog" class="dialog" aria-labelledby="dialogTitle"><div class="dialog-header"><div><span class="eyebrow" id="dialogKicker">NÖVÉNYFIGYELŐ</span><h2 id="dialogTitle"></h2></div><button class="icon-button" data-close="appDialog" aria-label="Bezárás"><span data-icon="close"></span></button></div><div id="dialogContent"></div></dialog>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden><span id="toastIcon" data-icon="check"></span><div><strong id="toastTitle">Elmentve</strong><span id="toastMessage"></span></div><button class="icon-button" id="toastClose" aria-label="Üzenet bezárása"><span data-icon="close"></span></button></div>
+  <div class="update-banner" id="updateBanner" hidden><span data-icon="spark"></span><span>Elkészült egy új változat.</span><button id="applyUpdate" class="button primary small">Frissítés</button></div>
+  <noscript><div class="noscript-message">Az alkalmazás használatához engedélyezd a JavaScriptet a böngésződben.</div></noscript>
 </body>
 </html>
