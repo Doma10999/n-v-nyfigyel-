@@ -25,3 +25,10 @@ A Netlify aktuális Free csomagja saját domaint HTTPS-sel támogat, de havi has
 Alternatíva: Cloudflare Pages Git-integráció a tárolóhoz. Build parancs: `node scripts/build.mjs`, kimenet: `dist`, Node 20 vagy újabb. Az ingyenes pages.dev címet a létrehozáskor kapja az alkalmazás; konkrét szabad név nincs lefoglalva. A `novenyfigyelo.for-you.hu` aldomain a meglévő domain alatt is beállítható, DNS-hozzáférés után.
 
 Költözéskor a Firebase Authentication engedélyezett domainek közé fel kell venni az új címet; a push Worker CORS/origin-beállítását, a fizetési visszatérési címeket és a háttérértesítések linkjeit is ellenőrizni kell. A web push engedély és telepített PWA az eredeti domainhez tartozik, új domainen új engedély / telepítés szükséges. Az eszközök Firebase adatútvonala változatlan maradhat.
+
+## Világos alkalmazásfelület – második változat
+A felhasználó visszajelzése alapján az első botanikus megjelenést világos, mobilalkalmazás jellegű rendszer váltja: fehér kártyák, kék–menta részletek, erősebb kontraszt, nagyobb számok, színes állapotösszesítők, kisebb mobilos üdvözlőblokk. Mindig világos módban nyílik meg. A csillag gomb az animációkat kapcsolja, a beállítás helyben megmarad.
+
+A vízellátottsági körben a mentett/küldött értékhez igazított vízszint és hullámmozgás jelenik meg. A dekoráció képernyőn kívül és háttérbe tett lapon szünetel; csökkentett mozgásnál leáll. A számérték rövid átmenettel változik, az állapotösszesítő nem épül újra az animáció minden képkockájában. A fényerő mellett külön százalékos visszajelzés látszik. A Firebase adatútvonalak, előfizetési feltételek és eszközfirmware nem változtak.
+
+Böngészős ellenőrzés: 360, 390, 430, 768 és 1440 képpont szélesség, keresés, mentett offline adatok, akkumulátor-kompatibilitás, animációkapcsoló, csökkentett mozgás, telepítési segítség, kijelentkezés. A teszt mesterséges adatokat használ.

@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20261025-pro";
+const CACHE_NAME = "novenyfigyelo-cache-v20261025-bright1";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {
@@ -9,8 +9,8 @@ self.addEventListener("install", (event) => {
         "/index.html",
         "/offline.html",
         "/manifest.json",
-        "/dashboard.css?v=20261025",
-        "/dashboard.js?v=20261025",
+        "/dashboard.css?v=20261025bright1",
+        "/dashboard.js?v=20261025bright1",
         "/pwa-icon-192.png",
         "/pwa-icon-512.png"
       ])

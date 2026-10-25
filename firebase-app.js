@@ -699,6 +699,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
         <div class="gauge-container">
+          <div class="water-orb" aria-hidden="true"><div class="water-level"><span class="water-wave wave-back"></span><span class="water-wave wave-front"></span></div><span class="orb-shine"></span></div>
           <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
             <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
@@ -711,7 +712,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         <p class="care-state" role="status">Várakozás a mérésre</p>
         <div class="slider-container" style="display:none;">
           <input type="range" min="0" max="100" step="10" value="0" class="led-slider" list="led-steps" />
-          <div class="slider-labels"><span>Fényerő</span></div>
+          <div class="slider-labels"><span>Világítás</span><strong class="led-output">0%</strong></div>
         </div>
 
         <div class="air-quality-card" style="display:none;">
@@ -850,7 +851,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         card.querySelector('[data-soil-value]').textContent = Math.round(realPercent) + '%';
         card.querySelector('.care-state').textContent = display < 35 ? 'Ellenőrizd a földet · öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság · ellenőrizd a földet' : 'Megfelelő vízellátottsági szint';
         card.classList.toggle('needs-attention', display < 35 || display >= 95);
-        gaugeValueEl.textContent = display + "%";
+        card.style.setProperty('--water-top', (100 - display) + '%');
+        const previous = Number(gaugeValueEl.dataset.value);
+        gaugeValueEl.dataset.value = String(display);
+        if (gaugeValueEl.__numberFrame) cancelAnimationFrame(gaugeValueEl.__numberFrame);
+        const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
+        if (reduceMotion || !Number.isFinite(previous) || previous === display) {
+          gaugeValueEl.textContent = display + '%';
+        } else {
+          const started = performance.now();
+          const tick = now => {
+            const progress = Math.min(1, (now - started) / 650);
+            const eased = 1 - Math.pow(1 - progress, 3);
+            gaugeValueEl.textContent = Math.round(previous + (display - previous) * eased) + '%';
+            if (progress < 1 && card.isConnected) gaugeValueEl.__numberFrame = requestAnimationFrame(tick);
+          };
+          gaugeValueEl.__numberFrame = requestAnimationFrame(tick);
+        }
         const offset = C - (display / 100) * C;
         gaugeCircleEl.style.strokeDashoffset = offset;
 
@@ -1094,10 +1111,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
       get(ledLevelRef).then((snap) => {
         if (snap.exists()) {
-          sliderContainer.style.display = "block";
+          sliderContainer.style.display = "flex";
           slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
+          card.querySelector('.led-output').textContent = slider.value + '%';
+          slider.style.setProperty('--slider-progress', slider.value + '%');
           subscribe(ledLevelRef, (s2) => {
-            if (s2.exists()) slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
+            if (s2.exists()) {
+              slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
+              card.querySelector('.led-output').textContent = slider.value + '%';
+              slider.style.setProperty('--slider-progress', slider.value + '%');
+            }
           });
           slider.setAttribute('aria-label', 'LED fényerő');
           slider.addEventListener("change", async (e)=> {
