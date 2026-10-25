@@ -14,5 +14,5 @@ await page.screenshot({path:'/tmp/garden-desktop.png',fullPage:true});await page
 await page.locator('#themeToggle').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'dark');
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/garden-mobile.png',fullPage:true});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
 await page.locator('#installApp').click();assert.equal(await page.locator('[role=dialog]').count(),1);await page.keyboard.press('Escape');
-await page.locator('#sessionLogout').click();await page.waitForTimeout(200);assert.equal(await page.locator('.device-card').count(),0);assert.ok(await page.locator('#loginForm').isVisible());
+await page.goto('http://127.0.0.1:8765/offline.html');assert.equal(await page.locator('.offline-plant').count(),2);await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.locator('#sessionLogout').click();await page.waitForTimeout(200);assert.equal(await page.locator('.device-card').count(),0);assert.ok(await page.locator('#loginForm').isVisible());
 assert.deepEqual(errors,[]);console.log('PASS: cards, freshness, summary, search, theme, mobile overflow, install dialog, logout; no uncaught errors');await browser.close();server.close();})().catch(e=>{console.error(e);process.exit(1)});

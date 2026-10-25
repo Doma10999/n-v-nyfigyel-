@@ -46,9 +46,9 @@ self.addEventListener("fetch", (event) => {
       if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
       return response;
     } catch {
+      if (request.mode === 'navigate') return (await cache.match('/offline.html')) || (await cache.match(request)) || Response.error();
       const cached = await cache.match(request);
       if (cached) return cached;
-      if (request.mode === 'navigate') return (await cache.match('/offline.html')) || Response.error();
       return Response.error();
     }
   })());
