@@ -5,7 +5,8 @@
   <meta name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#2e7d32">
+  <meta name="theme-color" content="#173e32">
+  <meta name="description" content="Növényeid állapota egy pillantásra. Talajnedvesség, világítás és levegőminőség, egyszerűen.">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
   <link rel="manifest" href="/manifest.json?v=20260820v2">
@@ -15,11 +16,11 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20260820v3">
+  <link rel="stylesheet" href="styles.css?v=20261025">
 
   
 
-  <script type="module" src="firebase-app.js?v=20260820v3"></script>
+  <script type="module" src="firebase-app.js?v=20261025"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
@@ -28,6 +29,8 @@
   
 
 
+  <link rel="stylesheet" href="dashboard.css?v=20261025">
+  <script defer src="dashboard.js?v=20261025"></script>
 </head>
 
 <body>
@@ -90,14 +93,17 @@
     Offline mód – az adatok nem frissülnek
   </div>
 
-  <h1>Növényfigyelő 🌱</h1>
+  <header class="app-header"><a class="brand" href="/" aria-label="Növényfigyelő kezdőlap"><span class="brand-mark">❧</span><span>Növényfigyelő<small>EGY KIS FIGYELEM. TÖBB ÉLET.</small></span></a><div class="header-actions"><span id="connectionState" role="status">Kapcsolódás…</span><button id="themeToggle" type="button" aria-label="Sötét megjelenés">◐</button><button id="installApp" type="button">Telepítés</button><button id="sessionLogout" type="button" hidden>Kilépés</button></div></header>
+  <main class="dashboard-main">
+  <section class="garden-hero"><div class="hero-copy"><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h1>Jó helyen vannak<br>a növényeid.</h1><p>Egy pillantás, és tudod, mire van szükségük.<br>Nedvesség, fény és levegő — egy helyen.</p><span class="hero-note"><span></span> Figyelem, ami életet ad.</span></div><div class="botanical" aria-hidden="true"><svg viewBox="0 0 320 300"><ellipse cx="165" cy="277" rx="100" ry="10" fill="#0b2d24" opacity=".12"/><path d="M158 228Q156 116 182 51M158 190Q110 128 74 109M160 164Q216 108 253 99M165 133Q127 73 119 42" fill="none" stroke="#769e78" stroke-width="5"/><path d="M181 96Q153 35 201 19Q229 65 181 96" fill="#a9c49a"/><path d="M146 135Q91 123 101 58Q150 67 146 135" fill="#7da881"/><path d="M164 172Q173 97 248 82Q255 148 164 172" fill="#b2cca2"/><path d="M144 194Q64 191 53 118Q120 116 144 194" fill="#92b18b"/><path d="M172 222Q174 158 233 153Q244 209 172 222" fill="#6b9772"/><path d="M113 225H210L199 273Q160 288 124 273Z" fill="#dfbd96"/><path d="M110 221Q160 209 213 221V233Q160 243 110 233Z" fill="#efd5b8"/></svg><span class="botanical-label">GROW WITH CARE</span></div></section>
+  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">ÉLŐ ÁTTEKINTÉS</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><span>Keresés</span><input id="plantSearch" type="search" placeholder="Növény neve…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet igényel</span></div><div><strong id="statStale">0</strong><span>régi / hiányzó mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
 
   <div class="card" id="plantData">
     <form id="loginForm">
-      <h3>Bejelentkezés</h3>
-      <input type="email" id="email" placeholder="Email" required><br>
+      <span class="eyebrow">ÜDV ÚJRA ITTHON</span><h3>Lépj be a kertedbe</h3><p class="login-intro">A meglévő növényfigyelős fiókoddal.</p>
+      <input type="email" id="email" placeholder="Email" aria-label="Email-cím" autocomplete="username" required><br>
       <div class="password-field">
-        <input type="password" id="password" placeholder="Jelszó" required>
+        <input type="password" id="password" placeholder="Jelszó" aria-label="Jelszó" autocomplete="current-password" required>
         <button type="button" class="password-eye" data-target="password" aria-label="Jelszó megjelenítése">
           <i class="fa-solid fa-eye"></i>
         </button>
@@ -110,7 +116,9 @@
   </div>
 
   <div id="accountsContainer"></div>
+  <footer class="garden-footer">Növényfigyelő <span>Gondoskodás, egyszerűen.</span></footer></main>
 
+  <nav class="app-dock" aria-label="Alkalmazás funkciói">
   <button id="addAccountBtn" style="display:none;" title="Fiók hozzáadása">+</button>
 
   <button id="notifBellBtn" style="display:none;" aria-label="Email értesítés" title="Email értesítés">
@@ -131,6 +139,7 @@
 
   <button id="menuBtn" style="display:none;" aria-label="Menü" title="Menü"><i class="fa-solid fa-bars"></i></button>
 
+  </nav>
   <div id="notifModal">
     <div id="notifModalContent">
       <span id="notifModalClose">&times;</span>
@@ -357,8 +366,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20260906push3"></script>
-  <script src="push-client.js?v=20260906push3"></script>
+  <script src="service-worker-register.js?v=20261025"></script>
+  <script src="push-client.js?v=20261025"></script>
   <script src="offline-status.js"></script>
 
 
