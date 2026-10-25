@@ -1,0 +1,10 @@
+{
+  "name": "novenyfigyelo",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/service-worker.test.cjs",
+    "test:browser": "node tests/browser-check.cjs"
+  },
+  "engines": { "node": ">=20" }
+}

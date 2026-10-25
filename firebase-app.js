@@ -109,6 +109,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     const userPlanCache = new Map();
     window.__userPlanCache = userPlanCache;
     const subscriptionListenerUids = new Set();
+    const subscriptionUnsubscribers = new Map();
 
     const HISTORY_LIMIT = 10;
     const HISTORY_INACTIVE_STATUSES = new Set([
@@ -239,13 +240,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       subscriptionListenerUids.add(uid);
 
       const subRef = ref(db, `users/${uid}/subscription`);
-      onValue(subRef, (snap) => {
+      subscriptionUnsubscribers.set(uid, onValue(subRef, (snap) => {
         const data = snap.exists() ? (snap.val() || {}) : {};
         cacheUserSubscription(uid, data, emailValue);
-        enforceHistoryPolicyForUser(uid).catch((error) => {
-          console.warn("History szabály alkalmazási hiba:", error);
-        });
-      });
+      }));
     }
 
     function getGradientColor(value) {
@@ -283,6 +281,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function showLoginScreen() {
+      document.body.classList.remove("is-authenticated");
       loginForm.style.display = "block";
       statusDiv.style.display = "block";
       logoutBtn.style.display = "none";
@@ -296,6 +295,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function hideLoginScreen() {
+      document.body.classList.add("is-authenticated");
       loginForm.style.display = "none";
       statusDiv.style.display = "none";
       logoutBtn.style.display = "none";
@@ -324,8 +324,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function updateLastMeasurementBadge(el, ts) {
       if (!el) return;
-      const n = Number(ts);
-      el.textContent = formatLastMeasurementText(n);
+      const n = normalizeExpiryTimestamp(ts);
+      el.dataset.timestamp = String(n);
+      const stale = !n || Date.now() - n > 6 * 60 * 60 * 1000;
+      el.closest('.card')?.classList.toggle('measurement-stale', stale);
+      el.textContent = n ? `Mérés: ${formatLastMeasurementText(n)}${stale ? ' · régi adat' : ''}` : 'Még nincs mérési időpont';
       el.classList.toggle("has-data", Number.isFinite(n) && n > 0);
     }
 
@@ -414,15 +417,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     function extractDeviceChangeTimestamp(deviceData) {
       if (!deviceData || typeof deviceData !== "object") return 0;
       const candidates = [
-        deviceData.lastUpdated,
-        deviceData.updatedAt,
-        deviceData.timestamp,
-        deviceData.measuredAt,
-        deviceData.lastMeasurementAt,
+        deviceData.lastMeasurementAt || deviceData.measuredAt || deviceData.sensorUpdatedAt || deviceData.lastSensorUpdate || deviceData.lastUpdated || deviceData.timestamp,
         deviceData.sensorUpdatedAt,
         deviceData.lastSensorUpdate,
       ]
-        .map(Number)
+        .map(normalizeExpiryTimestamp)
         .filter(value => Number.isFinite(value) && value > 0);
 
       return candidates.length ? Math.max(...candidates) : 0;
@@ -655,18 +654,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       const selectId = `plantTypeSelect-${uid}-${deviceId}`;
 
       const card = document.createElement("div");
-      card.className = "card";
+      card.className = "card device-card";
+      const cleanups = [];
+      const subscribe = (reference, callback) => {
+        if (!deviceCards.has(key)) return;
+        const stop = onValue(reference, snapshot => { if (deviceCards.has(key)) callback(snapshot); }, error => {
+          card.classList.add('measurement-stale');
+          card.querySelector('[data-last-update]').textContent = 'Az adat nem érhető el. Ellenőrizd a kapcsolatot / belépést.';
+          console.warn('Adatfigyelés:', error.code);
+        });
+        cleanups.push(stop);
+      };
       // 🔹 belépő animáció késleltetés (stagger)
       const index = accountsContainer.children.length;
-      card.style.animationDelay = `${index * 0.25}s`;
+      card.style.animationDelay = `${Math.min(index, 5) * 0.06}s`;
 
 
       card.innerHTML = `
-        <button class="deleteBtn" type="button" aria-label="Fiók törlése"><span class="close-x-icon" aria-hidden="true"></span></button>
+        <button class="deleteBtn" type="button" aria-label="Fiók eltávolítása erről a készülékről"><span class="close-x-icon" aria-hidden="true"></span></button>
         <div class="plan-badge-wrap">
           <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
           <div class="battery-box">
-            <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku">
+            <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku"><span class="battery-number"></span>
           </div>
         </div>
 
@@ -694,17 +703,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
             <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
           </svg>
-          <div class="gauge-value">0%</div>
+          <div class="gauge-value">—</div>
+          <span class="gauge-caption">Vízellátottsági szint</span>
         </div>
 
+        <p class="soil-detail">Talajnedvesség: <strong data-soil-value>—</strong></p>
+        <p class="care-state" role="status">Várakozás a mérésre</p>
         <div class="slider-container" style="display:none;">
           <input type="range" min="0" max="100" step="10" value="0" class="led-slider" list="led-steps" />
-          <div class="slider-labels"><span>Fény erő</span></div>
+          <div class="slider-labels"><span>Fényerő</span></div>
         </div>
 
         <div class="air-quality-card" style="display:none;">
           <div class="air-quality-header">
-            <span><i class="fa-solid fa-wind"></i> Levegő minőség</span>
+            <span><i class="fa-solid fa-wind"></i> Levegőminőség</span>
             <span class="air-quality-state air-tone-unknown">Nincs adat</span>
           </div>
           <div class="air-quality-metrics">
@@ -764,6 +776,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
       deviceCards.set(key, {
         card,
+        cleanups,
         uid,
         deviceId,
         name: email,
@@ -795,12 +808,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           currCat = getFallbackCategoryForUid();
           plantSelectValueEl.textContent = currCat;
           updateAccountGauge(currPercent, currCat);
-          window.__set(ref(db, `users/${uid}/devices/${deviceId}/plantType`), currCat)
-            .catch((err) => console.warn("plantType fallback hiba:", err));
+
         }
       }
 
-      onValue(plantTypeRef, (snap) => {
+      subscribe(plantTypeRef, (snap) => {
         const v = snap.exists() ? String(snap.val() || "") : "";
         if (v) {
           currCat = v;
@@ -814,14 +826,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         }
       });
 
-      window.addEventListener("subscription-plan-updated", () => {
-        refreshPlanBadgeAndRestrictions();
-      });
+      window.addEventListener("subscription-plan-updated", refreshPlanBadgeAndRestrictions);
+      cleanups.push(() => window.removeEventListener("subscription-plan-updated", refreshPlanBadgeAndRestrictions));
 
 
       function updateAccountGauge(realPercent, cat) {
         // visszaadjuk a kijelzett %-ot is
 
+        realPercent = Math.max(0, Math.min(100, Number(realPercent)));
         let display = realPercent;
 
         if (plantCategories[cat]) {
@@ -834,6 +846,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           }
         }
 
+        card.dataset.level = String(display);
+        card.querySelector('[data-soil-value]').textContent = Math.round(realPercent) + '%';
+        card.querySelector('.care-state').textContent = display < 35 ? 'Ellenőrizd a földet · öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság · ellenőrizd a földet' : 'Megfelelő vízellátottsági szint';
+        card.classList.toggle('needs-attention', display < 35 || display >= 95);
         gaugeValueEl.textContent = display + "%";
         const offset = C - (display / 100) * C;
         gaugeCircleEl.style.strokeDashoffset = offset;
@@ -895,28 +911,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); openEdit(); });
       cancelBtn.addEventListener("click", (e)=>{ e.stopPropagation(); closeEdit(); });
 
-      okBtn.addEventListener("click", async (e)=> {
-        e.stopPropagation();
+      async function saveDisplayName() {
         const newName = nameInput.value.trim();
         if (!newName) { closeEdit(); return; }
-        titleEl.textContent = newName;
-        titleEl.title = newName;
-        
-        closeEdit();
-        await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
-      });
-
-      nameInput.addEventListener("keydown", async (e)=> {
-        if (e.key === "Escape") { closeEdit(); }
-        if (e.key === "Enter") {
-          const newName = nameInput.value.trim();
-          if (!newName) { closeEdit(); return; }
+        okBtn.disabled = true;
+        try {
+          await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
           titleEl.textContent = newName;
           titleEl.title = newName;
-          
           closeEdit();
-          await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
-        }
+        } catch {
+          window.showAppToast('A név mentése nem sikerült. Próbáld újra.', 'Mentési hiba');
+        } finally { okBtn.disabled = false; }
+      }
+      okBtn.addEventListener('click', e => { e.stopPropagation(); saveDisplayName(); });
+      nameInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeEdit();
+        if (e.key === 'Enter') { e.preventDefault(); if (!okBtn.disabled) saveDisplayName(); }
       });
 
       // törlés (csak fiók eltávolítás logika: UID törlése localstorage-ból)
@@ -935,7 +946,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
       // Firebase: displayName
       const displayNameRef = ref(db, `users/${uid}/devices/${deviceId}/displayName`);
-      onValue(displayNameRef, (snap) => {
+      subscribe(displayNameRef, (snap) => {
         const v = snap.exists() ? String(snap.val() || "").trim() : "";
         const name = v || email;
         titleEl.textContent = name;
@@ -947,12 +958,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 
       
+      function updateBatteryUI(data) {
+        const raw = data.batteryPercent ?? data.battery;
+        const p = raw === null || raw === '' || raw === undefined ? NaN : Number(raw);
+        batteryBox.style.display = Number.isFinite(p) ? 'flex' : 'none';
+        if (!Number.isFinite(p)) return;
+        const safe = Math.max(0, Math.min(100, Math.round(p)));
+        const level = safe >= 80 ? 100 : safe >= 60 ? 75 : safe >= 40 ? 50 : safe >= 20 ? 25 : 0;
+        batteryImg.src = `batteryPercent/battery_${level}.png`;
+        batteryImg.alt = `Akkumulátor: ${safe}%`;
+        batteryBox.title = batteryImg.alt;
+        card.querySelector('.battery-number').textContent = safe + '%';
+      }
       const deviceRootRef = ref(db, `users/${uid}/devices/${deviceId}`);
-      onValue(deviceRootRef, (snap) => {
+      subscribe(deviceRootRef, (snap) => {
         if (!snap.exists()) return;
         const obj = deviceCards.get(key);
         if (!obj) return;
 
+        updateBatteryUI(snap.val());
         const ts = extractDeviceChangeTimestamp(snap.val()) || 0;
         obj.deviceMetaTimestamp = ts;
 
@@ -978,7 +1002,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
      // Firebase: soil sensor + EMAIL riasztás
     const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
-          onValue(soilRef, async (snap) => {
+          subscribe(soilRef, async (snap) => {
             if (!snap.exists()) return;
 
             const v = Number(snap.val());
@@ -1017,7 +1041,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             }
 
             if (isHistoryEnabledForUid(uid)) {
-              await appendHistoryIfChanged(uid, deviceId, displayPct, measurementTimestamp);
+              try { await appendHistoryIfChanged(uid, deviceId, displayPct, measurementTimestamp); }
+              catch (error) { console.warn('Mérési előzmény mentése:', error.code); }
             } else if (obj) {
               obj.history = [];
               obj.lastUpdated = 0;
@@ -1038,7 +1063,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 
       const airQualityRef = ref(db, `users/${uid}/devices/${deviceId}/airQuality`);
-      onValue(airQualityRef, (snap) => {
+      subscribe(airQualityRef, (snap) => {
         if (!snap.exists()) {
           updateAirUI(null);
           return;
@@ -1071,44 +1096,27 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         if (snap.exists()) {
           sliderContainer.style.display = "block";
           slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
-          onValue(ledLevelRef, (s2) => {
+          subscribe(ledLevelRef, (s2) => {
             if (s2.exists()) slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
           });
-          slider.addEventListener("input", async (e)=> {
+          slider.setAttribute('aria-label', 'LED fényerő');
+          slider.addEventListener("change", async (e)=> {
             e.stopPropagation();
             const snapped = Math.max(0, Math.min(100, Math.round((Number(e.target.value) || 0) / 10) * 10));
             e.target.value = snapped;
-            await set(ledLevelRef, snapped);
+            slider.disabled = true;
+            try { await set(ledLevelRef, snapped); }
+            catch { window.showAppToast('A fényerő mentése nem sikerült. Próbáld újra.', 'Mentési hiba'); }
+            finally { slider.disabled = false; }
           });
         } else {
           sliderContainer.style.display = "none";
         }
       });
 
-      // Firebase: battery (csak ha van)
-      const batteryRef = ref(db, `users/${uid}/devices/${deviceId}/batteryPercent`);
-      get(batteryRef).then((snap) => {
-        if (!snap.exists()) {
-          batteryBox.style.display = "none";
-          return;
-        }
-        batteryBox.style.display = "block";
-        onValue(batteryRef, (s2)=> {
-          if (!s2.exists()) { batteryBox.style.display = "none"; return; }
-          batteryBox.style.display = "block";
-          const p = Number(s2.val());
-          let icon = "battery_0.png";
-          if (p >= 80) icon = "battery_100.png";
-          else if (p >= 60) icon = "battery_75.png";
-          else if (p >= 40) icon = "battery_50.png";
-          else if (p >= 20) icon = "battery_25.png";
-          batteryImg.src = `batteryPercent/${icon}`;
-        });
-      });
-
       // 🔹 HISTORY szinkron Firebase-ből (grafikonhoz) – csak Plusnál
       const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
-      onValue(historyRef, (snap) => {
+      subscribe(historyRef, (snap) => {
         const obj = deviceCards.get(key);
         if (!obj) return;
 
@@ -1186,12 +1194,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function removeAllCardsForUid(uid) {
-      // töröljük localstorage-ból
+      subscriptionUnsubscribers.get(uid)?.();
+      subscriptionUnsubscribers.delete(uid);
+      subscriptionListenerUids.delete(uid);
+      userPlanCache.delete(uid);
       removeStoredAccount(uid);
 
       // DOM + map törlés
       for (const [key, obj] of Array.from(deviceCards.entries())) {
         if (key.startsWith(uid + "|")) {
+          obj.cleanups?.forEach(stop => stop());
           obj.card.remove();
           deviceCards.delete(key);
         }
@@ -1236,8 +1248,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     // ====== Login / fiók hozzáadás ======
     window.addEventListener("load", async () => {
       try {
+        await auth.authStateReady();
         const stored = getStoredAccounts();
-        if (stored.length > 0) {
+        if (stored.length > 0 && auth.currentUser) {
           hideLoginScreen();
           for (const acc of stored) {
             await addAccountByUid(acc.uid, acc.email || "Fiók");
@@ -1245,6 +1258,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         } else {
           showLoginScreen();
         }
+        if (auth.currentUser && stored.length > 0 && deviceCards.size === 0) hideLoginScreen();
+      } catch (error) {
+        showLoginScreen();
+        statusDiv.textContent = 'A fiók betöltése nem sikerült. Jelentkezz be újra.';
+        console.warn('Fiók betöltés:', error.code);
       } finally {
         window.dispatchEvent(new CustomEvent("app-content-ready"));
       }
@@ -1267,6 +1285,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         hideLoginScreen();
         await addAccountByUid(user.uid, emailInput.value);
 
+        passInput.value = '';
         statusDiv.textContent = "";
       } catch (err) {
         statusDiv.style.color = "red";
@@ -1313,7 +1332,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     addNewAccountForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       const email = newAccountEmail.value.trim();
-      const pass  = newAccountPass.value.trim();
+      const pass  = newAccountPass.value;
 
       addAccountStatus.textContent = "";
 
@@ -1350,6 +1369,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     logoutBtn.style.display = "none";
     logoutBtn.addEventListener("click", async () => {
       await signOut(auth);
+      for (const uid of new Set([...deviceCards.values()].map(item => item.uid))) removeAllCardsForUid(uid);
+      setStoredAccounts([]);
+      window.jelenlegiEszkozID = null;
       showLoginScreen();
     });
 

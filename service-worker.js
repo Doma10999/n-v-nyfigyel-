@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20260906-web-push-v5";
+const CACHE_NAME = "novenyfigyelo-cache-v20261025-pro";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {
@@ -9,6 +9,8 @@ self.addEventListener("install", (event) => {
         "/index.html",
         "/offline.html",
         "/manifest.json",
+        "/dashboard.css?v=20261025",
+        "/dashboard.js?v=20261025",
         "/pwa-icon-192.png",
         "/pwa-icon-512.png"
       ])
@@ -23,7 +25,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith("novenyfigyelo-cache-") && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
@@ -31,20 +33,26 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Csak GET kéréseknél használjuk az offline fallbackot
-  if (event.request.method !== "GET") {
-    return;
-  }
-
-  event.respondWith(
-    fetch(event.request).catch(() =>
-      caches.match(event.request).then((cached) => {
-        return cached || caches.match(OFFLINE_URL);
-      })
-    )
-  );
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  // Firebase/auth requests never enter the app cache. HTML fallback is navigation only.
+  const appFiles = /\.(?:html|css|js|png|svg|json|woff2)$/i.test(url.pathname) || url.pathname === '/';
+  if (!appFiles) return;
+  event.respondWith((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    try {
+      const response = await fetch(request);
+      if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
+      return response;
+    } catch {
+      if (request.mode === 'navigate') return (await cache.match('/offline.html')) || (await cache.match(request)) || Response.error();
+      const cached = await cache.match(request);
+      if (cached) return cached;
+      return Response.error();
+    }
+  })());
 });
-
 
 /* =========================================================
    NÖVÉNYFIGYELŐ WEB PUSH
