@@ -32,3 +32,10 @@ A felhasználó visszajelzése alapján az első botanikus megjelenést világos
 A vízellátottsági körben a mentett/küldött értékhez igazított vízszint és hullámmozgás jelenik meg. A dekoráció képernyőn kívül és háttérbe tett lapon szünetel; csökkentett mozgásnál leáll. A számérték rövid átmenettel változik, az állapotösszesítő nem épül újra az animáció minden képkockájában. A fényerő mellett külön százalékos visszajelzés látszik. A Firebase adatútvonalak, előfizetési feltételek és eszközfirmware nem változtak.
 
 Böngészős ellenőrzés: 360, 390, 430, 768 és 1440 képpont szélesség, keresés, mentett offline adatok, akkumulátor-kompatibilitás, animációkapcsoló, csökkentett mozgás, telepítési segítség, kijelentkezés. A teszt mesterséges adatokat használ.
+
+## Az eredeti felülethez igazított végleges irány
+A pontos vizuális referencia a `https://novenyfigyelo.netlify.app/`, a módosítandó oldal pedig a `https://noveny-figyelo.netlify.app/`. A referencia Netlify production deployja a `Doma10999/novenyfigyelo` tároló `ddb5548d6487893ec4d2987eb590cb7658c792b1` commitját használja; ezt csak olvastuk, a referenciaoldal nem változott.
+
+Megmarad az eredeti középre helyezett Növényfigyelő cím, a világos zöld háttér, az egy oszlopban elhelyezett fehér növénykártyák, a középső nagy körkijelző, a név címkéje, a zöld fényerőcsúszka és a jobb alsó kinyíló menü. A korábbi átalakítások nagy üdvözlőblokkja, színes összesítői és állandó alsó menüsora kikerült. Kereső csak négy vagy több növénynél jelenik meg. A százalék sötét, olvasható számokkal látszik, a kör színe továbbra is a korábbi értékelést követi.
+
+A működési javítások, pontos mérési időpont, régi mérés figyelmeztetés, telepíthetőség, mentett offline adatok, százalékos fényerő-visszajelzés és kikapcsolható animációk megmaradnak. A menü helyi SVG ikonokat és billentyűzettel kezelhető nyitott/zárt állapotot használ. A Firebase adatbázis és az ESP firmware nem változik.
