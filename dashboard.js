@@ -1,9 +1,21 @@
 (() => {
   'use strict';
   const root = document.documentElement;
-  try { root.dataset.theme = localStorage.getItem('garden-theme') || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'); } catch {}
+  // This design deliberately opens in light mode, independently of the phone theme.
+  root.dataset.theme = 'light';
   const theme = document.getElementById('themeToggle');
-  theme.onclick = () => { root.dataset.theme = root.dataset.theme === 'dark' ? 'light' : 'dark'; try { localStorage.setItem('garden-theme', root.dataset.theme); } catch {} theme.setAttribute('aria-pressed', String(root.dataset.theme === 'dark')); };
+  try { root.dataset.motion = localStorage.getItem('garden-motion') || 'on'; localStorage.setItem('garden-theme', 'light'); } catch {}
+  function motionLabel() {
+    const enabled = root.dataset.motion !== 'off';
+    theme.setAttribute('aria-pressed', String(enabled));
+    theme.setAttribute('aria-label', enabled ? 'Animációk kikapcsolása' : 'Animációk bekapcsolása');
+  }
+  theme.onclick = () => {
+    root.dataset.motion = root.dataset.motion === 'off' ? 'on' : 'off';
+    try { localStorage.setItem('garden-motion', root.dataset.motion); } catch {}
+    motionLabel();
+  };
+  motionLabel();
   let installPrompt;
   const install = document.getElementById('installApp');
   const standalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
@@ -42,14 +54,30 @@
   }
   let frame;
   const schedule = () => { if(!frame) frame = requestAnimationFrame(() => { frame = 0; overview(); }); };
-  new MutationObserver(schedule).observe(document.getElementById('accountsContainer'), {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','data-level']});
+  new MutationObserver(records => { if (records.some(record => !(record.target.nodeType === 1 ? record.target : record.target.parentElement)?.closest('.gauge-value'))) schedule(); }).observe(document.getElementById('accountsContainer'), {childList:true, subtree:true, characterData:true, attributes:true, attributeFilter:['class','data-level']});
   new MutationObserver(schedule).observe(document.body, {attributes:true, attributeFilter:['class']});
   search.addEventListener('input', overview);
   document.getElementById('sessionLogout').onclick = () => document.getElementById('logout').click();
   setInterval(() => { if(document.hidden) return; document.querySelectorAll('[data-last-update]').forEach(el => { const ts = Number(el.dataset.timestamp); el.closest('.card')?.classList.toggle('measurement-stale', !ts || Date.now()-ts > 21600000); }); schedule(); }, 60000);
   // Keyboard support for the existing category picker and modal close controls.
-  new MutationObserver(() => document.querySelectorAll('.plant-select:not([tabindex])').forEach(el => { el.tabIndex = 0; el.setAttribute('role','button'); el.setAttribute('aria-label','Növény vízigényének kiválasztása'); el.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; })).observe(document.getElementById('accountsContainer'), {childList:true,subtree:true});
+  new MutationObserver(() => document.querySelectorAll('.plant-select:not([tabindex])').forEach(el => { el.tabIndex = 0; el.setAttribute('role','button'); el.setAttribute('aria-label','Növény vízigényének kiválasztása'); el.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; })).observe(document.getElementById('accountsContainer'), {childList:true});
   const icons = {addAccountBtn:'M12 5v14M5 12h14',notifBellBtn:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',chartsBtn:'M4 4v16h16M7 14l4-5 4 3 5-7',paymentBtn:'M3 5h18v14H3zM3 9h18M7 15h3',infoBtn:'M12 11v6M12 7v.1'};
   for(const [id,path] of Object.entries(icons)) document.getElementById(id).innerHTML = `<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
+  // Run decorative loops only for cards that are actually on screen.
+  const motionObserver = new IntersectionObserver(entries => {
+    for (const entry of entries) entry.target.classList.toggle('motion-visible', entry.isIntersecting);
+  }, {rootMargin: '40px'});
+  const observeCards = () => document.querySelectorAll('.device-card:not([data-motion-observed])').forEach(card => {
+    card.dataset.motionObserved = 'true'; motionObserver.observe(card);
+    card.querySelector('.led-slider')?.addEventListener('input', event => {
+      const value = event.target.value;
+      event.target.style.setProperty('--slider-progress', value + '%');
+      const output = card.querySelector('.led-output');
+      if(output) output.textContent = value + '%';
+    });
+  });
+  new MutationObserver(observeCards).observe(document.getElementById('accountsContainer'), {childList:true});
+  observeCards();
+  document.addEventListener('visibilitychange', () => document.body.classList.toggle('page-hidden', document.hidden));
   overview();
 })();

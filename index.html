@@ -5,7 +5,7 @@
   <meta name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#173e32">
+  <meta name="theme-color" content="#f5f8ff">
   <meta name="description" content="Növényeid állapota egy pillantásra. Talajnedvesség, világítás és levegőminőség, egyszerűen.">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -16,11 +16,11 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20261025">
+  <link rel="stylesheet" href="styles.css?v=20261025bright1">
 
   
 
-  <script type="module" src="firebase-app.js?v=20261025"></script>
+  <script type="module" src="firebase-app.js?v=20261025bright1"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
@@ -29,8 +29,8 @@
   
 
 
-  <link rel="stylesheet" href="dashboard.css?v=20261025">
-  <script defer src="dashboard.js?v=20261025"></script>
+  <link rel="stylesheet" href="dashboard.css?v=20261025bright1">
+  <script defer src="dashboard.js?v=20261025bright1"></script>
 </head>
 
 <body>
@@ -93,10 +93,13 @@
     Offline mód – az adatok nem frissülnek
   </div>
 
-  <header class="app-header"><a class="brand" href="/" aria-label="Növényfigyelő kezdőlap"><span class="brand-mark">❧</span><span>Növényfigyelő<small>EGY KIS FIGYELEM. TÖBB ÉLET.</small></span></a><div class="header-actions"><span id="connectionState" role="status">Kapcsolódás…</span><button id="themeToggle" type="button" aria-label="Sötét megjelenés">◐</button><button id="installApp" type="button">Telepítés</button><button id="sessionLogout" type="button" hidden>Kilépés</button></div></header>
+  <header class="app-header">
+    <a class="brand" href="/" aria-label="Növényfigyelő kezdőlap"><span class="brand-mark"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 20V10m0 5C4 16 3 10 4 5c6 0 9 3 8 10Zm0-3c0-6 3-9 8-9 1 5-1 10-8 9Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Növényfigyelő<small>A te zöld világod</small></span></a>
+    <div class="header-actions"><span id="connectionState" role="status">Kapcsolódás…</span><button id="themeToggle" type="button" aria-label="Animációk kikapcsolása" aria-pressed="true" title="Animációk"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg></button><button id="installApp" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="button-label">Telepítés</span></button><button id="sessionLogout" type="button" aria-label="Kijelentkezés" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 4H4v16h5m5-12 4 4-4 4M9 12h11"/></svg><span class="button-label">Kilépés</span></button></div>
+  </header>
   <main class="dashboard-main">
-  <section class="garden-hero"><div class="hero-copy"><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h1>Jó helyen vannak<br>a növényeid.</h1><p>Egy pillantás, és tudod, mire van szükségük.<br>Nedvesség, fény és levegő — egy helyen.</p><span class="hero-note"><span></span> Figyelem, ami életet ad.</span></div><div class="botanical" aria-hidden="true"><svg viewBox="0 0 320 300"><ellipse cx="165" cy="277" rx="100" ry="10" fill="#0b2d24" opacity=".12"/><path d="M158 228Q156 116 182 51M158 190Q110 128 74 109M160 164Q216 108 253 99M165 133Q127 73 119 42" fill="none" stroke="#769e78" stroke-width="5"/><path d="M181 96Q153 35 201 19Q229 65 181 96" fill="#a9c49a"/><path d="M146 135Q91 123 101 58Q150 67 146 135" fill="#7da881"/><path d="M164 172Q173 97 248 82Q255 148 164 172" fill="#b2cca2"/><path d="M144 194Q64 191 53 118Q120 116 144 194" fill="#92b18b"/><path d="M172 222Q174 158 233 153Q244 209 172 222" fill="#6b9772"/><path d="M113 225H210L199 273Q160 288 124 273Z" fill="#dfbd96"/><path d="M110 221Q160 209 213 221V233Q160 243 110 233Z" fill="#efd5b8"/></svg><span class="botanical-label">GROW WITH CARE</span></div></section>
-  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">ÉLŐ ÁTTEKINTÉS</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><span>Keresés</span><input id="plantSearch" type="search" placeholder="Növény neve…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet igényel</span></div><div><strong id="statStale">0</strong><span>régi / hiányzó mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
+    <section class="garden-hero"><div class="hero-copy"><span class="eyebrow"><span class="live-dot"></span> EGY KIS TÖRŐDÉS, MINDEN NAP</span><h1>Helló, növénybarát! <span class="greeting-wave" aria-hidden="true">✦</span></h1><p>A növényeid mesélnek.<br><strong>Most könnyű megérteni őket.</strong></p><div class="hero-note"><span class="note-spark" aria-hidden="true">✧</span> Nedvesség. Fény. Egy kis figyelem.</div></div><div class="botanical" aria-hidden="true"><div class="plant-halo"></div><svg viewBox="0 0 240 240"><defs><linearGradient id="leafFresh" x2="1" y2="1"><stop stop-color="#42e7ac"/><stop offset="1" stop-color="#0eaf8b"/></linearGradient><linearGradient id="potFresh" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#b2d7ff"/></linearGradient></defs><ellipse cx="124" cy="214" rx="56" ry="8" fill="#347ce9" opacity=".1"/><g class="plant-stem"><path d="M119 173V91m0 53-28-24m28-5 32-26m-32 12-16-28" fill="none" stroke="#119d80" stroke-width="5" stroke-linecap="round"/><path d="M119 104c-4-43 15-59 40-61 5 32-9 58-40 61Z" fill="url(#leafFresh)"/><path d="M113 100C77 99 65 77 67 51c30 1 48 17 46 49Z" fill="#69eac0"/><path d="M98 141C60 145 40 124 39 94c34-5 58 12 59 47Z" fill="url(#leafFresh)"/><path d="M129 143c7-38 29-51 63-45 0 31-25 52-63 45Z" fill="#33cda6"/><path d="M119 80c-12-28-7-49 13-60 21 20 16 43-13 60Z" fill="#91f1cf"/></g><path d="M81 164h81l-9 43c-20 9-43 9-62 0Z" fill="url(#potFresh)"/><rect x="76" y="158" width="91" height="16" rx="8" fill="white"/><path d="M96 183v16" stroke="white" stroke-opacity=".7" stroke-width="6" stroke-linecap="round"/></svg><span class="floating-chip chip-water"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3c-2 4-7 8-7 12a7 7 0 0 0 14 0c0-4-5-8-7-12Z" fill="#4599ff"/></svg></span><span class="floating-chip chip-sun">☀</span><span class="mini-spark spark-one">✦</span><span class="mini-spark spark-two">✧</span></div></section>
+  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">MINDEN, AMI SZÁMÍT</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet igényel</span></div><div><strong id="statStale">0</strong><span>régi mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
 
   <div class="card" id="plantData">
     <form id="loginForm">
@@ -366,8 +369,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20261025"></script>
-  <script src="push-client.js?v=20261025"></script>
+  <script src="service-worker-register.js?v=20261025bright1"></script>
+  <script src="push-client.js?v=20261025bright1"></script>
   <script src="offline-status.js"></script>
 
 
