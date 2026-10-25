@@ -41,13 +41,13 @@
   function overview() {
     const cards = [...document.querySelectorAll('#accountsContainer .device-card')];
     const authenticated = document.body.classList.contains('is-authenticated');
-    document.getElementById('gardenOverview').hidden = !authenticated;
+    document.getElementById('gardenOverview').hidden = !authenticated || cards.length < 4;
     document.getElementById('sessionLogout').hidden = !authenticated;
     document.getElementById('plantCount').textContent = cards.length;
     document.getElementById('statTotal').textContent = cards.length;
     document.getElementById('statAttention').textContent = cards.filter(c => c.classList.contains('needs-attention')).length;
     document.getElementById('statStale').textContent = cards.filter(c => c.classList.contains('measurement-stale')).length;
-    const term = search.value.trim().toLocaleLowerCase('hu');
+    const term = cards.length < 4 ? '' : search.value.trim().toLocaleLowerCase('hu');
     cards.forEach(c => { c.hidden = !c.querySelector('.plant-title')?.textContent.toLocaleLowerCase('hu').includes(term); });
     document.getElementById('emptyPlants').hidden = cards.length > 0;
     document.getElementById('noSearchResults').hidden = !cards.length || cards.some(c => !c.hidden);
@@ -61,9 +61,9 @@
   setInterval(() => { if(document.hidden) return; document.querySelectorAll('[data-last-update]').forEach(el => { const ts = Number(el.dataset.timestamp); el.closest('.card')?.classList.toggle('measurement-stale', !ts || Date.now()-ts > 21600000); }); schedule(); }, 60000);
   // Keyboard support for the existing category picker and modal close controls.
   new MutationObserver(() => document.querySelectorAll('.plant-select:not([tabindex])').forEach(el => { el.tabIndex = 0; el.setAttribute('role','button'); el.setAttribute('aria-label','Növény vízigényének kiválasztása'); el.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; })).observe(document.getElementById('accountsContainer'), {childList:true});
-  const icons = {addAccountBtn:'M12 5v14M5 12h14',notifBellBtn:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',chartsBtn:'M4 4v16h16M7 14l4-5 4 3 5-7',paymentBtn:'M3 5h18v14H3zM3 9h18M7 15h3',infoBtn:'M12 11v6M12 7v.1'};
+  const icons = {addAccountBtn:'M12 5v14M5 12h14',notifBellBtn:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',chartsBtn:'M4 4v16h16M7 14l4-5 4 3 5-7',paymentBtn:'M3 5h18v14H3zM3 9h18M7 15h3',infoBtn:'M12 11v6M12 7v.1',menuBtn:'M4 6h16M4 12h16M4 18h16'};
   for(const [id,path] of Object.entries(icons)) document.getElementById(id).innerHTML = `<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
-  // Run decorative loops only for cards that are actually on screen.
+  // Keep the familiar card decoration still outside the visible screen.
   const motionObserver = new IntersectionObserver(entries => {
     for (const entry of entries) entry.target.classList.toggle('motion-visible', entry.isIntersecting);
   }, {rootMargin: '40px'});
@@ -79,5 +79,19 @@
   new MutationObserver(observeCards).observe(document.getElementById('accountsContainer'), {childList:true});
   observeCards();
   document.addEventListener('visibilitychange', () => document.body.classList.toggle('page-hidden', document.hidden));
+  const menuButton = document.getElementById('menuBtn');
+  function syncMenuState() {
+    const open = document.body.classList.contains('menu-open');
+    menuButton.setAttribute('aria-expanded', String(open));
+    menuButton.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
+    menuButton.innerHTML = `<svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="${open ? 'M6 6l12 12M6 18 18 6' : 'M4 6h16M4 12h16M4 18h16'}"/></svg>`;
+    for(const id of ['addAccountBtn','notifBellBtn','chartsBtn','paymentBtn','infoBtn']) {
+      document.getElementById(id).tabIndex = open ? 0 : -1;
+    }
+  }
+  new MutationObserver(syncMenuState).observe(document.body, {attributes:true, attributeFilter:['class']});
+  window.addEventListener('DOMContentLoaded', syncMenuState, {once:true});
+  document.addEventListener('keydown', event => { if(event.key === 'Escape' && document.body.classList.contains('menu-open')) menuButton.click(); });
+  syncMenuState();
   overview();
 })();

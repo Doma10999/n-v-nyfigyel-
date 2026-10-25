@@ -699,7 +699,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
         <div class="gauge-container">
-          <div class="water-orb" aria-hidden="true"><div class="water-level"><span class="water-wave wave-back"></span><span class="water-wave wave-front"></span></div><span class="orb-shine"></span></div>
           <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
             <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
@@ -872,6 +871,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         gaugeCircleEl.style.strokeDashoffset = offset;
 
         const color = getGradientColor(display);
+        card.style.setProperty('--reading-color', display < 35 ? '#a54822' : display >= 95 ? '#76531b' : '#275e37');
         gaugeCircleEl.style.stroke = color;
         gaugeValueEl.style.color = color;
         return display;
