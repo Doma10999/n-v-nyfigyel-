@@ -657,6 +657,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       card.className = "card device-card";
       const cleanups = [];
       const subscribe = (reference, callback) => {
+        if (!deviceCards.has(key)) return;
         const stop = onValue(reference, snapshot => { if (deviceCards.has(key)) callback(snapshot); }, error => {
           card.classList.add('measurement-stale');
           card.querySelector('[data-last-update]').textContent = 'Az adat nem érhető el. Ellenőrizd a kapcsolatot / belépést.';
@@ -674,7 +675,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         <div class="plan-badge-wrap">
           <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
           <div class="battery-box">
-            <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku">
+            <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku"><span class="battery-number"></span>
           </div>
         </div>
 
@@ -910,28 +911,23 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       editBtn.addEventListener("click", (e)=>{ e.stopPropagation(); openEdit(); });
       cancelBtn.addEventListener("click", (e)=>{ e.stopPropagation(); closeEdit(); });
 
-      okBtn.addEventListener("click", async (e)=> {
-        e.stopPropagation();
+      async function saveDisplayName() {
         const newName = nameInput.value.trim();
         if (!newName) { closeEdit(); return; }
-        titleEl.textContent = newName;
-        titleEl.title = newName;
-        
-        closeEdit();
-        await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
-      });
-
-      nameInput.addEventListener("keydown", async (e)=> {
-        if (e.key === "Escape") { closeEdit(); }
-        if (e.key === "Enter") {
-          const newName = nameInput.value.trim();
-          if (!newName) { closeEdit(); return; }
+        okBtn.disabled = true;
+        try {
+          await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
           titleEl.textContent = newName;
           titleEl.title = newName;
-          
           closeEdit();
-          await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
-        }
+        } catch {
+          window.showAppToast('A név mentése nem sikerült. Próbáld újra.', 'Mentési hiba');
+        } finally { okBtn.disabled = false; }
+      }
+      okBtn.addEventListener('click', e => { e.stopPropagation(); saveDisplayName(); });
+      nameInput.addEventListener('keydown', e => {
+        if (e.key === 'Escape') closeEdit();
+        if (e.key === 'Enter') { e.preventDefault(); if (!okBtn.disabled) saveDisplayName(); }
       });
 
       // törlés (csak fiók eltávolítás logika: UID törlése localstorage-ból)
@@ -962,12 +958,25 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 
       
+      function updateBatteryUI(data) {
+        const raw = data.batteryPercent ?? data.battery;
+        const p = raw === null || raw === '' || raw === undefined ? NaN : Number(raw);
+        batteryBox.style.display = Number.isFinite(p) ? 'flex' : 'none';
+        if (!Number.isFinite(p)) return;
+        const safe = Math.max(0, Math.min(100, Math.round(p)));
+        const level = safe >= 80 ? 100 : safe >= 60 ? 75 : safe >= 40 ? 50 : safe >= 20 ? 25 : 0;
+        batteryImg.src = `batteryPercent/battery_${level}.png`;
+        batteryImg.alt = `Akkumulátor: ${safe}%`;
+        batteryBox.title = batteryImg.alt;
+        card.querySelector('.battery-number').textContent = safe + '%';
+      }
       const deviceRootRef = ref(db, `users/${uid}/devices/${deviceId}`);
       subscribe(deviceRootRef, (snap) => {
         if (!snap.exists()) return;
         const obj = deviceCards.get(key);
         if (!obj) return;
 
+        updateBatteryUI(snap.val());
         const ts = extractDeviceChangeTimestamp(snap.val()) || 0;
         obj.deviceMetaTimestamp = ts;
 
@@ -1103,29 +1112,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         } else {
           sliderContainer.style.display = "none";
         }
-      });
-
-      // Firebase: battery (csak ha van)
-      const batteryRef = ref(db, `users/${uid}/devices/${deviceId}/batteryPercent`);
-      get(batteryRef).then((snap) => {
-        if (!snap.exists()) {
-          batteryBox.style.display = "none";
-          return;
-        }
-        batteryBox.style.display = "block";
-        subscribe(batteryRef, (s2)=> {
-          if (!s2.exists()) { batteryBox.style.display = "none"; return; }
-          batteryBox.style.display = "block";
-          const p = Number(s2.val());
-          let icon = "battery_0.png";
-          if (p >= 80) icon = "battery_100.png";
-          else if (p >= 60) icon = "battery_75.png";
-          else if (p >= 40) icon = "battery_50.png";
-          else if (p >= 20) icon = "battery_25.png";
-          batteryImg.src = `batteryPercent/${icon}`;
-          batteryImg.alt = `Akkumulátor: ${Math.round(p)}%`;
-          batteryBox.title = batteryImg.alt;
-        });
       });
 
       // 🔹 HISTORY szinkron Firebase-ből (grafikonhoz) – csak Plusnál
