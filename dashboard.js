@@ -41,8 +41,11 @@
   function overview() {
     const cards = [...document.querySelectorAll('#accountsContainer .device-card')];
     const authenticated = document.body.classList.contains('is-authenticated');
-    document.getElementById('gardenOverview').hidden = !authenticated || cards.length < 4;
+    document.getElementById('gardenOverview').hidden = !authenticated;
     document.getElementById('sessionLogout').hidden = !authenticated;
+    document.querySelector('.plant-search').hidden = cards.length < 4;
+    const attention = cards.filter(c => c.classList.contains('needs-attention')).length;
+    document.getElementById('gardenOverview').dataset.attention = attention > 0 ? 'yes' : 'no';
     document.getElementById('plantCount').textContent = cards.length;
     document.getElementById('statTotal').textContent = cards.length;
     document.getElementById('statAttention').textContent = cards.filter(c => c.classList.contains('needs-attention')).length;
@@ -63,7 +66,7 @@
   new MutationObserver(() => document.querySelectorAll('.plant-select:not([tabindex])').forEach(el => { el.tabIndex = 0; el.setAttribute('role','button'); el.setAttribute('aria-label','Növény vízigényének kiválasztása'); el.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); el.click(); } }; })).observe(document.getElementById('accountsContainer'), {childList:true});
   const icons = {addAccountBtn:'M12 5v14M5 12h14',notifBellBtn:'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4',chartsBtn:'M4 4v16h16M7 14l4-5 4 3 5-7',paymentBtn:'M3 5h18v14H3zM3 9h18M7 15h3',infoBtn:'M12 11v6M12 7v.1',menuBtn:'M4 6h16M4 12h16M4 18h16'};
   for(const [id,path] of Object.entries(icons)) document.getElementById(id).innerHTML = `<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="${path}"/></svg>`;
-  // Keep the familiar card decoration still outside the visible screen.
+  // Observe cards without animating elements outside the viewport.
   const motionObserver = new IntersectionObserver(entries => {
     for (const entry of entries) entry.target.classList.toggle('motion-visible', entry.isIntersecting);
   }, {rootMargin: '40px'});
@@ -80,12 +83,20 @@
   observeCards();
   document.addEventListener('visibilitychange', () => document.body.classList.toggle('page-hidden', document.hidden));
   const menuButton = document.getElementById('menuBtn');
+  document.getElementById('homeTab').onclick = () => {
+    if(document.body.classList.contains('menu-open')) menuButton.click();
+    search.value = ''; overview();
+    window.scrollTo({top:0, behavior:root.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
+  };
+  document.getElementById('menuShade').onclick = () => { if(document.body.classList.contains('menu-open')) menuButton.click(); };
+  document.getElementById('chartsBtn').tabIndex = 0;
+
   function syncMenuState() {
     const open = document.body.classList.contains('menu-open');
     menuButton.setAttribute('aria-expanded', String(open));
     menuButton.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
     menuButton.innerHTML = `<svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="${open ? 'M6 6l12 12M6 18 18 6' : 'M4 6h16M4 12h16M4 18h16'}"/></svg>`;
-    for(const id of ['addAccountBtn','notifBellBtn','chartsBtn','paymentBtn','infoBtn']) {
+    for(const id of ['addAccountBtn','notifBellBtn','paymentBtn','infoBtn']) {
       document.getElementById(id).tabIndex = open ? 0 : -1;
     }
   }
@@ -93,5 +104,28 @@
   window.addEventListener('DOMContentLoaded', syncMenuState, {once:true});
   document.addEventListener('keydown', event => { if(event.key === 'Escape' && document.body.classList.contains('menu-open')) menuButton.click(); });
   syncMenuState();
+  // Existing dialogs now support keyboard focus, Escape and focus restoration.
+  for (const [id, closeId] of [['infoModal','infoModalClose'],['chartsModal','chartsModalClose'],['notifModal','notifModalClose'],['modal','modalClose'],['confirmModal','confirmClose'],['plantTypeModal','plantTypeClose']]) {
+    const overlay = document.getElementById(id), close = document.getElementById(closeId);
+    const panel = overlay.querySelector('.modal-box') || overlay.firstElementChild;
+    panel.setAttribute('role','dialog'); panel.setAttribute('aria-modal','true'); panel.tabIndex = -1;
+    const heading = panel.querySelector('h3');
+    if(heading) { heading.id ||= id + 'Title'; panel.setAttribute('aria-labelledby', heading.id); }
+    if(close.tagName !== 'BUTTON') { close.tabIndex = 0; close.setAttribute('role','button'); close.setAttribute('aria-label','Bezárás'); close.onkeydown = e => { if(e.key === 'Enter' || e.key === ' ') { e.preventDefault(); close.click(); } }; }
+    let wasOpen = false, returnFocus;
+    const focusable = () => [...panel.querySelectorAll('button,input,select,[tabindex="0"],a[href]')].filter(el => !el.disabled && el.getClientRects().length);
+    const sync = () => {
+      const open = getComputedStyle(overlay).display !== 'none';
+      if(open && !wasOpen) { returnFocus = document.activeElement; (focusable()[0] || panel).focus(); }
+      if(!open && wasOpen) { (returnFocus?.getClientRects().length ? returnFocus : menuButton).focus(); }
+      wasOpen = open;
+    };
+    new MutationObserver(sync).observe(overlay,{attributes:true,attributeFilter:['style','class']});
+    overlay.addEventListener('keydown', e => {
+      if(e.key === 'Escape') { e.stopPropagation(); close.click(); }
+      if(e.key === 'Tab') { const items = focusable(), first = items[0], last = items.at(-1); if(!first) { e.preventDefault(); panel.focus(); } else if(e.shiftKey && (document.activeElement === first || document.activeElement === panel)) { e.preventDefault(); last.focus(); } else if(!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); } }
+    });
+    sync();
+  }
   overview();
 })();

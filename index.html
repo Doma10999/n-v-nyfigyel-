@@ -5,7 +5,7 @@
   <meta name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#f4f6f5">
+  <meta name="theme-color" content="#f6f7f2">
   <meta name="description" content="Növényeid állapota egy pillantásra. Talajnedvesség, világítás és levegőminőség, egyszerűen.">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -16,11 +16,11 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20261026compact1">
+  <link rel="stylesheet" href="styles.css?v=20261026native2">
 
   
 
-  <script type="module" src="firebase-app.js?v=20261026compact1"></script>
+  <script type="module" src="firebase-app.js?v=20261026native2"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
@@ -29,8 +29,8 @@
   
 
 
-  <link rel="stylesheet" href="dashboard.css?v=20261026compact1">
-  <script defer src="dashboard.js?v=20261026compact1"></script>
+  <link rel="stylesheet" href="dashboard.css?v=20261026native2">
+  <script defer src="dashboard.js?v=20261026native2"></script>
 </head>
 
 <body>
@@ -98,7 +98,8 @@
     <div class="header-actions"><span id="connectionState" role="status">Kapcsolódás…</span><button id="themeToggle" type="button" aria-label="Animációk kikapcsolása" aria-pressed="true" title="Animációk"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg></button><button id="installApp" type="button"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="button-label">Telepítés</span></button><button id="sessionLogout" type="button" aria-label="Kijelentkezés" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 4H4v16h5m5-12 4 4-4 4M9 12h11"/></svg><span class="button-label">Kilépés</span></button></div>
   </header>
   <main class="dashboard-main">
-  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">MINDEN, AMI SZÁMÍT</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet igényel</span></div><div><strong id="statStale">0</strong><span>régi mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
+  <section class="welcome-panel"><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h2>Gondoskodás,<br>egy pillantásra.</h2><p>Növényeid állapota. Érthetően, egy helyen.</p><svg class="welcome-plant" viewBox="0 0 120 140" fill="none" aria-hidden="true"><path d="M60 95V33" stroke="#17634d" stroke-width="4" stroke-linecap="round"/><path d="M59 67C27 70 15 51 17 31c27-2 44 11 42 36Z" fill="#bcd9a0"/><path d="M62 48C59 18 78 6 103 9c0 25-13 40-41 39Z" fill="#17634d"/><path d="M61 88c5-25 22-34 44-29-2 23-18 35-44 29Z" fill="#83bca0"/><path d="M37 96h49l-7 37H44l-7-37Z" fill="#e3b88d"/><path d="M35 96h53" stroke="#a77851" stroke-width="5" stroke-linecap="round"/></svg></section>
+  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">AZ OTTHONOD ZÖLD OLDALA</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet kér</span></div><div><strong id="statStale">0</strong><span>régi mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
 
   <div class="card" id="plantData">
     <form id="loginForm">
@@ -120,14 +121,16 @@
   <div id="accountsContainer"></div>
   <footer class="garden-footer">Növényfigyelő · Gondoskodás, egyszerűen.</footer></main>
 
+  <button type="button" id="menuShade" aria-label="Menü bezárása" tabindex="-1"></button>
   <nav class="app-dock" aria-label="Alkalmazás funkciói">
+  <button id="homeTab" type="button" title="Növényeim" aria-label="Növényeim" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21V9M12 14C4 15 2 9 3 5c7 0 10 3 9 9ZM12 10c0-6 4-9 10-8 0 6-4 9-10 8Z"/></svg></button>
   <button id="addAccountBtn" style="display:none;" title="Fiók hozzáadása">+</button>
 
   <button id="notifBellBtn" style="display:none;" aria-label="Email értesítés" title="Email értesítés">
     <i class="fa-solid fa-bell"></i>
   </button>
 
-  <button id="chartsBtn" style="display:none;" aria-label="Grafikonok" title="Grafikonok">
+  <button id="chartsBtn" style="display:none;" aria-label="Grafikonok" title="Mérések">
     <i class="fa-solid fa-chart-line"></i>
   </button>
 
@@ -139,7 +142,7 @@
     <i class="fa-solid fa-circle-info"></i>
   </button>
 
-  <button id="menuBtn" style="display:none;" aria-label="Menü" title="Menü"><i class="fa-solid fa-bars"></i></button>
+  <button id="menuBtn" style="display:none;" aria-label="Menü" title="Továbbiak"><i class="fa-solid fa-bars"></i></button>
 
   </nav>
   <div id="notifModal">
@@ -202,10 +205,9 @@
       <div class="info-section">
         <h4>Mit mutat a nagy zöld kör?</h4>
         <p>
-          A kör a növény aktuális talajnedvességét mutatja százalékban.
-          Minél nagyobb az érték, annál nedvesebb a föld.
+          A kör a kiválasztott növénytípus vízigényéhez igazított vízellátottságot mutatja. A nyers szenzorérték külön, a „Talajnedvesség” mezőben látható.
         </p>
-        <div class="info-tip good">Példa: 70–100% általában nedvesebb földet jelent.</div>
+        <div class="info-tip good">A százalék értelmezését mindig a kiválasztott vízigény és a talaj állapota alapján ellenőrizd.</div>
       </div>
 
       <div class="info-section">
@@ -368,8 +370,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20261026compact1"></script>
-  <script src="push-client.js?v=20261026compact1"></script>
+  <script src="service-worker-register.js?v=20261026native2"></script>
+  <script src="push-client.js?v=20261026native2"></script>
   <script src="offline-status.js"></script>
 
 
@@ -392,7 +394,7 @@
     </div>
   </div>
 
-  <script src="plant-type-modal.js?v=20261026compact1"></script>
+  <script src="plant-type-modal.js?v=20261026native2"></script>
 
 
 
