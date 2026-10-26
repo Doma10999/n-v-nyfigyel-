@@ -5,7 +5,7 @@
   <meta name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#f6f7f2">
+  <meta name="theme-color" content="#f5f7fa">
   <meta name="description" content="Növényeid állapota egy pillantásra. Talajnedvesség, világítás és levegőminőség, egyszerűen.">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -16,21 +16,21 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20261026native2">
+  <link rel="stylesheet" href="styles.css?v=20261026studio3">
 
   
 
-  <script type="module" src="firebase-app.js?v=20261026native2"></script>
+  <script type="module" src="firebase-app.js?v=20261026studio3"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
-  <script src="notifications.js?v=20260820v2"></script>
+  <script src="notifications.js?v=20261026studio3"></script>
 
   
 
 
-  <link rel="stylesheet" href="dashboard.css?v=20261026native2">
-  <script defer src="dashboard.js?v=20261026native2"></script>
+  <link rel="stylesheet" href="dashboard.css?v=20261026studio3">
+  <script defer src="dashboard.js?v=20261026studio3"></script>
 </head>
 
 <body>
@@ -98,12 +98,12 @@
     <div class="header-actions"><span id="connectionState" role="status">Kapcsolódás…</span><button id="themeToggle" type="button" aria-label="Animációk kikapcsolása" aria-pressed="true" title="Animációk"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5Z"/></svg></button><button id="installApp" type="button" aria-label="Telepítés telefonra"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 3v12m-4-4 4 4 4-4M4 16v5h16v-5"/></svg><span class="button-label">Telepítés</span></button><button id="sessionLogout" type="button" aria-label="Kijelentkezés" hidden><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M9 4H4v16h5m5-12 4 4-4 4M9 12h11"/></svg><span class="button-label">Kilépés</span></button></div>
   </header>
   <main class="dashboard-main">
-  <section class="welcome-panel"><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h2>Gondoskodás,<br>egy pillantásra.</h2><p>Növényeid állapota. Érthetően, egy helyen.</p><svg class="welcome-plant" viewBox="0 0 120 140" fill="none" aria-hidden="true"><path d="M60 95V33" stroke="#17634d" stroke-width="4" stroke-linecap="round"/><path d="M59 67C27 70 15 51 17 31c27-2 44 11 42 36Z" fill="#bcd9a0"/><path d="M62 48C59 18 78 6 103 9c0 25-13 40-41 39Z" fill="#17634d"/><path d="M61 88c5-25 22-34 44-29-2 23-18 35-44 29Z" fill="#83bca0"/><path d="M37 96h49l-7 37H44l-7-37Z" fill="#e3b88d"/><path d="M35 96h53" stroke="#a77851" stroke-width="5" stroke-linecap="round"/></svg></section>
-  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">AZ OTTHONOD ZÖLD OLDALA</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats"><div><strong id="statTotal">0</strong><span>növény</span></div><div><strong id="statAttention">0</strong><span>figyelmet kér</span></div><div><strong id="statStale">0</strong><span>régi mérés</span></div></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs ilyen nevű növény.</p></section>
+  <section class="welcome-panel"><span class="eyebrow">GONDOSKODÁS. EGYSZERŰEN.</span><h2>Közelebb<br>a növényeidhez.</h2><p>Nedvesség, világítás, nyugalom.<br>Minden fontos adat egy helyen.</p><svg class="welcome-plant" viewBox="0 0 120 140" fill="none" aria-hidden="true"><path d="M60 95V33" stroke="#17634d" stroke-width="4" stroke-linecap="round"/><path d="M59 67C27 70 15 51 17 31c27-2 44 11 42 36Z" fill="#bcd9a0"/><path d="M62 48C59 18 78 6 103 9c0 25-13 40-41 39Z" fill="#17634d"/><path d="M61 88c5-25 22-34 44-29-2 23-18 35-44 29Z" fill="#83bca0"/><path d="M37 96h49l-7 37H44l-7-37Z" fill="#e3b88d"/><path d="M35 96h53" stroke="#a77851" stroke-width="5" stroke-linecap="round"/></svg></section>
+  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">AZ OTTHONOD, ÉLETRE KELTVE</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats" role="group" aria-label="Növények szűrése"><button type="button" data-filter="all" aria-pressed="true"><strong id="statTotal">0</strong><span>Összes</span></button><button type="button" data-filter="attention" aria-pressed="false"><strong id="statAttention">0</strong><span>Figyelmet kér</span></button><button type="button" data-filter="stale" aria-pressed="false"><strong id="statStale">0</strong><span>Régi mérés</span></button></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs a szűrésnek megfelelő növény.</p></section>
 
   <div class="card" id="plantData">
     <form id="loginForm">
-      <h3>Bejelentkezés</h3><p class="login-intro">Lépj be a meglévő fiókoddal.</p>
+      <span class="eyebrow">ÜDV ÚJRA ITT</span><h3>Jó újra látni.</h3><p class="login-intro">Lépj be, és nézd meg, hogy vannak a növényeid.</p>
       <input type="email" id="email" placeholder="Email" aria-label="Email-cím" autocomplete="username" required><br>
       <div class="password-field">
         <input type="password" id="password" placeholder="Jelszó" aria-label="Jelszó" autocomplete="current-password" required>
@@ -114,7 +114,7 @@
       <button type="submit">Belépés</button>
     </form>
     <button id="logout">Kijelentkezés</button>
-    <p id="status">Nincs bejelentkezve</p>
+    <p id="status" role="status" aria-live="polite">Nincs bejelentkezve</p>
     <div class="gauge-container" style="display:none"></div>
   </div>
 
@@ -318,7 +318,7 @@
 
 
   <div id="appToast" class="app-toast" role="status" aria-live="polite">
-    <div class="app-toast-icon"><i class="fa-solid fa-check"></i></div>
+    <div class="app-toast-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="m5 12 4 4L19 6"/></svg></div>
     <div class="app-toast-text">
       <strong id="appToastTitle">Sikeres mentés</strong>
       <span id="appToastMessage">A beállítások elmentve.</span>
@@ -370,8 +370,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20261026native2"></script>
-  <script src="push-client.js?v=20261026native2"></script>
+  <script src="service-worker-register.js?v=20261026studio3"></script>
+  <script src="push-client.js?v=20261026studio3"></script>
   <script src="offline-status.js"></script>
 
 
@@ -385,16 +385,16 @@
         </p>
 
 
-        <div class="plant-option" data-value="🌵Szárazkedvelő">🌵 Szárazkedvelő</div>
-        <div class="plant-option" data-value="🌾Mérsékelten száraz">🌾 Mérsékelten száraz</div>
-        <div class="plant-option" data-value="🌿Kiegyensúlyozott vízigényű">🌿 Kiegyensúlyozott vízigényű</div>
-        <div class="plant-option" data-value="🌱Nedvességkedvelő">🌱 Nedvességkedvelő</div>
-        <div class="plant-option" data-value="💧Vízigényes">💧 Vízigényes</div>
+        <button type="button" class="plant-option" data-value="🌵Szárazkedvelő">🌵 Szárazkedvelő</button>
+        <button type="button" class="plant-option" data-value="🌾Mérsékelten száraz">🌾 Mérsékelten száraz</button>
+        <button type="button" class="plant-option" data-value="🌿Kiegyensúlyozott vízigényű">🌿 Kiegyensúlyozott vízigényű</button>
+        <button type="button" class="plant-option" data-value="🌱Nedvességkedvelő">🌱 Nedvességkedvelő</button>
+        <button type="button" class="plant-option" data-value="💧Vízigényes">💧 Vízigényes</button>
       </div>
     </div>
   </div>
 
-  <script src="plant-type-modal.js?v=20261026native2"></script>
+  <script src="plant-type-modal.js?v=20261026studio3"></script>
 
 
 

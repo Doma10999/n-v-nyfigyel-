@@ -38,10 +38,14 @@
   function bindConnection() { if(window.__db && window.__onValue) { window.__onValue(window.__ref(window.__db, '.info/connected'), snap => { connected = snap.val() === true; connectionState(); }); return true; } return false; }
   window.addEventListener('app-content-ready', bindConnection, {once:true});
   const search = document.getElementById('plantSearch');
+  let activeFilter = 'all';
+  const filters = [...document.querySelectorAll('[data-filter]')];
+  filters.forEach(button => button.onclick = () => { activeFilter = button.dataset.filter; overview(); });
   function overview() {
     connectionState();
     const cards = [...document.querySelectorAll('#accountsContainer .device-card')];
     const authenticated = document.body.classList.contains('is-authenticated');
+    if(!authenticated) activeFilter = 'all';
     document.getElementById('gardenOverview').hidden = !authenticated;
     document.getElementById('sessionLogout').hidden = !authenticated;
     document.querySelector('.plant-search').hidden = cards.length < 4;
@@ -52,7 +56,11 @@
     document.getElementById('statAttention').textContent = cards.filter(c => c.classList.contains('needs-attention')).length;
     document.getElementById('statStale').textContent = cards.filter(c => c.classList.contains('measurement-stale')).length;
     const term = cards.length < 4 ? '' : search.value.trim().toLocaleLowerCase('hu');
-    cards.forEach(c => { c.hidden = !c.querySelector('.plant-title')?.textContent.toLocaleLowerCase('hu').includes(term); });
+    filters.forEach(button => button.setAttribute('aria-pressed', String(button.dataset.filter === activeFilter)));
+    cards.forEach(c => {
+      const matchesStatus = activeFilter === 'all' || activeFilter === 'attention' && c.classList.contains('needs-attention') || activeFilter === 'stale' && c.classList.contains('measurement-stale');
+      c.hidden = !matchesStatus || !c.querySelector('.plant-title')?.textContent.toLocaleLowerCase('hu').includes(term);
+    });
     document.getElementById('emptyPlants').hidden = cards.length > 0;
     document.getElementById('noSearchResults').hidden = !cards.length || cards.some(c => !c.hidden);
   }
@@ -86,7 +94,7 @@
   const menuButton = document.getElementById('menuBtn');
   document.getElementById('homeTab').onclick = () => {
     if(document.body.classList.contains('menu-open')) menuButton.click();
-    search.value = ''; overview();
+    search.value = ''; activeFilter = 'all'; overview();
     window.scrollTo({top:0, behavior:root.dataset.motion === 'off' || matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth'});
   };
   document.getElementById('menuShade').onclick = () => { if(document.body.classList.contains('menu-open')) menuButton.click(); };

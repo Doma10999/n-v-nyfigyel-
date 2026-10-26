@@ -15,8 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return window.__getAllowedCategoriesForUid(uid);
     }
     return [
-      "🌾Mérsékelten száraz",
-      "🌱Nedvességkedvelő"
+      "🌿Kiegyensúlyozott vízigényű"
     ];
   }
 
@@ -56,17 +55,25 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      currentSelectEl.textContent = value.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-
-      await window.__set(
-        window.__ref(
-          window.__db,
-          `users/${currentSelectUID}/devices/${currentSelectDevice}/plantType`
-        ),
-        value
-      );
-
-      plantTypeModal.style.display = "none";
+      if (!navigator.onLine) {
+        window.showAppToast('A kategória mentéséhez internetkapcsolat szükséges.', 'Nincs internet');
+        return;
+      }
+      // Capture this selection: dismissing the dialog must not redirect an in-flight save.
+      const target = currentSelectEl, uid = currentSelectUID, device = currentSelectDevice;
+      allOptions.forEach(button => button.disabled = true);
+      plantTypeBox.setAttribute('aria-busy','true');
+      try {
+        await window.__set(window.__ref(window.__db, `users/${uid}/devices/${device}/plantType`), value);
+        target.textContent = value.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
+        plantTypeModal.style.display = 'none';
+        window.showAppToast('A növény vízigényét elmentettük.');
+      } catch {
+        window.showAppToast('A kategória nem változott meg. Próbáld újra.', 'Nem sikerült menteni');
+      } finally {
+        allOptions.forEach(button => button.disabled = false);
+        plantTypeBox.removeAttribute('aria-busy');
+      }
     });
   });
 

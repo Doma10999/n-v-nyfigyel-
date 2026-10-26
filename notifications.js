@@ -115,12 +115,18 @@
 
           del.addEventListener("click", async (e) => {
             e.stopPropagation();
-            await clearNotifEmail(item.uid, item.deviceId);
-            item.email = "";
-            item.enabled = false;
-            cb.checked = false;
-            buildNotifList();
-            updateBellUI();
+            del.disabled = true;
+            try {
+              await clearNotifEmail(item.uid, item.deviceId);
+              item.email = '';
+              item.enabled = false;
+              cb.checked = false;
+              buildNotifList();
+              updateBellUI();
+            } catch {
+              window.showAppToast('Az email címet nem sikerült törölni. Próbáld újra.', 'Mentési hiba');
+              del.disabled = false;
+            }
           });
 
           emailRow.appendChild(del);
@@ -219,8 +225,12 @@
             return;
           }
 
-          await refreshNotifStateFromFirebase();
-          openNotifModal();
+          try {
+            await refreshNotifStateFromFirebase();
+            openNotifModal();
+          } catch {
+            window.showAppToast('Nem sikerült betölteni az értesítési beállításokat.', 'Betöltési hiba');
+          }
         });
       }
 
@@ -231,6 +241,13 @@
       
       if (saveBtn) {
         saveBtn.addEventListener("click", async () => {
+          const emailField = document.getElementById('notifEmailInput');
+          if (emailField && !emailField.reportValidity()) return;
+          if (!navigator.onLine) { window.showAppToast('Az értesítések mentéséhez internetkapcsolat szükséges.', 'Nincs internet'); return; }
+          if ([...notifState.values()].some(item => item.enabled && !item.email) && !emailField.value.trim()) { window.showAppToast('Adj meg email címet a kijelölt növényekhez.', 'Hiányzó email cím'); emailField.focus(); return; }
+          saveBtn.disabled = true;
+          saveBtn.textContent = 'Mentés…';
+          try {
           const typedEmail = (document.getElementById("notifEmailInput") && document.getElementById("notifEmailInput").value.trim()) || "";
 
           // Mentés logika:
@@ -260,6 +277,12 @@
           closeNotifModal();
           updateBellUI();
           window.showAppToast ? window.showAppToast("Email értesítések beállítva.", "Mentve") : alert("Mentve! Email értesítések beállítva.");
+          } catch {
+            window.showAppToast('Nem sikerült minden beállítást elmenteni. Ellenőrizd és próbáld újra.', 'Mentési hiba');
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Mentés';
+          }
         });
       }
 
