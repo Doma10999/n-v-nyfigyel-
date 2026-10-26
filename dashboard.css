@@ -148,3 +148,25 @@ body.billing-page { padding:0 20px 40px !important; }.billing-shell,.billing-she
 .device-card .category-label { display:flex; align-items:center; gap:6px; }.category-label svg { display:block; width:17px; height:17px; color:#66945b; }
 .footer-garden { display:block; width:72px; height:33px; margin:0 auto 12px; }.garden-footer { color:#5a7452; line-height:1.7; }
 .device-card[data-level=unknown] .gauge-inner { fill:#284c3c; }.device-card[data-level=unknown] .gauge-marker { display:none; }
+
+/* Botanical launch: vector artwork stays sharp on every phone. */
+html.app-launching #appLaunchSplash { display:flex; }
+#appLaunchSplash { background:#f6f8f3; color:#123e2e; transition:opacity .28s ease,visibility .28s ease; font-family:inherit; }
+#appLaunchSplash::before,#appLaunchSplash::after { display:none; }
+#appLaunchSplash.is-leaving { filter:none; pointer-events:none; }
+.app-launch-garden { width:min(240px,58vw); margin:0 0 22px; }
+.app-launch-garden svg { display:block; width:100%; height:auto; }
+.app-launch-title { opacity:1; transform:none; animation:none; font-size:clamp(25px,7vw,32px); letter-spacing:-1px; }
+.app-launch-subtitle { opacity:1; transform:none; animation:none; margin-top:12px; font-size:14px; line-height:1.6; text-align:center; color:#536b5c; }
+.app-launch-progress { opacity:1; animation:none; width:112px; height:4px; margin-top:24px; background:#dfe9d7; }
+.app-launch-progress span { background:#267358; box-shadow:none; animation:launchProgressMove 1.3s ease-in-out infinite; }
+.launch-grow { transform-box:view-box; transform-origin:120px 157px; animation:gardenUnfold .8s cubic-bezier(.2,.8,.2,1) both; }
+.launch-grow-right { animation-delay:.12s; }
+.launch-grow-small { animation-delay:.22s; }
+.launch-flower { transform-box:fill-box; transform-origin:center; animation:gardenBloom .7s .25s both; }
+.launch-orbit { transform-origin:120px 120px; animation:gardenOrbit 24s linear infinite; }
+@keyframes gardenUnfold { from { opacity:0; transform:scale(.4) rotate(-12deg); } to { opacity:1; transform:scale(1) rotate(0); } }
+@keyframes gardenBloom { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:scale(1); } }
+@keyframes gardenOrbit { to { transform:rotate(360deg); } }
+@media(prefers-reduced-motion:reduce) { #appLaunchSplash,#appLaunchSplash * { animation:none!important; transition:none!important; opacity:1; } #appLaunchSplash.is-leaving { opacity:0; } }
+html[data-motion="off"] #appLaunchSplash * { animation:none!important; }
