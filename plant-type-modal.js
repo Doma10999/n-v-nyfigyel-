@@ -10,6 +10,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!plantTypeModal || !plantTypeClose || !plantTypeBox) return;
 
+  allOptions.forEach(opt => {
+    const text = opt.textContent.trim();
+    opt.textContent = '';
+    const copy = document.createElement('span'); copy.className = 'type-option-copy';
+    const name = document.createElement('strong'); name.textContent = text;
+    copy.append(name); opt.append(copy);
+    const mark = document.createElement('span'); mark.className = 'type-option-check'; mark.textContent = '✓'; mark.setAttribute('aria-hidden','true'); opt.append(mark);
+  });
+
   function getAllowedCategories(uid) {
     if (window.__getAllowedCategoriesForUid) {
       return window.__getAllowedCategoriesForUid(uid);
@@ -23,7 +32,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const allowed = getAllowedCategories(currentSelectUID);
     allOptions.forEach(opt => {
       const visible = allowed.includes(opt.dataset.value);
-      opt.style.display = visible ? "block" : "none";
+      opt.style.display = visible ? "flex" : "none";
     });
   }
 
@@ -37,6 +46,7 @@ document.addEventListener("DOMContentLoaded", () => {
     currentSelectDevice = sel.dataset.device;
     currentSelectEl = sel.querySelector(".plant-select-value");
 
+    allOptions.forEach(opt => { const selected = opt.dataset.value === sel.closest('.device-card')?.dataset.category; opt.dataset.selected = String(selected); opt.setAttribute('aria-pressed', String(selected)); });
     refreshVisibleOptions();
     plantTypeModal.style.display = "flex";
   });
