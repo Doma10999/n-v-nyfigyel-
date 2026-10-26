@@ -679,7 +679,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           <div class="plant-title-pill">
             <span class="plant-title">Rosso</span>
             <button class="edit-pill" aria-label="Név szerkesztése">
-              <i class="fa-solid fa-pen"></i>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 4 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15v5Z"/></svg>
             </button>
           </div>
         </div>
@@ -701,8 +701,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           <span class="gauge-caption">Vízellátottság</span>
         </div>
 
-        <p class="soil-detail">Talajnedvesség: <strong data-soil-value>—</strong></p>
-        <p class="care-state" role="status">Várakozás a mérésre</p>
+        <div class="device-facts">
+          <p class="soil-detail"><span>Talajnedvesség</span><strong data-soil-value>—</strong></p>
+          <p class="care-state" role="status"><span>Állapot</span><strong class="care-value">Várakozás</strong></p>
+        </div>
         <div class="slider-container" style="display:none;">
           <input type="range" min="0" max="100" step="10" value="0" class="led-slider" list="led-steps" />
           <div class="slider-labels"><span>Világítás</span><strong class="led-output">0%</strong></div>
@@ -721,6 +723,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         </div>
 
         <div class="plant-select-wrap">
+          <span class="category-label">Növény típusa</span>
           <div class="plant-select" data-uid="${uid}" data-device="${deviceId}">
             <span class="plant-select-value">Válassz kategóriát</span>
             <span class="plant-select-arrow">▾</span>
@@ -800,7 +803,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const allowed = window.__getAllowedCategoriesForUid(uid);
         if (!allowed.includes(currCat)) {
           currCat = getFallbackCategoryForUid();
-          plantSelectValueEl.textContent = currCat;
+          plantSelectValueEl.textContent = currCat.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
           updateAccountGauge(currPercent, currCat);
 
         }
@@ -810,12 +813,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const v = snap.exists() ? String(snap.val() || "") : "";
         if (v) {
           currCat = v;
-          plantSelectValueEl.textContent = v;
+          plantSelectValueEl.textContent = v.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
           refreshPlanBadgeAndRestrictions();
           updateAccountGauge(currPercent, currCat);
         } else {
           currCat = getFallbackCategoryForUid();
-          plantSelectValueEl.textContent = currCat;
+          plantSelectValueEl.textContent = currCat.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
           updateAccountGauge(currPercent, currCat);
         }
       });
@@ -842,7 +845,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
         card.dataset.level = String(display);
         card.querySelector('[data-soil-value]').textContent = Math.round(realPercent) + '%';
-        card.querySelector('.care-state').textContent = display < 35 ? 'Ellenőrizd a földet · öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság · ellenőrizd a földet' : 'Megfelelő vízellátottsági szint';
+        card.querySelector('.care-value').textContent = display < 35 ? 'Öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság' : 'Megfelelő';
         card.classList.toggle('needs-attention', display < 35 || display >= 95);
         card.style.setProperty('--water-top', (100 - display) + '%');
         const previous = Number(gaugeValueEl.dataset.value);
@@ -979,6 +982,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         batteryImg.src = `batteryPercent/battery_${level}.png`;
         batteryImg.alt = `Akkumulátor: ${safe}%`;
         batteryBox.title = batteryImg.alt;
+        batteryBox.setAttribute('role', 'img');
+        batteryBox.setAttribute('aria-label', batteryImg.alt);
+        batteryBox.style.setProperty('--battery-level', safe + '%');
         card.querySelector('.battery-number').textContent = safe + '%';
       }
       const deviceRootRef = ref(db, `users/${uid}/devices/${deviceId}`);
@@ -1175,7 +1181,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           // kategória
           if (data.category) {
             currCat = data.category;
-            plantSelectValueEl.textContent = data.category;
+            plantSelectValueEl.textContent = data.category.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
           }
 
           // szenzor érték

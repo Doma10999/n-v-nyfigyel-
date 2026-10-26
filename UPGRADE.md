@@ -46,3 +46,8 @@ A felhasználó két mobilalkalmazás-referenciát adott a lekerekítésekhez é
 A kártyák sugara 32 px; a belső vezérlők 18–22 px lekerekítést kaptak. A fejléc, névszerkesztés és eltávolítás gombjainak érintési felülete legalább 44 px. Az offline nézet és a felugró útmutatók betűmérete is nőtt. Új CSS/JS és service-worker verzió gondoskodik a korábban telepített példányok frissítéséről. Az eszközadatok, mérésértékelés, előfizetés, Firebase-séma és firmware nem változott.
 
 A böngészős ellenőrzés kiegészült a látható körvastagság, betűméret, gombméret és lekerekítés vizsgálatával. A docs/readable-card-preview.png tesztadatokat mutat, nem valódi eszközmérést. Új előnézet a böngészős tesztben CAPTURE_PREVIEW=1 kapcsolóval készíthető.
+
+## Kompakt alkalmazásstílus – 2026. október 26.
+Az újabb visszajelzés alapján a nagy zöld névcímke, a díszítő háttérkörök és az egymás alatti állapotsávok helyére semleges, fehér alkalmazáskártya került. A növénynév balra rendezett címsor; a vastag, teljes körmérés smaragdzöld, figyelmeztetésnél borostyán színű. Azonos mérési és értékelési logika mellett a talajnedvesség és az állapot két egymás melletti mezőbe kerül. A típus és mérési időpont egyszerű részletsorként látható. A kategóriák adatbázisbeli neve és emoji előtagja nem változik, csak a kijelzésből marad el az emoji.
+
+A menü és a vezérlők megtartják korábbi funkciójukat. A kártyák 25 px-es lekerekítésűek, a névszerkesztés és eltávolítás gombjai 44 px-esek. A docs/compact-card-preview.png tesztadatokat bemutató felületkép. A build és a korábbi böngészős ellenőrzések lefutnak, kiegészítve a kétoszlopos adatmezők és az emoji nélküli kategóriakijelzés vizsgálatával.
