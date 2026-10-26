@@ -33,12 +33,13 @@
   };
   let connected = false;
   const connection = document.getElementById('connectionState');
-  function connectionState() { const offline = !navigator.onLine; connection.dataset.state = offline ? 'offline' : connected ? 'online' : 'connecting'; connection.textContent = offline ? 'Nincs internet' : connected ? 'Adatkapcsolat aktív' : 'Kapcsolódás…'; }
+  function connectionState() { const offline = !navigator.onLine; connection.dataset.state = offline ? 'offline' : connected ? 'online' : 'connecting'; connection.textContent = offline ? 'Nincs internet' : connected ? 'Adatkapcsolat aktív' : document.body.classList.contains('is-authenticated') ? 'Kapcsolódás…' : 'Bejelentkezésre vár'; }
   ['online','offline'].forEach(name => window.addEventListener(name, connectionState)); connectionState();
   function bindConnection() { if(window.__db && window.__onValue) { window.__onValue(window.__ref(window.__db, '.info/connected'), snap => { connected = snap.val() === true; connectionState(); }); return true; } return false; }
   window.addEventListener('app-content-ready', bindConnection, {once:true});
   const search = document.getElementById('plantSearch');
   function overview() {
+    connectionState();
     const cards = [...document.querySelectorAll('#accountsContainer .device-card')];
     const authenticated = document.body.classList.contains('is-authenticated');
     document.getElementById('gardenOverview').hidden = !authenticated;
