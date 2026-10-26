@@ -556,7 +556,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         canvas.width = 640;
         canvas.height = 240;
         canvas.setAttribute("role", "img");
-        canvas.setAttribute("aria-label", `${item.name || "Növény"} korábbi kijelzett értékei: ${(item.history || []).slice(-7).map(p => Math.round(p.v) + "%").join(", ") || "még nincs adat"}`);
+        canvas.setAttribute("aria-label", `${item.name || "Növény"} vízigényhez igazított korábbi értékei: ${(item.history || []).slice(-7).map(p => Math.round(p.v) + "%").join(", ") || "még nincs adat"}`);
 
         chartCard.appendChild(title);
         chartCard.appendChild(canvas);
@@ -668,14 +668,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             <g class="gauge-marker"><circle cx="180" cy="100" r="5"/></g>
           </svg>
           <div class="gauge-value">—</div>
-          <span class="gauge-caption">Számított<br>vízellátottság</span>
+          <span class="gauge-caption">Talajnedvesség<small>Szenzormérés</small></span>
         </div>
 
         <div class="device-facts">
-          <p class="soil-detail"><span>Mért talajnedvesség</span><strong data-soil-value>—</strong></p>
-          <p class="care-state" role="status"><span>Állapot</span><strong class="care-value">Várakozás</strong></p>
+          <p class="care-state" role="status"><span>Állapot a kiválasztott vízigény alapján</span><strong class="care-value">Mérésre vár</strong></p>
         </div>
-        <details class="reading-explainer"><summary>Miért két külön százalék?</summary><p class="reading-explanation"></p><p>A szenzorérték nem a talaj víztartalmának laboratóriumi mérése. Öntözés előtt ellenőrizd a földet is.</p></details>
+
         <div class="slider-container" style="display:none;">
           <div class="slider-labels"><span class="led-heading"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></svg><span>LED világítás<small class="led-state">Kikapcsolva</small></span></span><button class="led-toggle" type="button" aria-label="LED világítás be- és kikapcsolása" aria-pressed="false"><span></span></button></div>
           <div class="led-reading"><strong class="led-output">0%</strong><span>fényerő</span></div>
@@ -696,7 +695,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         </div>
 
         <div class="plant-select-wrap">
-          <span class="category-label">Kiválasztott vízigény</span>
+          <span class="category-label"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><use href="#plant-herb"/></svg> Kiválasztott vízigény</span>
           <div class="plant-select" data-uid="${uid}" data-device="${deviceId}">
             <span class="plant-select-value">Válassz kategóriát</span>
             <span class="plant-select-arrow">Módosítás <span aria-hidden="true">⌄</span></span>
@@ -741,7 +740,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       gaugeValueEl.style.color = "#7e917c";
 
 
-      let currPercent = 0;
+      let currPercent = null;
       let currCat = "";
 
       deviceCards.set(key, {
@@ -801,36 +800,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
       function updateAccountGauge(realPercent, cat) {
-        // visszaadjuk a kijelzett %-ot is
+        // Return the legacy category score; the instrument displays the sensor reading.
 
-        realPercent = Math.max(0, Math.min(100, Number(realPercent)));
-        let display = realPercent;
-
-        if (plantCategories[cat]) {
-          const { min, max } = plantCategories[cat];
-
-          if (realPercent < min) display = 0;
-          else if (realPercent > max) display = 100;
-          else {
-            display = Math.round(((realPercent - min) / (max - min)) * 100);
-          }
-        }
-
-        card.dataset.level = String(display);
+        const range = plantCategories[cat];
         card.dataset.category = cat;
-        // These botanical symbols represent water-demand groups, not species recognition.
         const botanicalIcon = {'🌵Szárazkedvelő':'dry','🌾Mérsékelten száraz':'herb','🌿Kiegyensúlyozott vízigényű':'leaf','🌱Nedvességkedvelő':'tropical','💧Vízigényes':'water'}[cat] || 'leaf';
         card.querySelector('.plant-category-icon use').setAttribute('href', '#plant-' + botanicalIcon);
+        if(realPercent === null || realPercent === '' || !Number.isFinite(Number(realPercent))) {
+          card.dataset.level = 'unknown';
+          card.classList.remove('needs-attention');
+          gaugeValueEl.textContent = '—';
+          card.querySelector('.care-value').textContent = 'Mérésre vár';
+          gaugeCircleEl.style.strokeDashoffset = C;
+          return null;
+        }
+        realPercent = Math.max(0, Math.min(100, Number(realPercent)));
+        // Preserve the category score for existing history and alert integrations.
+        const score = range ? Math.max(0,Math.min(100,Math.round((realPercent-range.min)/(range.max-range.min)*100))) : realPercent;
+        // The instrument itself always displays the sensor reading, independently of category.
+        const display = Math.round(realPercent);
+        card.dataset.level = String(display);
         card.style.setProperty('--gauge-angle', (display * 3.6) + 'deg');
-        const range = plantCategories[cat];
-        const label = String(cat || '').replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-        card.querySelector('.reading-explanation').textContent = range
-          ? `A szenzor ${Math.round(realPercent)}%-ot mér. A(z) „${label}” beállítás ${range.min}–${range.max}% közötti szenzorértékből számít 0–100%-os skálát. Ezért a számított érték most ${display}%. A 100% a skála felső vége, nem azt jelenti, hogy tökéletes az állapot.`
-          : 'A nagy kör a kiválasztott vízigényhez igazított számított érték; a mért talajnedvesség külön látható.';
-        card.querySelector('[data-soil-value]').textContent = Math.round(realPercent) + '%';
-        card.querySelector('.care-value').textContent = display < 35 ? 'Öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság' : 'Megfelelő';
-        card.classList.toggle('needs-attention', display < 35 || display >= 95);
-        card.style.setProperty('--water-top', (100 - display) + '%');
+        const low = score < 35, high = score >= 95;
+        card.dataset.condition = low ? 'low' : high ? 'high' : 'normal';
+        card.querySelector('.care-value').textContent = low ? 'Alacsony talajnedvesség' : high ? 'Magas talajnedvesség' : 'Megfelelő';
+        card.classList.toggle('needs-attention', low || high);
+        card.style.setProperty('--water-top', (100-display) + '%');
         const previous = gaugeValueEl.dataset.value === undefined ? 0 : Number(gaugeValueEl.dataset.value);
         gaugeValueEl.dataset.value = String(display);
         if (gaugeValueEl.__numberFrame) cancelAnimationFrame(gaugeValueEl.__numberFrame);
@@ -851,11 +846,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const offset = C - (display / 100) * C;
         gaugeCircleEl.style.strokeDashoffset = offset;
 
-        const color = getGradientColor(display);
-        card.style.setProperty('--reading-color', display < 35 ? '#a54822' : display >= 95 ? '#76531b' : '#275e37');
+        const color = getGradientColor(score);
+        card.style.setProperty('--reading-color', low ? '#a54822' : high ? '#76531b' : '#275e37');
         gaugeCircleEl.style.stroke = color;
         gaugeValueEl.style.color = color;
-        return display;
+        return score;
       }
 
       function updateAirUI(airData) {

@@ -83,3 +83,9 @@ A körmérő körül jól látható, inline SVG levélágak és virágok jelenne
 
 ## 2026-10-26 – Egységes botanikus mellékképernyők
 Az útmutató, a grafikonok és az értesítési ablak rögzített, sötét erdőzöld, virágos fejlécet és külön görgethető tartalmat kapott. A bezárás mindig elérhető, az értesítések Mentés/Mégse gombjai fix alsó műveletsávba kerültek. Az értesítési lista hozzáférhető nevű kapcsolókat és egyértelmű email-törlő ikont használ. A grafikonok zöld színátmenetes oszlopokat, segédvonalakat és nagyobb számfeliratokat kapnak, a korábbi színezési küszöbök változatlanok. A csomagoldal sötét virágos fejlécet, egységes kártyákat és botanikus kiemeléseket kapott. Árak, előfizetési korlátozások, mérések és értesítési feltételek nem változtak.
+
+
+## 2026-10-26 – Egyértelműbb mérés és tisztább hierarchia
+A főképernyő nagy körében kizárólag a szenzor talajnedvesség-értéke jelenik meg. Kikerült a második százalék és a két érték eltérését magyarázó blokk. A kiválasztott vízigény csak a szöveges állapotértékelést befolyásolja; az értékelési küszöbök változatlanok. A mérés ideje közvetlenül a kör alatt látható, ezt követi az állapot, vízigény és világítás. Hiányzó mérésnél a jelzés „Mérésre vár”, nem 0%. Az offline képernyő is a mentett szenzorértéket használja.
+
+Az előzményeket és értesítési integrációkat nem írjuk át: a korábbi vízigényhez igazított pontszám továbbra is ugyanazon a skálán kerül az előzménybe, és a grafikon ezt egyértelműen megnevezi. Nem alakítjuk vissza a régi adatokat, mert azokhoz nincs biztosan mentett történeti kategória. A főnézetre nincs kitalált szenzorérték. Az útmutató ehhez igazítva. Finom levéljel a kategóriánál, kis növénysor a láblécben; a meglévő virágkoszorú megmarad.
