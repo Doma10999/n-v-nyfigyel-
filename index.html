@@ -5,7 +5,7 @@
   <meta name="viewport"
       content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <title>Növényfigyelő</title>
-  <meta name="theme-color" content="#f5f7fa">
+  <meta name="theme-color" content="#f6f8f3">
   <meta name="description" content="Növényeid állapota egy pillantásra. Talajnedvesség, világítás és levegőminőség, egyszerűen.">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
@@ -16,24 +16,34 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20261026controls4">
+  <link rel="stylesheet" href="styles.css?v=20261026botanical5">
 
   
 
-  <script type="module" src="firebase-app.js?v=20261026controls4"></script>
+  <script type="module" src="firebase-app.js?v=20261026botanical5"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
-  <script src="notifications.js?v=20261026controls4"></script>
+  <script src="notifications.js?v=20261026botanical5"></script>
 
   
 
 
-  <link rel="stylesheet" href="dashboard.css?v=20261026controls4">
-  <script defer src="dashboard.js?v=20261026controls4"></script>
+  <link rel="stylesheet" href="dashboard.css?v=20261026botanical5">
+  <script defer src="dashboard.js?v=20261026botanical5"></script>
 </head>
 
 <body>
+  <svg class="botanical-symbols" width="0" height="0" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <symbol id="plant-dry" viewBox="0 0 32 32"><path d="M13 27V9a3 3 0 0 1 6 0v18M13 19H9a3 3 0 0 1-3-3v-5M19 15h4a3 3 0 0 0 3-3V8M10 28h12M16 10v13"/><path d="M16 5c-4-5 4-5 0 0Z" fill="#d99ca0" stroke="none"/></symbol>
+      <symbol id="plant-herb" viewBox="0 0 32 32"><path d="M16 28V5M16 11C9 12 7 9 7 5c6 0 9 2 9 6ZM16 18C8 19 5 16 5 12c7 0 11 2 11 6ZM16 14c7 1 10-2 10-6-6 0-10 2-10 6ZM16 23c8 1 11-2 11-6-7 0-11 2-11 6Z"/></symbol>
+      <symbol id="plant-leaf" viewBox="0 0 32 32"><path d="M10 26C2 16 9 5 27 4c1 16-7 25-17 22ZM8 29 22 10M12 23l-1-6M16 19l6-1M19 15l-1-5"/></symbol>
+      <symbol id="plant-tropical" viewBox="0 0 32 32"><path d="M15 28V12M15 21C6 22 3 17 4 11c8-1 12 2 11 10ZM16 17c0-8 5-11 12-10 0 8-5 12-12 10ZM16 12C10 10 10 5 13 2c6 3 7 6 3 10Z"/></symbol>
+      <symbol id="plant-water" viewBox="0 0 32 32"><path d="M16 23C9 16 10 9 16 4c6 5 7 12 0 19ZM16 23C7 23 3 18 4 11c7 1 11 5 12 12ZM16 23c9 0 13-5 12-12-7 1-11 5-12 12ZM5 28c6-3 16-3 22 0"/></symbol>
+    </defs>
+  </svg>
+
   <div id="appLaunchSplash" role="status" aria-label="A Növényfigyelő betöltése">
     <div class="app-launch-stage" aria-hidden="true">
       <span class="app-launch-ring ring-one"></span>
@@ -99,7 +109,7 @@
   </header>
   <main class="dashboard-main">
   <section class="welcome-panel"><span class="eyebrow">GONDOSKODÁS. EGYSZERŰEN.</span><h2>Közelebb<br>a növényeidhez.</h2><p>Nedvesség, világítás, nyugalom.<br>Minden fontos adat egy helyen.</p><svg class="welcome-plant" viewBox="0 0 120 140" fill="none" aria-hidden="true"><path d="M60 95V33" stroke="#17634d" stroke-width="4" stroke-linecap="round"/><path d="M59 67C27 70 15 51 17 31c27-2 44 11 42 36Z" fill="#bcd9a0"/><path d="M62 48C59 18 78 6 103 9c0 25-13 40-41 39Z" fill="#17634d"/><path d="M61 88c5-25 22-34 44-29-2 23-18 35-44 29Z" fill="#83bca0"/><path d="M37 96h49l-7 37H44l-7-37Z" fill="#e3b88d"/><path d="M35 96h53" stroke="#a77851" stroke-width="5" stroke-linecap="round"/></svg></section>
-  <section id="gardenOverview" hidden><div class="section-heading"><div><span class="eyebrow">AZ OTTHONOD, ÉLETRE KELTVE</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats" role="group" aria-label="Növények szűrése"><button type="button" data-filter="all" aria-pressed="true"><strong id="statTotal">0</strong><span>Összes</span></button><button type="button" data-filter="attention" aria-pressed="false"><strong id="statAttention">0</strong><span>Figyelmet kér</span></button><button type="button" data-filter="stale" aria-pressed="false"><strong id="statStale">0</strong><span>Régi mérés</span></button></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs a szűrésnek megfelelő növény.</p></section>
+  <section id="gardenOverview" hidden><svg class="garden-botany" viewBox="0 0 110 92" fill="none" aria-hidden="true"><path d="M16 66h36l-5 22H21l-5-22Z" fill="#dfeadb"/><path d="M34 66V21M34 48C17 48 12 39 13 28c15 0 23 7 21 20ZM35 36c0-18 12-25 27-23 0 16-10 24-27 23Z" stroke="#387d61" stroke-width="2" stroke-linecap="round" fill="#c3dfc2"/><path d="M76 81V44M76 69c-10 0-13-5-12-12 9 0 14 5 12 12ZM77 61c0-10 6-14 15-13 0 9-6 14-15 13Z" stroke="#4e8d6e" stroke-width="1.8" stroke-linecap="round" fill="#d4e8cd"/><path d="M76 37c-11-1-9-11-2-9-1-10 10-10 10-2 8-4 13 6 4 9 8 7 0 14-6 7-4 10-14 6-6-5Z" fill="#e5bab6"/><circle cx="80" cy="35" r="4" fill="#d6aa64"/><path d="M9 89h88" stroke="#d9e5d7" stroke-width="2" stroke-linecap="round"/></svg><div class="section-heading"><div><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats" role="group" aria-label="Növények szűrése"><button type="button" data-filter="all" aria-pressed="true"><strong id="statTotal">0</strong><span>Összes</span></button><button type="button" data-filter="attention" aria-pressed="false"><strong id="statAttention">0</strong><span>Figyelmet kér</span></button><button type="button" data-filter="stale" aria-pressed="false"><strong id="statStale">0</strong><span>Régi mérés</span></button></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs a szűrésnek megfelelő növény.</p></section>
 
   <div class="card" id="plantData">
     <form id="loginForm">
@@ -370,8 +380,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20261026controls4"></script>
-  <script src="push-client.js?v=20261026controls4"></script>
+  <script src="service-worker-register.js?v=20261026botanical5"></script>
+  <script src="push-client.js?v=20261026botanical5"></script>
   <script src="offline-status.js"></script>
 
 
@@ -394,7 +404,7 @@
     </div>
   </div>
 
-  <script src="plant-type-modal.js?v=20261026controls4"></script>
+  <script src="plant-type-modal.js?v=20261026botanical5"></script>
 
 
 
