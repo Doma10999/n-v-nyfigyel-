@@ -247,19 +247,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function getGradientColor(value) {
-      let r, g, b;
-      if (value <= 50) {
-        const ratio = value / 50;
-        r = 255;
-        g = Math.round(69 + (215 - 69) * ratio);
-        b = 0;
-      } else {
-        const ratio = (value - 50) / 50;
-        r = Math.round(255 + (76 - 255) * ratio);
-        g = Math.round(215 + (175 - 215) * ratio);
-        b = Math.round(0 + (80 - 0) * ratio);
-      }
-      return `rgb(${r},${g},${b})`;
+      // Deeper versions of the original red → amber → green palette stay legible on white.
+      const low = [196, 82, 46], middle = [181, 122, 22], high = [57, 127, 72];
+      const safe = Math.max(0, Math.min(100, Number(value) || 0));
+      const from = safe <= 50 ? low : middle;
+      const to = safe <= 50 ? middle : high;
+      const ratio = safe <= 50 ? safe / 50 : (safe - 50) / 50;
+      return `rgb(${from.map((part, index) => Math.round(part + (to[index] - part) * ratio)).join(',')})`;
     }
 
     // ====== Eszköz-kártyák (minden eszköz külön) ======
@@ -704,7 +698,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
           </svg>
           <div class="gauge-value">—</div>
-          <span class="gauge-caption">Vízellátottsági szint</span>
+          <span class="gauge-caption">Vízellátottság</span>
         </div>
 
         <p class="soil-detail">Talajnedvesség: <strong data-soil-value>—</strong></p>
