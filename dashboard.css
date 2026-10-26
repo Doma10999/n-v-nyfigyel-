@@ -103,3 +103,14 @@ body.billing-page { padding:0 20px 40px !important; }.billing-shell,.billing-she
 .welcome-panel,.billing-intro-card,.billing-intro-card-pro { background:linear-gradient(135deg,#e7f1db,#edf6ec); }#appLaunchSplash { background:#f6f8f3; }
 @media(min-width:780px) { .section-heading { padding-right:100px; }.section-heading > div { padding-right:0; }.garden-botany { width:91px; height:77px; top:0; } }
 @media(max-width:370px) { .garden-botany { width:62px; height:65px; top:2px; }.section-heading > div { padding-right:65px; }.section-heading .eyebrow { font-size:8px; }.section-heading h2 { font-size:30px; }.device-card .plant-avatar { width:40px; flex-basis:40px; height:44px; }.device-card .plant-avatar svg { width:29px; height:29px; } }
+/* The live reading sits inside a botanical wreath, with a clear, high-contrast centre. */
+.device-card .gauge-container { margin-top:32px !important; margin-bottom:31px !important; isolation:isolate; }
+.gauge-botanical { position:absolute; inset:-25px; width:calc(100% + 50px); height:calc(100% + 50px); overflow:visible; pointer-events:none; z-index:0; animation:wreath-in .65s var(--ease) both; }
+.device-card .gauge-svg { z-index:1; }.device-card .gauge-value,.device-card .gauge-caption { z-index:2; }
+.device-card .gauge-inner { fill:#153f31; stroke:#23634b; stroke-width:1.2; }.device-card .gauge-value { color:#fff !important; text-shadow:0 1px 1px #08291f22; }.device-card .gauge-caption { color:#e0f0dc; font-weight:500; }
+.device-card .gauge-bg { stroke:#dcebd3 !important; }.device-card .gauge-ticks { stroke:#81b57b; }.gauge-marker circle { fill:#0d8b63; }
+.device-card.needs-attention .gauge-inner { fill:#52361d; stroke:#865e30; }.device-card.needs-attention .gauge-value { color:#fff8e8 !important; }.device-card.needs-attention .gauge-caption { color:#f5e6cf; }.device-card.needs-attention .gauge-marker circle { fill:#d6802d; }
+.overview-stats button[aria-pressed=true] { background:#184b35; border-color:#184b35; }.device-card .plant-avatar { background:#e4f3d4; color:#327b45; }
+.device-card .slider-container.is-on { background:linear-gradient(135deg,#e8f6da,#e7f7ee); border-color:#aed3a2; }.device-card input.led-slider { background:linear-gradient(to right,#73cf69 0%,#118e68 var(--slider-progress,0%),#dae8d5 var(--slider-progress,0%) 100%) !important; }
+@keyframes wreath-in { from { opacity:0; transform:scale(.96); } to { opacity:1; transform:scale(1); } }
+@media(max-width:370px) { .gauge-botanical { inset:-21px; width:calc(100% + 42px); height:calc(100% + 42px); } }

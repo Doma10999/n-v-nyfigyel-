@@ -75,3 +75,7 @@ Ellenőrzés: build és service worker tesztek, teljes Chromium teszt, LED ki/be
 
 ## 2026-10-26 – Finom botanikus arculat
 Természetes zsálya- és mentazöld felületek, zöld–türkiz körmérő és csúszka, virágot és leveleket ábrázoló kis fejlécillusztráció. A növénykártyák vektoros ikonja a kiválasztott vízigénycsoporthoz igazodik (kaktusz, fűszernövény, levél, trópusi hajtás, vízinövény); ezek díszítő jelképek, nem fajfelismerés. Az illusztrációk inline SVG elemek, nincs új képletöltés vagy végtelen animáció. A mérési logika, feliratok, LED-vezérlés és kategóriakorlátozások változatlanok.
+
+
+## 2026-10-26 – Növénykoszorús körmérő
+A körmérő körül jól látható, inline SVG levélágak és virágok jelennek meg. A sötét erdőzöld középfelület fehér számmal és élénk smaragd színátmenetes mérőívvel erősebb kontrasztot ad. Figyelmet kérő állapotban a mérő meleg borostyán ívet és sötétbarna közepet használ; a botanikus díszítés nem helyettesíti az állapotjelzést. Az olvasható számterület és a vezérlők változatlanok. A díszítés nem fogad érintést és nincs folyamatos animációja.
