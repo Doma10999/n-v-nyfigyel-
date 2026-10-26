@@ -1,4 +1,4 @@
-/* Compact, neutral mobile application design; existing Firebase controls keep their IDs. */
+/* Shared application controls; native dashboard layout is defined below. */
 :root { color-scheme:light; --paper:#f4f6f5; --surface:#fff; --ink:#1a3029; --muted:#52665e; --line:#e8eeeb; --accent:#087d5c; --soft:#f3f7f5; }
 [hidden] { display:none !important; }
 body { margin:0; min-height:100dvh; overflow-x:hidden; background:var(--paper) !important; color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',system-ui,sans-serif !important; padding:0 20px calc(32px + env(safe-area-inset-bottom)) !important; text-align:left; -webkit-font-smoothing:antialiased; }
@@ -47,10 +47,6 @@ button:focus-visible,input:focus-visible,[role=button]:focus-visible { outline:3
 #loginForm input { min-height:54px; padding:15px !important; font-size:16px !important; background:#f5f8f6 !important; color:#254b32 !important; border:1px solid #e5ece7 !important; border-radius:14px !important; box-shadow:none !important; }input::placeholder { color:#627669; opacity:1; }
 #loginForm button[type=submit] { min-height:52px; padding:14px !important; font-size:16px !important; font-weight:650; border-radius:14px !important; background:#087d5c !important; color:white !important; box-shadow:none !important; }.password-eye { min-width:44px; min-height:44px; color:#577a62 !important; background:transparent !important; box-shadow:none !important; }.password-eye i::before { content:'◉'; font-family:system-ui; }.password-eye i.fa-eye-slash::before { content:'◎'; }#status { margin-top:13px; color:#526d5b !important; font-size:13px; }
 .device-card .ok-btn i::before { content:'✓'; font-family:system-ui; }.device-card .cancel-btn i::before { content:'×'; font-family:system-ui; }
-.app-dock { position:fixed; right:24px; bottom:calc(24px + env(safe-area-inset-bottom)); z-index:1000; display:none; width:54px; height:54px; }.is-authenticated .app-dock { display:block; }
-.app-dock button { position:absolute !important; right:0 !important; bottom:0 !important; width:54px !important; height:54px !important; margin:0 !important; padding:13px !important; display:flex; align-items:center; justify-content:center; color:#24654a !important; background:white !important; border:1px solid #e3ebe6 !important; border-radius:17px !important; box-shadow:0 4px 16px #163d2817 !important; opacity:0; visibility:hidden; pointer-events:none; transform:translateY(0) scale(.8) !important; transition:transform .3s cubic-bezier(.2,.8,.3,1),opacity .22s,visibility .22s !important; }
-.app-dock button svg { width:23px !important; height:23px !important; }.app-dock button::after { content:attr(title); position:absolute; right:65px; top:50%; transform:translateY(-50%); background:white; border:1px solid #e2ebe5; color:#375843; padding:10px 14px; font-size:14px; font-weight:600; border-radius:13px; white-space:nowrap; line-height:1.3; box-shadow:0 3px 12px #254f320b; }
-.app-dock #menuBtn { opacity:1 !important; visibility:visible; pointer-events:auto; transform:none !important; background:#173e2e !important; color:white !important; border-color:#173e2e !important; z-index:2; }.app-dock #menuBtn::after { display:none; }.app-dock #addAccountBtn { --menu-y:-66px; }.app-dock #notifBellBtn { --menu-y:-132px; }.app-dock #chartsBtn { --menu-y:-198px; }.app-dock #paymentBtn { --menu-y:-264px; }.app-dock #infoBtn { --menu-y:-330px; }body.menu-open .app-dock button:not(#menuBtn) { opacity:1 !important; visibility:visible; pointer-events:auto; transform:translateY(var(--menu-y)) scale(1) !important; }.app-dock #infoBtn::after { content:'Használati útmutató'; }.app-dock #paymentBtn::after { content:'Csomagok'; }.app-dock #notifBellBtn::after { content:'Értesítések'; }.app-dock #addAccountBtn::after { content:'Fiók hozzáadása'; }
 #gardenOverview { max-width:440px; margin:0 auto 18px; }.overview-stats,.section-heading .eyebrow { display:none; }.section-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; }.section-heading h2 { color:#31523d; font-size:18px; font-weight:650; white-space:nowrap; margin:0; }.section-heading h2 span { color:#607c6a; font-size:13px; }.plant-search { display:flex; align-items:center; gap:7px; flex:1; min-width:0; background:white; border:1px solid #e1eae4; border-radius:13px; padding:0 10px; }.plant-search svg { width:17px; height:17px; color:#63836f; }.plant-search input { min-height:44px; width:100% !important; padding:11px 0 !important; margin:0 !important; border:0 !important; border-radius:0 !important; background:none !important; box-shadow:none !important; font-size:14px !important; color:#355a40; }
 #emptyPlants,#noSearchResults { padding:20px; background:white; border:1px solid #e5ede7; border-radius:18px; font-size:14px; color:#55745e; line-height:1.6; }.garden-footer { max-width:440px; margin:23px auto 0; font-size:11px; color:#5e7868; text-align:center; }
 .install-dialog { position:fixed; inset:0; z-index:100000; display:grid; place-items:center; padding:22px; background:#163b2a55; }.install-dialog > div { max-width:420px; width:100%; padding:28px; border-radius:24px; background:white; color:#244a31; box-shadow:0 24px 80px #153a2926; text-align:left; animation:sheet-in .3s ease both; }.install-dialog h2 { font-size:25px; letter-spacing:-.7px; margin:0 0 17px; }.install-dialog p { color:#526f5c; font-size:15px; line-height:1.75; margin-bottom:14px; }.install-dialog button { min-height:48px; width:100%; padding:13px; border:0; border-radius:14px; background:#087d5c; color:white; font-size:16px; font-weight:650; cursor:pointer; }
@@ -66,3 +62,97 @@ button:focus-visible,input:focus-visible,[role=button]:focus-visible { outline:3
 .device-card .battery-icon { display:none !important; }
 .device-card .battery-box::before { content:''; display:block; width:23px; height:13px; border:1.5px solid #6c8576; padding:2px; border-radius:3px; box-sizing:border-box; background:linear-gradient(to right,#159a72 var(--battery-level,0%),transparent var(--battery-level,0%)); background-clip:content-box; }
 .device-card .edit-pill svg { width:18px; height:18px; display:block; }
+
+/* Garden native: one visual system for the dashboard, controls and navigation. */
+:root { --paper:#f6f7f2; --ink:#182f2b; --muted:#53645c; --accent:#12654e; }
+body { padding-bottom:calc(115px + env(safe-area-inset-bottom)) !important; }
+.app-header { max-width:980px; flex-direction:row; align-items:center; padding:calc(22px + env(safe-area-inset-top)) 0 24px; gap:10px; }
+.app-header h1 { font-size:19px; letter-spacing:-.6px; white-space:nowrap; flex-direction:row-reverse; gap:9px; }
+.app-header h1 span { width:28px; height:28px; }
+.header-actions { width:auto; margin-left:auto; gap:5px; }
+.header-actions button { background:transparent !important; border-color:transparent !important; border-radius:50% !important; }
+.header-actions .button-label { display:none; }
+#connectionState { position:absolute; top:100%; left:0; font-size:12px; display:none; }
+.app-header { position:relative; }
+.dashboard-main { max-width:980px; }
+.welcome-panel { position:relative; overflow:hidden; max-width:440px; margin:0 auto 20px; padding:28px 24px 25px; background:#eaf0df; border-radius:28px; min-height:210px; }
+.welcome-panel .eyebrow { display:block; color:#405a43; font-size:10px; letter-spacing:1.7px; font-weight:750; margin-bottom:17px; }
+.welcome-panel h2 { position:relative; z-index:1; font-size:32px; line-height:1.15; font-weight:750; letter-spacing:-1.3px; color:#203c30; margin:0 0 16px; }
+.welcome-panel p { font-size:13px; color:#435e4b; line-height:1.6; max-width:190px; margin:0; }
+.welcome-plant { position:absolute; bottom:20px; right:12px; width:105px; height:140px; transform-origin:50% 100%; animation:plant-welcome 1.2s cubic-bezier(.2,.8,.3,1) both; }
+.is-authenticated .welcome-panel { display:none; }
+#gardenOverview { max-width:980px; margin:0 auto 22px; }
+.section-heading { align-items:flex-end; flex-wrap:wrap; margin:2px 0 20px; gap:16px; }
+.section-heading .eyebrow { display:block; font-size:10px; color:#586a5b; letter-spacing:1.7px; font-weight:700; margin-bottom:9px; }
+.section-heading h2 { font-size:34px; font-weight:750; color:#182f2b; letter-spacing:-1.2px; }
+.section-heading h2 span { display:inline-grid; place-items:center; vertical-align:middle; width:28px; height:28px; border-radius:10px; background:#e4ebdb; font-size:13px; color:#36513d; margin-left:4px; letter-spacing:0; }
+.plant-search { flex:0 1 240px; background:#fff; border-radius:16px; }
+.overview-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+.overview-stats > div { padding:17px 13px; border-radius:19px; background:#e9eee3; display:flex; flex-direction:column; gap:6px; }
+.overview-stats > div:nth-child(2) { background:#e1eee6; }
+#gardenOverview[data-attention=yes] .overview-stats > div:nth-child(2) { background:#f9eddc; }
+.overview-stats strong { font-size:24px; font-weight:750; color:#213f31; letter-spacing:-.6px; }
+.overview-stats span { color:#405849; font-size:12px; line-height:1.35; }
+#accountsContainer { align-items:stretch; display:grid !important; grid-template-columns:minmax(0,1fr); gap:20px; max-width:440px; margin:auto; }
+#accountsContainer .device-card { max-width:none !important; padding:22px !important; border:1px solid #e9ece4 !important; border-radius:28px !important; box-shadow:0 6px 24px #20352405 !important; }
+#accountsContainer .device-card.selected { border-color:#c1d7cb !important; }
+.device-card .plan-badge-wrap { min-height:24px; padding-right:38px; }
+.device-card .plan-badge { font-size:10px !important; background:#edf0e6 !important; color:#3c5847 !important; }
+.device-card .title-row { margin-top:9px !important; }
+.device-card .plant-title { font-size:25px !important; color:#172e28 !important; }
+.device-card .edit-pill { background:#f4f5ee !important; border-radius:50%; }
+.device-card .gauge-container,.device-card .gauge-svg { width:218px !important; height:218px !important; }
+.device-card .gauge-container { margin:13px auto 17px !important; }
+.device-card .gauge-bg { stroke:#edf1e7 !important; }
+.device-card .gauge-fill { stroke:#188365 !important; }
+.device-card .gauge-value { color:#183b31 !important; font-size:52px !important; letter-spacing:-2px; }
+.device-card .gauge-caption { font-size:13px; color:#4d6257; }
+.device-card.needs-attention .gauge-fill { stroke:#cb8a3d !important; }
+.device-facts { background:none; gap:9px; padding:0; margin-bottom:14px; border-radius:0; }
+.soil-detail,.care-state { padding:14px 13px; border:0; border-radius:17px; background:#f3f5ef; min-height:84px; }
+.care-state { background:#eaf4ed; }.needs-attention .care-state { background:#fcf0df; }
+.soil-detail span,.care-state > span { font-size:12px; color:#506052; }.soil-detail strong { color:#233f31; font-size:25px; }
+.care-value { font-size:14px; }
+.device-card .slider-container { border:0; background:#f5f6f1; border-radius:17px; padding:14px 14px 19px; margin-bottom:14px !important; }
+.device-card .slider-labels { color:#354b3e; font-size:14px; }
+.device-card .plant-select-wrap { align-items:flex-start; padding-top:11px; gap:10px; }
+.category-label { padding-top:12px; color:#58665c; font-size:12px; }
+.device-card .plant-select { font-size:14px !important; padding-top:9px !important; }
+.device-card .last-update-pill { font-size:12px !important; margin-top:7px !important; padding-left:13px !important; position:relative; }
+.device-card .last-update-pill::before { content:''; position:absolute; top:7px; left:0; width:5px; height:5px; border:1px solid #5e8a71; border-radius:50%; }
+.device-card.measurement-stale .last-update-pill::before { border-color:#a97730; background:#e8c688; }
+.garden-footer { max-width:none; font-size:12px; margin:26px auto; color:#596a5d; }
+#plantData { border-radius:28px; border-color:#e9ece4; margin-top:0 !important; }
+#loginForm button[type=submit] { background:#17634d !important; box-shadow:0 5px 12px #17634d18 !important; transition:transform .18s !important; }
+#loginForm button[type=submit]:active { transform:scale(.98); }
+/* Three stable destinations; secondary actions open in a labelled bottom sheet. */
+.app-dock { position:fixed; z-index:1000; bottom:calc(14px + env(safe-area-inset-bottom)); left:50%; transform:translateX(-50%); width:calc(100% - 32px); max-width:430px; height:74px; padding:7px; border:1px solid #e4e8df; border-radius:25px; background:#fffffff5; box-shadow:0 8px 35px #183f2d15; display:none; grid-template-columns:repeat(3,1fr); gap:5px; }
+.is-authenticated .app-dock { display:grid; }
+.app-dock button { margin:0 !important; font-family:inherit; }
+.app-dock #homeTab,.app-dock #chartsBtn,.app-dock #menuBtn { position:relative !important; inset:auto !important; display:flex !important; flex-direction:column; align-items:center; justify-content:center; gap:5px; width:100% !important; height:58px !important; padding:5px !important; opacity:1 !important; visibility:visible !important; transform:none !important; border:0 !important; border-radius:18px !important; box-shadow:none !important; background:transparent !important; color:#5b6a61 !important; transition:background .2s,color .2s,transform .2s !important; }
+.app-dock #homeTab { grid-column:1; grid-row:1; background:#e9f0df !important; color:#22553e !important; }
+.app-dock #chartsBtn { grid-column:2; grid-row:1; }.app-dock #menuBtn { grid-column:3; grid-row:1; }
+.app-dock svg { display:block; width:22px !important; height:22px !important; }
+.app-dock #homeTab::after,.app-dock #chartsBtn::after,.app-dock #menuBtn::after { content:attr(title); font-size:11px; font-weight:650; line-height:1.2; }
+.app-dock button:active { scale:.96; }
+.app-dock button:not(#homeTab):not(#chartsBtn):not(#menuBtn) { position:absolute !important; left:12px !important; right:12px !important; width:calc(100% - 24px) !important; height:55px !important; margin:0 !important; padding:13px 17px !important; display:flex; gap:14px; align-items:center; justify-content:flex-start; border:1px solid #e9ece5 !important; border-radius:17px !important; color:#234936 !important; background:white !important; box-shadow:none !important; visibility:hidden; opacity:0; pointer-events:none; transform:translateY(15px) !important; transition:transform .25s cubic-bezier(.2,.8,.3,1),opacity .2s,visibility .2s !important; }
+.app-dock #addAccountBtn { bottom:287px !important; }.app-dock #notifBellBtn { bottom:223px !important; }.app-dock #paymentBtn { bottom:159px !important; }.app-dock #infoBtn { bottom:95px !important; }
+.app-dock button:not(#homeTab):not(#chartsBtn):not(#menuBtn)::after { content:attr(title); font-size:15px; font-weight:600; }
+body.menu-open .app-dock button:not(#homeTab):not(#chartsBtn):not(#menuBtn) { transform:none !important; opacity:1; visibility:visible; pointer-events:auto; }
+body.menu-open .app-dock #menuBtn { background:#e9f0df !important; color:#22553e !important; }
+#menuShade { display:none; position:fixed; inset:0; width:100%; height:100dvh; z-index:999; padding:0; margin:0; border:0; border-radius:0; background:#193c2d55; box-shadow:none; }
+body.menu-open #menuShade { display:block; animation:shade-in .2s ease both; }
+#notifModalContent,#chartsModalContent,#infoModalContent,#modalContent,#confirmModalContent,.modal-box { border-radius:28px !important; }
+#appLaunchSplash { background:#f6f7f2; }
+@keyframes plant-welcome { from { opacity:0; transform:translateY(12px) rotate(-9deg); } to { opacity:1; transform:none; } }
+@keyframes shade-in { from { opacity:0; } to { opacity:1; } }
+@media(min-width:760px) { #accountsContainer { max-width:none; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:start; gap:22px; }.overview-stats { gap:14px; }.overview-stats > div { flex-direction:row; gap:13px; align-items:center; padding:19px 22px; }.overview-stats strong { font-size:28px; }.overview-stats span { font-size:14px; } }
+@media(max-width:600px) { body,html.pwa-standalone body { padding-left:16px !important; padding-right:16px !important; }.app-header { padding-top:calc(17px + env(safe-area-inset-top)); padding-bottom:23px; }.app-header h1 { font-size:18px; }.app-header h1 span { width:23px; height:25px; }.header-actions { gap:0; }.header-actions button { min-width:36px; width:36px !important; padding:9px !important; }.section-heading h2 { font-size:32px; }#accountsContainer .device-card,html.pwa-standalone #accountsContainer .device-card { padding:20px !important; border-radius:28px !important; }.plant-search { flex-basis:100%; }.category-label { display:block; }.device-card .plant-select-value { text-align:right; } }
+@media(max-width:370px) { .app-header h1 { font-size:16px; gap:5px; }.header-actions button { min-width:34px; width:34px !important; }.overview-stats > div { padding:15px 10px; }.overview-stats span { font-size:11px; }.category-label { display:none; }.device-card .plant-select { justify-content:space-between; }.device-card .plant-select-value { text-align:left; } }
+
+#menuShade,#menuShade:hover,#menuShade:active { transform:none !important; scale:1 !important; width:100vw !important; max-width:none !important; height:100dvh !important; left:0 !important; top:0 !important; margin:0 !important; }
+.app-header { padding-bottom:36px; }
+#connectionState { display:inline-flex; top:auto; bottom:13px; left:2px; font-size:11px; }
+.welcome-panel h2 { font-size:28px; max-width:245px; }
+.welcome-plant { width:65px; height:90px; right:14px; bottom:23px; }
+@media(max-width:370px) { .welcome-panel h2 { font-size:26px; }.welcome-plant { width:53px; right:12px; } }

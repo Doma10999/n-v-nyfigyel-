@@ -524,7 +524,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function animate() {
       ctx.clearRect(0, 0, w, h);
-      animProgress += 0.015;
+      animProgress = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off' ? 1 : animProgress + 0.015;
       if (animProgress > 1) animProgress = 1;
 
       data.forEach((p, i) => {
@@ -848,7 +848,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         card.querySelector('.care-value').textContent = display < 35 ? 'Öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság' : 'Megfelelő';
         card.classList.toggle('needs-attention', display < 35 || display >= 95);
         card.style.setProperty('--water-top', (100 - display) + '%');
-        const previous = Number(gaugeValueEl.dataset.value);
+        const previous = gaugeValueEl.dataset.value === undefined ? 0 : Number(gaugeValueEl.dataset.value);
         gaugeValueEl.dataset.value = String(display);
         if (gaugeValueEl.__numberFrame) cancelAnimationFrame(gaugeValueEl.__numberFrame);
         const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off';
@@ -860,6 +860,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             const progress = Math.min(1, (now - started) / 650);
             const eased = 1 - Math.pow(1 - progress, 3);
             gaugeValueEl.textContent = Math.round(previous + (display - previous) * eased) + '%';
+            if (document.documentElement.dataset.motion === 'off' || document.hidden || matchMedia('(prefers-reduced-motion: reduce)').matches) { gaugeValueEl.textContent = display + '%'; return; }
             if (progress < 1 && card.isConnected) gaugeValueEl.__numberFrame = requestAnimationFrame(tick);
           };
           gaugeValueEl.__numberFrame = requestAnimationFrame(tick);
