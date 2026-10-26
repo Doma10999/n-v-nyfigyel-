@@ -638,7 +638,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     window.addEventListener("click", (e)=>{ if (e.target === chartsModal) closeChartsModal(); });
 
     // ====== Kártya létrehozása egy konkrét eszközhöz ======
+    let gaugeSequence = 0;
     function createDeviceCardForUser(uid, email, deviceId) {
+      const gaugeId = `water-ring-${++gaugeSequence}`;
       const key = uid + "|" + deviceId;
 
       // már létezik → ne duplázzuk
@@ -695,21 +697,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
         <div class="gauge-container">
-          <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200">
+          <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true" style="--ring-gradient:url(#${gaugeId});--ring-warning:url(#${gaugeId}-warm)">
+            <defs><linearGradient id="${gaugeId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#19bbad"/><stop offset="1" stop-color="#2778c4"/></linearGradient><linearGradient id="${gaugeId}-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c77b"/><stop offset="1" stop-color="#c97939"/></linearGradient></defs>
+            <circle class="gauge-ticks" cx="100" cy="100" r="95"/>
+            <circle class="gauge-inner" cx="100" cy="100" r="62"/>
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
             <circle class="gauge-fill" cx="100" cy="100" r="80"></circle>
+            <g class="gauge-marker"><circle cx="180" cy="100" r="5"/></g>
           </svg>
           <div class="gauge-value">—</div>
-          <span class="gauge-caption">Vízellátottság</span>
+          <span class="gauge-caption">Számított<br>vízellátottság</span>
         </div>
 
         <div class="device-facts">
-          <p class="soil-detail"><span>Talajnedvesség</span><strong data-soil-value>—</strong></p>
+          <p class="soil-detail"><span>Mért talajnedvesség</span><strong data-soil-value>—</strong></p>
           <p class="care-state" role="status"><span>Állapot</span><strong class="care-value">Várakozás</strong></p>
         </div>
+        <details class="reading-explainer"><summary>Miért két külön százalék?</summary><p class="reading-explanation"></p><p>A szenzorérték nem a talaj víztartalmának laboratóriumi mérése. Öntözés előtt ellenőrizd a földet is.</p></details>
         <div class="slider-container" style="display:none;">
-          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" list="led-steps" />
-          <div class="slider-labels"><span>Világítás</span><strong class="led-output">0%</strong></div>
+          <div class="slider-labels"><span class="led-heading"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/></svg><span>LED világítás<small class="led-state">Kikapcsolva</small></span></span><button class="led-toggle" type="button" aria-label="LED világítás be- és kikapcsolása" aria-pressed="false"><span></span></button></div>
+          <div class="led-reading"><strong class="led-output">0%</strong><span>fényerő</span></div>
+          <input type="range" min="0" max="100" step="10" value="0" class="led-slider" />
+          <div class="led-scale" aria-hidden="true"><span>Ki</span><span>50%</span><span>Max</span></div>
         </div>
 
         <div class="air-quality-card" style="display:none;">
@@ -725,10 +734,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         </div>
 
         <div class="plant-select-wrap">
-          <span class="category-label">Növény típusa</span>
+          <span class="category-label">Kiválasztott vízigény</span>
           <div class="plant-select" data-uid="${uid}" data-device="${deviceId}">
             <span class="plant-select-value">Válassz kategóriát</span>
-            <span class="plant-select-arrow">▾</span>
+            <span class="plant-select-arrow">Módosítás <span aria-hidden="true">⌄</span></span>
           </div>
         </div>
 
@@ -846,6 +855,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         }
 
         card.dataset.level = String(display);
+        card.dataset.category = cat;
+        card.style.setProperty('--gauge-angle', (display * 3.6) + 'deg');
+        const range = plantCategories[cat];
+        const label = String(cat || '').replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
+        card.querySelector('.reading-explanation').textContent = range
+          ? `A szenzor ${Math.round(realPercent)}%-ot mér. A(z) „${label}” beállítás ${range.min}–${range.max}% közötti szenzorértékből számít 0–100%-os skálát. Ezért a számított érték most ${display}%. A 100% a skála felső vége, nem azt jelenti, hogy tökéletes az állapot.`
+          : 'A nagy kör a kiválasztott vízigényhez igazított számított érték; a mért talajnedvesség külön látható.';
         card.querySelector('[data-soil-value]').textContent = Math.round(realPercent) + '%';
         card.querySelector('.care-value').textContent = display < 35 ? 'Öntözést igényelhet' : display >= 95 ? 'Magas vízellátottság' : 'Megfelelő';
         card.classList.toggle('needs-attention', display < 35 || display >= 95);
@@ -1113,19 +1129,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 // Firebase: LED (csak ha van)
       const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
+      const ledToggle = card.querySelector('.led-toggle');
+      function renderLedLevel(value) {
+        const on = Number(value) > 0;
+        card.querySelector('.led-output').textContent = value + '%';
+        slider.style.setProperty('--slider-progress', value + '%');
+        ledToggle.setAttribute('aria-pressed', String(on));
+        card.querySelector('.led-state').textContent = on ? 'Bekapcsolva' : 'Kikapcsolva';
+        sliderContainer.classList.toggle('is-on', on);
+      }
+      slider.addEventListener('input', () => renderLedLevel(slider.value));
+      ledToggle.addEventListener('click', () => {
+        if(slider.disabled) return;
+        slider.value = Number(slider.value) > 0 ? '0' : (slider.dataset.lastOn || '50');
+        renderLedLevel(slider.value);
+        slider.dispatchEvent(new Event('change', {bubbles:true}));
+      });
       get(ledLevelRef).then((snap) => {
         if (snap.exists()) {
           sliderContainer.style.display = "flex";
           slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
           slider.dataset.savedLevel = slider.value;
-          card.querySelector('.led-output').textContent = slider.value + '%';
-          slider.style.setProperty('--slider-progress', slider.value + '%');
+          if(Number(slider.value) > 0) slider.dataset.lastOn = slider.value;
+          renderLedLevel(slider.value);
           subscribe(ledLevelRef, (s2) => {
             if (s2.exists()) {
               slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
               slider.dataset.savedLevel = slider.value;
-              card.querySelector('.led-output').textContent = slider.value + '%';
-              slider.style.setProperty('--slider-progress', slider.value + '%');
+              if(Number(slider.value) > 0) slider.dataset.lastOn = slider.value;
+              renderLedLevel(slider.value);
             }
           });
           slider.setAttribute('aria-label', 'LED fényerő');
@@ -1136,21 +1168,20 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             const savedLevel = Number(slider.dataset.savedLevel ?? slider.value);
             if (!navigator.onLine) {
               slider.value = String(savedLevel);
-              card.querySelector('.led-output').textContent = savedLevel + '%';
-              slider.style.setProperty('--slider-progress', savedLevel + '%');
+              renderLedLevel(savedLevel);
               window.showAppToast('A világítás állításához internetkapcsolat szükséges.', 'Nincs internet');
               return;
             }
             slider.disabled = true;
+            ledToggle.disabled = true;
             sliderContainer.setAttribute('aria-busy', 'true');
-            try { await set(ledLevelRef, snapped); slider.dataset.savedLevel = String(snapped); }
+            try { await set(ledLevelRef, snapped); slider.dataset.savedLevel = String(snapped); if(snapped > 0) slider.dataset.lastOn = String(snapped); }
             catch {
               slider.value = String(savedLevel);
-              card.querySelector('.led-output').textContent = savedLevel + '%';
-              slider.style.setProperty('--slider-progress', savedLevel + '%');
+              renderLedLevel(savedLevel);
               window.showAppToast('A fényerő mentése nem sikerült. Próbáld újra.', 'Mentési hiba');
             }
-            finally { slider.disabled = false; sliderContainer.removeAttribute('aria-busy'); }
+            finally { slider.disabled = false; ledToggle.disabled = false; sliderContainer.removeAttribute('aria-busy'); }
           });
         } else {
           sliderContainer.style.display = "none";
