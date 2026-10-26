@@ -620,7 +620,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       });
 
       if (eligibleItems.length === 0) {
-        alert("Jelenleg nincs Plus csomagos fiók a grafikonokhoz.");
+        chartsWrap.innerHTML = '<div class="chart-empty"><span class="eyebrow">NÖVÉNYFIGYELŐ PLUS</span><h3>A változás is számít.</h3><p>A mérési előzményekből követheted, hogyan változik a növényed vízellátottsága. A grafikonok Plus csomagban érhetők el.</p><a class="back-link" href="payment.html">Csomagok megtekintése →</a></div>';
+        chartsModal.style.display = 'flex';
         return;
       }
 
@@ -676,6 +677,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         <div class="last-update-pill" data-last-update>nincs adat</div>
 
         <div class="title-row">
+          <span class="plant-avatar" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M15 27V13M15 19C6 20 4 13 5 8c8 0 12 4 10 11ZM16 14c-1-8 4-12 12-11 1 8-4 12-12 11Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           <div class="plant-title-pill">
             <span class="plant-title">Rosso</span>
             <button class="edit-pill" aria-label="Név szerkesztése">
@@ -982,6 +984,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const level = safe >= 80 ? 100 : safe >= 60 ? 75 : safe >= 40 ? 50 : safe >= 20 ? 25 : 0;
         batteryImg.src = `batteryPercent/battery_${level}.png`;
         batteryImg.alt = `Akkumulátor: ${safe}%`;
+        batteryBox.dataset.low = String(safe <= 20);
         batteryBox.title = batteryImg.alt;
         batteryBox.setAttribute('role', 'img');
         batteryBox.setAttribute('aria-label', batteryImg.alt);
@@ -1114,11 +1117,13 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         if (snap.exists()) {
           sliderContainer.style.display = "flex";
           slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
+          slider.dataset.savedLevel = slider.value;
           card.querySelector('.led-output').textContent = slider.value + '%';
           slider.style.setProperty('--slider-progress', slider.value + '%');
           subscribe(ledLevelRef, (s2) => {
             if (s2.exists()) {
               slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
+              slider.dataset.savedLevel = slider.value;
               card.querySelector('.led-output').textContent = slider.value + '%';
               slider.style.setProperty('--slider-progress', slider.value + '%');
             }
@@ -1128,15 +1133,29 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
             e.stopPropagation();
             const snapped = Math.max(0, Math.min(100, Math.round((Number(e.target.value) || 0) / 10) * 10));
             e.target.value = snapped;
+            const savedLevel = Number(slider.dataset.savedLevel ?? slider.value);
+            if (!navigator.onLine) {
+              slider.value = String(savedLevel);
+              card.querySelector('.led-output').textContent = savedLevel + '%';
+              slider.style.setProperty('--slider-progress', savedLevel + '%');
+              window.showAppToast('A világítás állításához internetkapcsolat szükséges.', 'Nincs internet');
+              return;
+            }
             slider.disabled = true;
-            try { await set(ledLevelRef, snapped); }
-            catch { window.showAppToast('A fényerő mentése nem sikerült. Próbáld újra.', 'Mentési hiba'); }
-            finally { slider.disabled = false; }
+            sliderContainer.setAttribute('aria-busy', 'true');
+            try { await set(ledLevelRef, snapped); slider.dataset.savedLevel = String(snapped); }
+            catch {
+              slider.value = String(savedLevel);
+              card.querySelector('.led-output').textContent = savedLevel + '%';
+              slider.style.setProperty('--slider-progress', savedLevel + '%');
+              window.showAppToast('A fényerő mentése nem sikerült. Próbáld újra.', 'Mentési hiba');
+            }
+            finally { slider.disabled = false; sliderContainer.removeAttribute('aria-busy'); }
           });
         } else {
           sliderContainer.style.display = "none";
         }
-      });
+      }).catch(() => { window.showAppToast('A világítás beállítása nem tölthető be. Ellenőrizd a kapcsolatot.', 'Betöltési hiba'); });
 
       // 🔹 HISTORY szinkron Firebase-ből (grafikonhoz) – csak Plusnál
       const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);

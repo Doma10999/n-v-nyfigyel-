@@ -55,3 +55,11 @@ A menü és a vezérlők megtartják korábbi funkciójukat. A kártyák 25 px-e
 
 ## 2026-10-26 – Garden native
 Világos, meleg fehér mobilos felület sötétzöld tipográfiával, állandó alsó navigációval és címkézett másodlagos menüvel. Minden belépett fióknál látható darabszám, figyelmet kérő növények és régi mérések összegzése; keresés négy növénytől. Telefonon egy oszlop, nagyobb képernyőn két oszlop. A vastag kör megmarad, az állapot és a nyers talajnedvesség külön olvasható. A bejelentkezés, párbeszédablakok és a telepített PWA ugyanazt a stílust használják. A belépő, körmérő, számérték, menü és gomb animációk tiszteletben tartják a csökkentett mozgás beállítást. A párbeszédablakok billentyűzetes fókuszkezelést és Escape bezárást kapnak. Nincs Firebase séma-, előfizetés- vagy firmware-változás.
+
+
+## 2026-10-26 – Studio 2026
+Az alkalmazás teljes felületének egységesítése: hűvös világos háttér, fehér kártyák, mély türkiz kiemelés, egységes rendszerbetűk és térközök. Új növényfejlécek, vastag körmérők, állandó alsó navigáció és címkézett másodlagos menü. Az összegzés három gombja valós állapotszűrést végez (összes, figyelmet kér, régi mérés), kereséssel együtt. A bejelentkezés, grafikonok, csomagoldal, fizetés utáni oldal, offline nézet és PWA ugyanazt a vizuális rendszert használja.
+
+Működés: a kategória csak sikeres mentés után változik meg, a mentési hiba látható visszajelzést kap. A fényerőcsúszka hiba vagy offline állapot esetén visszaáll az utolsó ismert beállításra; a mentés idején letiltott. Az értesítések mentése email-ellenőrzést, dupla mentés elleni védelmet és hibaüzenetet kapott. A grafikon Free csomagnál értelmes tájékoztatást mutat böngészőriasztás helyett. Az alacsony akkumulátorszint külön kiemelést kap. A mozgáscsökkentés a menüre és a körmérőre is érvényes. Az előfizetések, árak, adatbázisséma és firmware változatlan.
+
+Ellenőrzés: build, service worker tesztek, kibővített Chromium teszt 360–1440 px szélességen. A teszt a szűrést, név- és kategóriamentést, LED mentést/visszaállítást, offline vezérlésvédelmet, Plus grafikonokat, értesítésmentést és hibakezelést, a csomagoldal linkjeit/elrendezését, modális fókuszkezelést, telepítési súgót és kijelentkezést ellenőrzi. A Firebase válaszok és írások szimuláltak; valódi eszköz, levélkézbesítés és Stripe tranzakció nem része a tesztnek.

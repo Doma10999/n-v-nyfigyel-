@@ -147,7 +147,7 @@ function createAccountCard(acc, sub, isCurrentUser = false) {
       <div>
         <div class="billing-account-label">Fiók</div>
         <div class="billing-account-email">${safeEmail}${isCurrentUser ? ' <span class="billing-current-tag">aktuális</span>' : ''}</div>
-        <div class="billing-account-subline">Ezhez a fiókhoz tartozik a csomag és az előfizetés.</div>
+        <div class="billing-account-subline">Ehhez a fiókhoz tartozik a csomag és az előfizetés.</div>
       </div>
       <span class="billing-plan-pill ${isPlus ? "plus" : "free"}">${isPlus ? "PLUS" : "FREE"}</span>
     </div>
