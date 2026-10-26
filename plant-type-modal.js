@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
         return;
       }
 
-      currentSelectEl.textContent = value;
+      currentSelectEl.textContent = value.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
 
       await window.__set(
         window.__ref(
