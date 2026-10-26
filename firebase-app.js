@@ -498,79 +498,32 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function drawSimpleLineChart(canvas, history) {
-    const ctx = canvas.getContext("2d");
-    const w = canvas.width;
-    const h = canvas.height;
-
-    ctx.clearRect(0, 0, w, h);
-
-    if (!history || history.length === 0) {
-      ctx.fillStyle = "rgba(0,0,0,0.5)";
-      ctx.font = "14px Roboto";
-      ctx.fillText("Nincs adat", 12, 24);
-      return;
-    }
-
-    const data = normalizeHistoryEntries(history).slice(-7);
-    const MAX_BARS = 7;
-    const paddingTop = 22;
-    const paddingBottom = 28;
-    const paddingX = 18;
-    const gap = 16;
-
-    const usableHeight = h - paddingTop - paddingBottom;
-    const barWidth = (w - paddingX * 2 - gap * (MAX_BARS - 1)) / MAX_BARS;
-    let animProgress = 0;
-
-    function animate() {
-      ctx.clearRect(0, 0, w, h);
-      animProgress = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off' ? 1 : animProgress + 0.015;
-      if (animProgress > 1) animProgress = 1;
-
-      data.forEach((p, i) => {
-        const value = Math.max(0, Math.min(100, p.v));
-        const targetHeight = (value / 100) * usableHeight;
-        const barHeight = targetHeight * animProgress;
-
-        const startIndex = MAX_BARS - data.length;
-        const x = paddingX + (i + startIndex) * (barWidth + gap);
-        const y = paddingTop + (usableHeight - barHeight);
-
-        let color = "#66bb6a";
-        if (value < 30) color = "#ef5350";
-        else if (value < 50) color = "#ffa726";
-
-        ctx.fillStyle = color;
-        const r = 6;
-        ctx.beginPath();
-        ctx.moveTo(x + r, y);
-        ctx.lineTo(x + barWidth - r, y);
-        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth, y + r);
-        ctx.lineTo(x + barWidth, y + barHeight);
-        ctx.lineTo(x, y + barHeight);
-        ctx.lineTo(x, y + r);
-        ctx.quadraticCurveTo(x, y, x + r, y);
-        ctx.fill();
-
-        ctx.fillStyle = color;
-        ctx.font = "900 16px Roboto";
-        ctx.textAlign = "center";
-        // FONTOS: itt szándékosan CSAK a százalék jelenik meg az oszlop alatt.
-        // Dátum/idő NEM rajzolódhat a canvasra, az csak jobb felül látszódjon.
-        ctx.fillText(`${value}%`, x + barWidth / 2, h - 10);
-      });
-
-      if (animProgress < 1) {
-        requestAnimationFrame(animate);
+      const ctx = canvas.getContext('2d'), w = canvas.width, h = canvas.height;
+      const data = normalizeHistoryEntries(history || []).slice(-7);
+      ctx.clearRect(0,0,w,h);
+      if(!data.length) { ctx.fillStyle='#57735d'; ctx.font='500 24px system-ui'; ctx.fillText('Még nincs mentett mérés.',24,48); return; }
+      const left=42, right=18, top=20, bottom=42, plotHeight=h-top-bottom;
+      const columns=7, gap=14, barWidth=(w-left-right-gap*(columns-1))/columns;
+      let progress=0;
+      function draw() {
+        ctx.clearRect(0,0,w,h);
+        progress = matchMedia('(prefers-reduced-motion: reduce)').matches || document.documentElement.dataset.motion === 'off' ? 1 : Math.min(1,progress+.025);
+        ctx.save(); ctx.lineWidth=1; ctx.strokeStyle='#dce9db'; ctx.setLineDash([4,6]);
+        for(const percent of [0,50,100]) { const y=top+plotHeight*(1-percent/100); ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(w-right,y);ctx.stroke();ctx.fillStyle='#68816a';ctx.font='500 16px system-ui';ctx.textAlign='right';ctx.fillText(String(percent),left-10,y+5); }
+        ctx.restore();
+        data.forEach((point,i) => {
+          const value=Math.max(0,Math.min(100,point.v)), barHeight=plotHeight*value/100*progress;
+          const x=left+(columns-data.length+i)*(barWidth+gap), y=top+plotHeight-barHeight;
+          const high=value<30?'#d68d71':value<50?'#edc174':'#73bc7d';
+          const low=value<30?'#a64f35':value<50?'#b37a28':'#227951';
+          const gradient=ctx.createLinearGradient(0,top,0,top+plotHeight);gradient.addColorStop(0,high);gradient.addColorStop(1,low);
+          ctx.fillStyle=gradient;ctx.beginPath();ctx.roundRect(x,y,barWidth,Math.max(1,barHeight),[Math.min(9,barHeight/2),Math.min(9,barHeight/2),3,3]);ctx.fill();
+          ctx.fillStyle=value<30?'#9a4d35':value<50?'#8c621e':'#245c3c';ctx.font='650 23px system-ui';ctx.textAlign='center';ctx.fillText(value+'%',x+barWidth/2,h-12);
+        });
+        if(progress<1 && canvas.isConnected) requestAnimationFrame(draw);
       }
+      draw();
     }
-
-    animate();
-  }
-
-
-
-
 
     function rebuildChartsModal() {
       chartsWrap.innerHTML = "";
@@ -601,7 +554,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         const canvas = document.createElement("canvas");
         // fix méret a jó rajzoláshoz, CSS majd skálázza
         canvas.width = 640;
-        canvas.height = 200;
+        canvas.height = 240;
+        canvas.setAttribute("role", "img");
+        canvas.setAttribute("aria-label", `${item.name || "Növény"} korábbi kijelzett értékei: ${(item.history || []).slice(-7).map(p => Math.round(p.v) + "%").join(", ") || "még nincs adat"}`);
 
         chartCard.appendChild(title);
         chartCard.appendChild(canvas);
