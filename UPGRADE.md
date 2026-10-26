@@ -71,3 +71,7 @@ Színátmenetes körmérő finom külső osztásokkal, belső felülettel és v�
 A LED vezérlése külön kapcsolót és nagyobb színátmenetes fényerőcsúszkát kapott. Kikapcsolás után a kapcsoló visszaállítja az utolsó ismert nem nulla fényerőt (ha még nincs ilyen, 50%-ot). Mindkét vezérlő ugyanazt a ledLevel mezőt menti, mentés közben letiltott, hiba/offline esetén visszaáll. A kiválasztott vízigény kiemelt mezőben látható, külön „Módosítás” felirattal, és a kategóriaablak jelöli az aktuális választást. Az előfizetési korlátozások változatlanok.
 
 Ellenőrzés: build és service worker tesztek, teljes Chromium teszt, LED ki/be kapcsolás, utolsó fényerő visszaállítása és elutasított mentés, kategóriakijelölés, valamint konkrét 81% szenzorérték → 100% számított érték próba a 30–60%-os kategóriánál. Firebase írások szimuláltak.
+
+
+## 2026-10-26 – Finom botanikus arculat
+Természetes zsálya- és mentazöld felületek, zöld–türkiz körmérő és csúszka, virágot és leveleket ábrázoló kis fejlécillusztráció. A növénykártyák vektoros ikonja a kiválasztott vízigénycsoporthoz igazodik (kaktusz, fűszernövény, levél, trópusi hajtás, vízinövény); ezek díszítő jelképek, nem fajfelismerés. Az illusztrációk inline SVG elemek, nincs új képletöltés vagy végtelen animáció. A mérési logika, feliratok, LED-vezérlés és kategóriakorlátozások változatlanok.

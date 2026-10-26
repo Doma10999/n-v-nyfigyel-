@@ -679,7 +679,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         <div class="last-update-pill" data-last-update>nincs adat</div>
 
         <div class="title-row">
-          <span class="plant-avatar" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M15 27V13M15 19C6 20 4 13 5 8c8 0 12 4 10 11ZM16 14c-1-8 4-12 12-11 1 8-4 12-12 11Z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <span class="plant-avatar" aria-hidden="true"><svg class="plant-category-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#plant-leaf"/></svg></span>
           <div class="plant-title-pill">
             <span class="plant-title">Rosso</span>
             <button class="edit-pill" aria-label="Név szerkesztése">
@@ -698,7 +698,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
         <div class="gauge-container">
           <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true" style="--ring-gradient:url(#${gaugeId});--ring-warning:url(#${gaugeId}-warm)">
-            <defs><linearGradient id="${gaugeId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#19bbad"/><stop offset="1" stop-color="#2778c4"/></linearGradient><linearGradient id="${gaugeId}-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c77b"/><stop offset="1" stop-color="#c97939"/></linearGradient></defs>
+            <defs><linearGradient id="${gaugeId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#60c291"/><stop offset="1" stop-color="#14847b"/></linearGradient><linearGradient id="${gaugeId}-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c77b"/><stop offset="1" stop-color="#c97939"/></linearGradient></defs>
             <circle class="gauge-ticks" cx="100" cy="100" r="95"/>
             <circle class="gauge-inner" cx="100" cy="100" r="62"/>
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
@@ -856,6 +856,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
         card.dataset.level = String(display);
         card.dataset.category = cat;
+        // These botanical symbols represent water-demand groups, not species recognition.
+        const botanicalIcon = {'🌵Szárazkedvelő':'dry','🌾Mérsékelten száraz':'herb','🌿Kiegyensúlyozott vízigényű':'leaf','🌱Nedvességkedvelő':'tropical','💧Vízigényes':'water'}[cat] || 'leaf';
+        card.querySelector('.plant-category-icon use').setAttribute('href', '#plant-' + botanicalIcon);
         card.style.setProperty('--gauge-angle', (display * 3.6) + 'deg');
         const range = plantCategories[cat];
         const label = String(cat || '').replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');

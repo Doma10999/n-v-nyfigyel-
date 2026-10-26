@@ -87,3 +87,19 @@ body.billing-page { padding:0 20px 40px !important; }.billing-shell,.billing-she
 :root[data-motion=off] .gauge-marker,:root[data-motion=off] .led-toggle span { transition:none; }
 @media(prefers-reduced-motion:reduce) { .gauge-marker,.led-toggle span { transition:none; } }
 .device-card[data-level="100"] .gauge-value { font-size:44px !important; letter-spacing:-2px; }
+/* Botanical identity: quiet foliage and warm whites around the live instruments. */
+:root { --paper:#f6f8f3; --ink:#203a31; --accent:#247958; --mint:#edf6e9; }
+.botanical-symbols { position:absolute; overflow:hidden; pointer-events:none; }
+#gardenOverview { position:relative; }.garden-botany { position:absolute; top:-5px; right:2px; width:82px; height:73px; pointer-events:none; }
+.section-heading { min-height:73px; }.section-heading > div { padding-right:90px; }.section-heading .eyebrow { color:#4e745a; letter-spacing:1.55px; }.section-heading h2 { color:#243d32; }
+.app-header h1 { color:#264232; }.app-header h1 span { background:#e8f1df; }
+.overview-stats button[aria-pressed=true] { background:#28563f; border-color:#28563f; }.overview-stats button[aria-pressed=true] span { color:#e0efda; }
+#accountsContainer .device-card { border-color:#e0e9dd !important; }#accountsContainer .device-card.selected { border-color:#accdaf !important; }
+.device-card .plant-avatar { width:46px; height:48px; flex-basis:46px; border-radius:16px 16px 16px 6px; background:#edf5e4; color:#4c8259; }.device-card .plant-avatar svg { width:33px; height:33px; }.device-card.needs-attention .plant-avatar { background:#fff2dc; color:#a47736; }
+.device-card .gauge-inner { fill:#f5faf1; stroke:#e5efdf; }.device-card .gauge-bg { stroke:#e9f0e4 !important; }.device-card .gauge-ticks { stroke:#b8cfad; }.gauge-marker circle { fill:#168a73; }.needs-attention .gauge-marker circle { fill:#ce8a46; }
+.soil-detail { background:#f2f6ef; }.care-state { background:#eaf5e9; }.needs-attention .care-state { background:#fff3e3; }
+.device-card .plant-select-wrap { background:linear-gradient(120deg,#edf6e8,#eef7f2); border-color:#d1e3c8; }.device-card .plant-select { color:#305b3d !important; }.device-card .category-label { color:#54774e; }.plant-select-arrow { color:#42714d; border-color:#d6e5ce; }
+.device-card .slider-container.is-on { background:linear-gradient(135deg,#f1f8e9,#edf8f4); border-color:#d0e3c4; }.device-card input.led-slider { background:linear-gradient(to right,#71ba72 0%,#158b7c var(--slider-progress,0%),#e0eadc var(--slider-progress,0%) 100%) !important; }.device-card input.led-slider::-webkit-slider-thumb { background:#248b73; }.device-card input.led-slider::-moz-range-thumb { background:#248b73; }
+.welcome-panel,.billing-intro-card,.billing-intro-card-pro { background:linear-gradient(135deg,#e7f1db,#edf6ec); }#appLaunchSplash { background:#f6f8f3; }
+@media(min-width:780px) { .section-heading { padding-right:100px; }.section-heading > div { padding-right:0; }.garden-botany { width:91px; height:77px; top:0; } }
+@media(max-width:370px) { .garden-botany { width:62px; height:65px; top:2px; }.section-heading > div { padding-right:65px; }.section-heading .eyebrow { font-size:8px; }.section-heading h2 { font-size:30px; }.device-card .plant-avatar { width:40px; flex-basis:40px; height:44px; }.device-card .plant-avatar svg { width:29px; height:29px; } }
