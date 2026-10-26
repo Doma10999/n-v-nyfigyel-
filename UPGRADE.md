@@ -79,3 +79,7 @@ Természetes zsálya- és mentazöld felületek, zöld–türkiz körmérő és 
 
 ## 2026-10-26 – Növénykoszorús körmérő
 A körmérő körül jól látható, inline SVG levélágak és virágok jelennek meg. A sötét erdőzöld középfelület fehér számmal és élénk smaragd színátmenetes mérőívvel erősebb kontrasztot ad. Figyelmet kérő állapotban a mérő meleg borostyán ívet és sötétbarna közepet használ; a botanikus díszítés nem helyettesíti az állapotjelzést. Az olvasható számterület és a vezérlők változatlanok. A díszítés nem fogad érintést és nincs folyamatos animációja.
+
+
+## 2026-10-26 – Egységes botanikus mellékképernyők
+Az útmutató, a grafikonok és az értesítési ablak rögzített, sötét erdőzöld, virágos fejlécet és külön görgethető tartalmat kapott. A bezárás mindig elérhető, az értesítések Mentés/Mégse gombjai fix alsó műveletsávba kerültek. Az értesítési lista hozzáférhető nevű kapcsolókat és egyértelmű email-törlő ikont használ. A grafikonok zöld színátmenetes oszlopokat, segédvonalakat és nagyobb számfeliratokat kapnak, a korábbi színezési küszöbök változatlanok. A csomagoldal sötét virágos fejlécet, egységes kártyákat és botanikus kiemeléseket kapott. Árak, előfizetési korlátozások, mérések és értesítési feltételek nem változtak.

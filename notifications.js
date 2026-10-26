@@ -81,6 +81,8 @@
         const cb = document.createElement("input");
         cb.type = "checkbox";
         cb.className = "notif-checkbox";
+        cb.setAttribute("role", "switch");
+        cb.setAttribute("aria-label", `${item.name || "Növény"} email értesítése`);
         cb.checked = !!item.enabled;
 
         cb.addEventListener("change", () => {
@@ -111,7 +113,7 @@
           del.className = "notif-email-delete";
           del.type = "button";
           del.setAttribute("aria-label", `${item.name || "Növény"} email címének törlése`);
-          del.innerHTML = '<span class="close-x-icon" aria-hidden="true"></span>';
+          del.innerHTML = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 10v7m4-7v7"/></svg>';
 
           del.addEventListener("click", async (e) => {
             e.stopPropagation();
@@ -281,7 +283,7 @@
             window.showAppToast('Nem sikerült minden beállítást elmenteni. Ellenőrizd és próbáld újra.', 'Mentési hiba');
           } finally {
             saveBtn.disabled = false;
-            saveBtn.textContent = 'Mentés';
+            saveBtn.textContent = 'Beállítások mentése';
           }
         });
       }

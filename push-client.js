@@ -384,7 +384,10 @@
         : null;
 
 
-    if (
+    const notificationBody = modalContent.querySelector('.notification-body');
+    if (notificationBody) {
+      notificationBody.appendChild(box);
+    } else if (
       actions &&
       actions.parentElement === modalContent
     ) {

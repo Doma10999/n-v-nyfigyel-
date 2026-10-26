@@ -52,7 +52,7 @@
        Több fiók / sok növény esetén is végig görgethető legyen
        egérrel, touchpaddal és telefonon ujjal.
        --------------------------------------------------------- */
-    if (!document.getElementById("notif-modal-scroll-runtime-fix")) {
+    if (!document.querySelector("#notifModalContent .notification-body") && !document.getElementById("notif-modal-scroll-runtime-fix")) {
       const style = document.createElement("style");
       style.id = "notif-modal-scroll-runtime-fix";
       style.textContent = `
