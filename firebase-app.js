@@ -697,8 +697,15 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
 
         <div class="gauge-container">
+          <svg class="gauge-botanical" viewBox="0 0 280 280" fill="none" aria-hidden="true" focusable="false">
+            <path d="M87 252C36 229 12 184 22 124M195 25c48 14 72 51 65 99" stroke="#357a4d" stroke-width="2.4" stroke-linecap="round"/>
+            <path d="M48 222C25 226 12 213 12 193c22 1 36 11 36 29Z" fill="#4ea967"/><path d="M31 195C10 190 3 174 10 157c20 7 27 19 21 38Z" fill="#a0cf80"/><path d="M25 165C9 155 9 139 18 125c16 12 19 25 7 40Z" fill="#4a9b58"/><path d="M64 239c-2-21 9-32 28-33 1 20-9 32-28 33Z" fill="#82be70"/><path d="M42 211c-1-19 8-30 25-33 4 18-6 31-25 33Z" fill="#b6d992"/>
+            <path d="M217 36c-1-19 10-27 27-26-1 17-9 25-27 26Z" fill="#7eb965"/><path d="M241 57c5-19 18-25 33-17-7 16-17 22-33 17Z" fill="#a8d585"/><path d="M258 87c7-16 19-20 31-12-7 14-18 18-31 12Z" fill="#4c9b60"/>
+            <g class="gauge-blossom" transform="translate(235 49)"><circle cy="-9" r="8" fill="#eeafb1"/><circle cx="9" cy="-3" r="8" fill="#e8a0a9"/><circle cx="6" cy="8" r="8" fill="#f2c2bb"/><circle cx="-6" cy="8" r="8" fill="#e8a0a9"/><circle cx="-9" cy="-3" r="8" fill="#f2c2bb"/><circle r="5" fill="#f5d787"/></g>
+            <g transform="translate(37 229)"><circle cy="-5" r="5" fill="#e4bd74"/><circle cx="5" r="5" fill="#f5dc9c"/><circle cy="5" r="5" fill="#edce8a"/><circle cx="-5" r="5" fill="#f5dc9c"/><circle r="3" fill="#93652c"/></g>
+          </svg>
           <svg class="gauge-svg" width="200" height="200" viewBox="0 0 200 200" aria-hidden="true" style="--ring-gradient:url(#${gaugeId});--ring-warning:url(#${gaugeId}-warm)">
-            <defs><linearGradient id="${gaugeId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#60c291"/><stop offset="1" stop-color="#14847b"/></linearGradient><linearGradient id="${gaugeId}-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f3c77b"/><stop offset="1" stop-color="#c97939"/></linearGradient></defs>
+            <defs><linearGradient id="${gaugeId}" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#49db8e"/><stop offset="1" stop-color="#087c60"/></linearGradient><linearGradient id="${gaugeId}-warm" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffc669"/><stop offset="1" stop-color="#d57925"/></linearGradient></defs>
             <circle class="gauge-ticks" cx="100" cy="100" r="95"/>
             <circle class="gauge-inner" cx="100" cy="100" r="62"/>
             <circle class="gauge-bg" cx="100" cy="100" r="80"></circle>
