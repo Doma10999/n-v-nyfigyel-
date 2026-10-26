@@ -39,3 +39,10 @@ A pontos vizuális referencia a `https://novenyfigyelo.netlify.app/`, a módosí
 Megmarad az eredeti középre helyezett Növényfigyelő cím, a világos zöld háttér, az egy oszlopban elhelyezett fehér növénykártyák, a középső nagy körkijelző, a név címkéje, a zöld fényerőcsúszka és a jobb alsó kinyíló menü. A korábbi átalakítások nagy üdvözlőblokkja, színes összesítői és állandó alsó menüsora kikerült. Kereső csak négy vagy több növénynél jelenik meg. A százalék sötét, olvasható számokkal látszik, a kör színe továbbra is a korábbi értékelést követi.
 
 A működési javítások, pontos mérési időpont, régi mérés figyelmeztetés, telepíthetőség, mentett offline adatok, százalékos fényerő-visszajelzés és kikapcsolható animációk megmaradnak. A menü helyi SVG ikonokat és billentyűzettel kezelhető nyitott/zárt állapotot használ. A Firebase adatbázis és az ESP firmware nem változik.
+
+## Jobban olvasható, lekerekített telefonos megjelenés – 2026. október 26.
+A felhasználó két mobilalkalmazás-referenciát adott a lekerekítésekhez és az olvashatósághoz. Megmarad az elfogadott zöld, középre rendezett felület és a teljes kör alakú mérés. A kör SVG-vastagsága 14-ről 23-ra, a nagy szám 44-ről 52 képpontra nőtt. A kör változatlan érték szerint töltődik, de mélyebb piros–borostyán–zöld színeket kapott. A kategória, világítás, státusz és mérési időpont nagyobb, sötétebb feliratokkal jelenik meg. A fontos kisebb feliratok ellenőrzött kontrasztja a saját hátterükön 6:1 fölötti.
+
+A kártyák sugara 32 px; a belső vezérlők 18–22 px lekerekítést kaptak. A fejléc, névszerkesztés és eltávolítás gombjainak érintési felülete legalább 44 px. Az offline nézet és a felugró útmutatók betűmérete is nőtt. Új CSS/JS és service-worker verzió gondoskodik a korábban telepített példányok frissítéséről. Az eszközadatok, mérésértékelés, előfizetés, Firebase-séma és firmware nem változott.
+
+A böngészős ellenőrzés kiegészült a látható körvastagság, betűméret, gombméret és lekerekítés vizsgálatával. A docs/readable-card-preview.png tesztadatokat mutat, nem valódi eszközmérést. Új előnézet a böngészős tesztben CAPTURE_PREVIEW=1 kapcsolóval készíthető.
