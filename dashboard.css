@@ -170,3 +170,84 @@ html.app-launching #appLaunchSplash { display:flex; }
 @keyframes gardenOrbit { to { transform:rotate(360deg); } }
 @media(prefers-reduced-motion:reduce) { #appLaunchSplash,#appLaunchSplash * { animation:none!important; transition:none!important; opacity:1; } #appLaunchSplash.is-leaving { opacity:0; } }
 html[data-motion="off"] #appLaunchSplash * { animation:none!important; }
+
+/* Desktop uses bounded workspaces rather than stretching phone panels across the screen. */
+html { scrollbar-gutter:stable; }
+html.dialog-open { overflow:hidden; }
+#notifModal,#chartsModal,#infoModal,#modal,#confirmModal {
+  inset:0; width:auto; height:auto; padding:24px;
+}
+#notifModalContent,#chartsModalContent,#infoModalContent,#modalContent,#confirmModalContent {
+  min-width:0; flex:0 1 auto; max-width:100%;
+}
+#chartsModalContent { max-width:1120px; }
+#notifModalContent { max-width:720px; }
+#infoModalContent { max-width:760px; }
+#modalContent,#confirmModalContent { max-width:480px; }
+#plantTypeModal .modal-box { width:100%; max-width:460px; }
+#chartsWrap.charts-wrap {
+  display:grid; grid-template-columns:minmax(0,1fr); align-content:start;
+  align-items:start; gap:18px; min-width:0;
+}
+.chart-card { min-width:0; }
+.chart-title > div { max-width:100%; overflow-wrap:anywhere; }
+.chart-title small { white-space:normal; text-align:left; opacity:1; }
+.chart-card canvas { width:100%; height:208px !important; }
+.chart-empty { grid-column:1 / -1; }
+.panel-body { min-width:0; scrollbar-gutter:stable; }
+
+@media(min-width:780px) {
+  #infoModalContent,#chartsModalContent,#notifModalContent { max-height:min(840px,calc(100dvh - 48px)); }
+  .botanical-panel-header { padding:28px 90px 26px 28px; }
+  #infoModalContent .botanical-panel-header h3,
+  #chartsModalContent .botanical-panel-header h3,
+  #notifModalContent .botanical-panel-header h3 { max-width:none; font-size:29px; }
+  #infoModalContent .botanical-panel-header p,
+  #chartsModalContent .botanical-panel-header p,
+  #notifModalContent .botanical-panel-header p { max-width:640px; font-size:15px !important; }
+  .panel-body,#chartsWrap.charts-wrap { padding:24px; }
+  .chart-title > div { font-size:20px; }
+  .chart-title small { font-size:13px; }
+  .notif-item { padding:18px; }
+  .notif-name { font-size:17px; }
+  .notif-email { font-size:14px; }
+  #notifModalContent .panel-intro-note { font-size:14px !important; }
+  .panel-actions { grid-template-columns:150px 240px; justify-content:end; padding:18px 24px; }
+  #infoModalContent .guide-body .info-section p,#infoModalContent .guide-body .info-section li { font-size:16px !important; }
+  .guide-body .info-section h4 { font-size:18px; }
+  .guide-body .info-tip { font-size:15px; }
+  .header-actions .button-label { display:inline; font-size:14px; }
+  .header-actions { gap:10px; }
+  .app-header h1 { font-size:24px; }
+  #connectionState { font-size:14px; }
+  .device-card .plant-title { font-size:27px !important; }
+  .device-card .last-update-pill { font-size:14px !important; }
+  .device-card .category-label,.care-state > span { font-size:13px; }
+  .care-value { font-size:17px; }
+  .device-card .gauge-caption { font-size:14px; }
+  .gauge-caption small { font-size:11px; }
+  .garden-footer { font-size:14px; }
+  .device-card .plant-select { font-size:17px !important; }
+  .plant-select-arrow { font-size:12px; }
+  .battery-number,.led-state,.led-scale { font-size:13px; }
+  .led-heading > span,.led-reading > span { font-size:15px; }
+  .app-dock { max-width:500px; }
+  .app-dock #homeTab::after,.app-dock #chartsBtn::after,.app-dock #menuBtn::after { font-size:13px; }
+}
+@media(min-width:900px) {
+  #chartsWrap.charts-wrap { grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media(min-width:1100px) {
+  .app-header,.dashboard-main { max-width:1180px; }
+  #accountsContainer .device-card { padding:28px !important; }
+  .device-card .gauge-container,.device-card .gauge-svg { width:254px !important; height:254px !important; }
+}
+@media(max-width:600px) {
+  #notifModal,#chartsModal,#infoModal,#modal,#confirmModal { padding:14px; }
+  .chart-card canvas { height:184px !important; }
+}
+@media(max-height:540px) {
+  #infoModalContent,#chartsModalContent,#notifModalContent { max-height:calc(100dvh - 24px); }
+  #infoModal,#chartsModal,#notifModal { padding:12px; }
+  .botanical-panel-header { padding-top:16px; padding-bottom:16px; }
+}
