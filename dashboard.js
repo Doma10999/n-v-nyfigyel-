@@ -113,6 +113,8 @@
   window.addEventListener('DOMContentLoaded', syncMenuState, {once:true});
   document.addEventListener('keydown', event => { if(event.key === 'Escape' && document.body.classList.contains('menu-open')) menuButton.click(); });
   syncMenuState();
+  // Keep the document still while any modal is open; only the panel body scrolls.
+  const openDialogs = new Set();
   // Existing dialogs now support keyboard focus, Escape and focus restoration.
   for (const [id, closeId] of [['infoModal','infoModalClose'],['chartsModal','chartsModalClose'],['notifModal','notifModalClose'],['modal','modalClose'],['confirmModal','confirmClose'],['plantTypeModal','plantTypeClose']]) {
     const overlay = document.getElementById(id), close = document.getElementById(closeId);
@@ -125,6 +127,8 @@
     const focusable = () => [...panel.querySelectorAll('button,input,select,[tabindex="0"],a[href]')].filter(el => !el.disabled && el.getClientRects().length);
     const sync = () => {
       const open = getComputedStyle(overlay).display !== 'none';
+      if (open) openDialogs.add(id); else openDialogs.delete(id);
+      root.classList.toggle('dialog-open', openDialogs.size > 0);
       if(open && !wasOpen) { returnFocus = document.activeElement; (focusable()[0] || panel).focus(); }
       if(!open && wasOpen) { (returnFocus?.getClientRects().length ? returnFocus : menuButton).focus(); }
       wasOpen = open;
