@@ -10,7 +10,7 @@
     "test:firebase": "node tests/firebase-integration.cjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "dependencies": {
     "web-push": "3.6.7"

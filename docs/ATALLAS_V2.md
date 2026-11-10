@@ -23,7 +23,7 @@ A korábbi mérések a régi adatágban maradnak. A v2-ben minden újrapárosít
 
 ## 2. Arduino-feltöltés
 
-A firmware és az aktiválókód eszközönként készül el. A készítő parancsot a saját gépeden futtasd Firebase Admin-joggal. Ha a [Firebase Admin SDK helyi beállításához](https://firebase.google.com/docs/admin/setup) kulcsfájlt használsz, tartsd a GitHub-mappán kívül. A webes API-kulcsot a Firebase projekt Web App beállításainál találod.
+A firmware és az aktiválókód eszközönként készül el. A készítő parancshoz Node.js 22 vagy újabb szükséges. A parancsot a saját gépeden futtasd Firebase Admin-joggal. Ha a [Firebase Admin SDK helyi beállításához](https://firebase.google.com/docs/admin/setup) kulcsfájlt használsz, tartsd a GitHub-mappán kívül. A webes API-kulcsot a Firebase projekt Web App beállításainál találod.
 
 Windows PowerShellben az alábbiakat add meg ugyanabban az ablakban, ahol a készítő parancsot futtatod.
 
