@@ -19,23 +19,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const mark = document.createElement('span'); mark.className = 'type-option-check'; mark.textContent = '✓'; mark.setAttribute('aria-hidden','true'); opt.append(mark);
   });
 
-  function getAllowedCategories(uid) {
-    if (window.__getAllowedCategoriesForUid) {
-      return window.__getAllowedCategoriesForUid(uid);
-    }
-    return [
-      "🌿Kiegyensúlyozott vízigényű"
-    ];
-  }
-
-  function refreshVisibleOptions() {
-    const allowed = getAllowedCategories(currentSelectUID);
-    allOptions.forEach(opt => {
-      const visible = allowed.includes(opt.dataset.value);
-      opt.style.display = visible ? "flex" : "none";
-    });
-  }
-
   document.addEventListener("click", (e) => {
     const sel = e.target.closest(".plant-select");
     if (!sel) return;
@@ -47,7 +30,6 @@ document.addEventListener("DOMContentLoaded", () => {
     currentSelectEl = sel.querySelector(".plant-select-value");
 
     allOptions.forEach(opt => { const selected = opt.dataset.value === sel.closest('.device-card')?.dataset.category; opt.dataset.selected = String(selected); opt.setAttribute('aria-pressed', String(selected)); });
-    refreshVisibleOptions();
     plantTypeModal.style.display = "flex";
   });
 
@@ -58,13 +40,6 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!currentSelectUID || !currentSelectDevice || !currentSelectEl) return;
 
       const value = opt.dataset.value;
-      const allowed = getAllowedCategories(currentSelectUID);
-
-      if (!allowed.includes(value)) {
-        alert("Ez a kategória csak Plus csomagban érhető el.");
-        return;
-      }
-
       if (!navigator.onLine) {
         window.showAppToast('A kategória mentéséhez internetkapcsolat szükséges.', 'Nincs internet');
         return;
@@ -74,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
       allOptions.forEach(button => button.disabled = true);
       plantTypeBox.setAttribute('aria-busy','true');
       try {
-        await window.__set(window.__ref(window.__db, `users/${uid}/devices/${device}/plantType`), value);
+        await window.__setPlantType(uid, device, value);
         target.textContent = value.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
         plantTypeModal.style.display = 'none';
         window.showAppToast('A növény vízigényét elmentettük.');

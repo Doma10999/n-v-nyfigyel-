@@ -1,7 +1,8 @@
-import { mountHistoryChart } from "./history-chart.js?v=20261031desktop10";
+import { mountHistoryChart } from "./history-chart.js?v=20261110activation";
+import { activationMessage, claimActivation, devicePath, inspectActivation } from "./activation.js";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-    import { getDatabase, ref, onValue, set, get, update, remove, runTransaction } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+    import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+    import { connectDatabaseEmulator, getDatabase, ref, onValue, set, get, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCfo3UqEb77ihYOqSJZvIFVr2VRGf6dJ4w",
@@ -14,9 +15,22 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       measurementId: "G-890H6FDBYE"
     };
 
-    const app = initializeApp(firebaseConfig);
+    const localEmulator = location.hostname === "127.0.0.1" &&
+      new URLSearchParams(location.search).get("emulator") === "1";
+    const app = initializeApp(localEmulator ? {
+      ...firebaseConfig,
+      apiKey: "demo-api-key",
+      projectId: "demo-novenyfigyelo",
+      authDomain: "demo-novenyfigyelo.firebaseapp.com",
+      databaseURL: "https://demo-novenyfigyelo-default-rtdb.firebaseio.com"
+    } : firebaseConfig);
     const db = getDatabase(app);
-    const auth = getAuth();
+    const auth = getAuth(app);
+    auth.languageCode = "hu";
+    if (localEmulator) {
+      connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+      connectDatabaseEmulator(db, "127.0.0.1", 9000);
+    }
     window.__auth = auth;
 
     // expose Firebase helpers for non-module scripts
@@ -26,6 +40,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     window.__set = set;
     window.__update = update;
     window.__onValue = onValue;
+    window.__devicePath = devicePath;
+    window.__setPlantType = (uid, id, plantType) =>
+      update(ref(db, devicePath(uid, id)), { plantType, plantTypeChangedAt: serverTimestamp() });
 
 
     // ====== UI elemek ======
@@ -40,13 +57,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     const modal = document.getElementById("modal");
     const modalCloseBtn = document.getElementById("modalClose");
     const addNewAccountForm = document.getElementById("addNewAccountForm");
-    const newAccountEmail = document.getElementById("newAccountEmail");
-    const newAccountPass = document.getElementById("newAccountPass");
     const addAccountStatus = document.getElementById("addAccountStatus");
     const accountsContainer = document.getElementById("accountsContainer");
 
     const chartsBtn = document.getElementById("chartsBtn");
-    const paymentBtn = document.getElementById("paymentBtn");
     const infoBtn = document.getElementById("infoBtn");
     const menuBtn = document.getElementById("menuBtn");
     const chartsModal = document.getElementById("chartsModal");
@@ -56,7 +70,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     const chartsWrap = document.getElementById("chartsWrap");
 
-    const FLOATING_BUTTONS = [menuBtn, infoBtn, paymentBtn, chartsBtn, document.getElementById("notifBellBtn"), addAccountBtn];
+    const FLOATING_BUTTONS = [menuBtn, infoBtn, chartsBtn, document.getElementById("notifBellBtn"), addAccountBtn];
 
     function setFloatingMenuVisibility(visible) {
       FLOATING_BUTTONS.forEach(btn => {
@@ -69,23 +83,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       }
     }
 
-    // ====== Tárolás (fiókok) ======
-    const STORAGE_KEY = "storedAccounts_v2";
-    function getStoredAccounts() {
-      try { const d = localStorage.getItem(STORAGE_KEY); return d ? JSON.parse(d) : []; } catch { return []; }
-    }
-    function setStoredAccounts(accs) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(accs));
-    }
-    function addStoredAccount(email, uid) {
-      const accs = getStoredAccounts();
-      if (!accs.some(a => a.uid === uid)) { accs.push({ email, uid }); setStoredAccounts(accs); }
-    }
-    function removeStoredAccount(uid) {
-      const accs = getStoredAccounts().filter(a => a.uid !== uid);
-      setStoredAccounts(accs);
-    }
-
     // ====== Kategóriák ======
     const plantCategories = {
       "🌵Szárazkedvelő": { min: 10, max: 40 },
@@ -95,157 +92,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       "💧Vízigényes": { min: 70, max: 100 }
     };
 
-    const FREE_PLAN_CATEGORIES = [
-      "🌿Kiegyensúlyozott vízigényű"
-    ];
+    const DEFAULT_CATEGORY = "🌿Kiegyensúlyozott vízigényű";
 
-    const PLUS_PLAN_CATEGORIES = [
-      "🌵Szárazkedvelő",
-      "🌾Mérsékelten száraz",
-      "🌿Kiegyensúlyozott vízigényű",
-      "🌱Nedvességkedvelő",
-      "💧Vízigényes"
-    ];
-
-    const userPlanCache = new Map();
-    window.__userPlanCache = userPlanCache;
-    const subscriptionListenerUids = new Set();
-    const subscriptionUnsubscribers = new Map();
-
-    const HISTORY_LIMIT = 10;
-    const HISTORY_INACTIVE_STATUSES = new Set([
-      "free",
-      "inactive",
-      "canceled",
-      "cancelled",
-      "expired",
-      "incomplete",
-      "incomplete_expired",
-      "unpaid",
-      "paused"
-    ]);
-
-    function normalizePlan(value) {
-      return String(value || "free").toLowerCase() === "plus" ? "plus" : "free";
-    }
-
-    function getAllowedCategoriesForPlan(plan) {
-      return normalizePlan(plan) === "plus"
-        ? [...PLUS_PLAN_CATEGORIES]
-        : [...FREE_PLAN_CATEGORIES];
-    }
-
-    function normalizeExpiryTimestamp(value) {
-      const raw = Number(value || 0);
-      if (!Number.isFinite(raw) || raw <= 0) return 0;
-      return raw < 1e12 ? raw * 1000 : raw;
-    }
-
-    function normalizeSubscriptionData(data = {}, emailValue = "") {
-      return {
-        plan: normalizePlan(data.plan),
-        expiresAt: Number(data.expiresAt || 0),
-        status: String(data.status || "inactive"),
-        cancelAtPeriodEnd: !!data.cancelAtPeriodEnd,
-        email: data.email || emailValue || "",
-        updatedAt: Number(data.updatedAt || 0)
-      };
-    }
-
-    function isActivePlusSubscription(entry = {}) {
-      if (normalizePlan(entry.plan) !== "plus") return false;
-
-      const status = String(entry.status || "").trim().toLowerCase();
-      const expiresAt = normalizeExpiryTimestamp(entry.expiresAt);
-      if (expiresAt > 0 && expiresAt <= Date.now()) return false;
-
-      const keepsAccessUntilPeriodEnd =
-        entry.cancelAtPeriodEnd === true &&
-        (status === "canceled" || status === "cancelled") &&
-        (expiresAt <= 0 || expiresAt > Date.now());
-
-      return !HISTORY_INACTIVE_STATUSES.has(status) || keepsAccessUntilPeriodEnd;
-    }
-
-    function isActivePlusForUid(uid) {
-      return isActivePlusSubscription(userPlanCache.get(uid) || {});
-    }
-
-    window.__getAllowedCategoriesForUid = function(uid) {
-      return getAllowedCategoriesForPlan(isActivePlusForUid(uid) ? "plus" : "free");
-    };
-
-    window.__isPlusForUid = isActivePlusForUid;
-
-    function isHistoryEnabledForUid(uid) {
-      return isActivePlusForUid(uid);
-    }
-
-    window.__isHistoryEnabledForUid = isHistoryEnabledForUid;
-
-    function getPlanBadgeText(uid) {
-      return window.__isPlusForUid(uid) ? "PLUS" : "FREE";
-    }
-
-    function getPlanBadgeClass(uid) {
-      return window.__isPlusForUid(uid) ? "plus" : "free";
-    }
-
-    function emitPlanRefresh() {
-      window.dispatchEvent(new CustomEvent("subscription-plan-updated"));
-    }
-
-    function cacheUserSubscription(uid, data, emailValue = "") {
-      const normalized = normalizeSubscriptionData(data, emailValue);
-      userPlanCache.set(uid, normalized);
-      emitPlanRefresh();
-      return normalized;
-    }
-
-    async function ensureUserSubscriptionDefaults(uid, emailValue = "") {
-      const subRef = ref(db, `users/${uid}/subscription`);
-      const snap = await get(subRef);
-
-      if (!snap.exists()) {
-        await set(subRef, {
-          plan: "free",
-          status: "inactive",
-          expiresAt: 0,
-          email: emailValue || "",
-          updatedAt: Date.now()
-        });
-        return;
-      }
-
-      const data = snap.val() || {};
-      const patch = {};
-
-      if (!data.plan) patch.plan = "free";
-      if (typeof data.expiresAt === "undefined") patch.expiresAt = 0;
-      if (!data.status) patch.status = "inactive";
-      if (emailValue && !data.email) patch.email = emailValue;
-      if (Object.keys(patch).length > 0) {
-        patch.updatedAt = Date.now();
-        await update(subRef, patch);
-      }
-    }
-
-    async function loadUserSubscription(uid, emailValue = "") {
-      const snap = await get(ref(db, `users/${uid}/subscription`));
-      const data = snap.exists() ? (snap.val() || {}) : {};
-      return cacheUserSubscription(uid, data, emailValue);
-    }
-
-    function listenToUserSubscription(uid, emailValue = "") {
-      if (subscriptionListenerUids.has(uid)) return;
-      subscriptionListenerUids.add(uid);
-
-      const subRef = ref(db, `users/${uid}/subscription`);
-      subscriptionUnsubscribers.set(uid, onValue(subRef, (snap) => {
-        const data = snap.exists() ? (snap.val() || {}) : {};
-        cacheUserSubscription(uid, data, emailValue);
-      }));
-    }
+    const OFFLINE_UID = "noveny-v2-offline-uid";
+    const cacheKeyFor = (uid, id) => `noveny-v2-plant_${uid}_${id}`;
 
     function getGradientColor(value) {
       // Deeper versions of the original red → amber → green palette stay legible on white.
@@ -260,8 +110,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     // ====== Eszköz-kártyák (minden eszköz külön) ======
     // deviceCards: key = uid|deviceId -> { card, name, history[], canvas, lastUpdated }
     const deviceCards = new Map();
-    // expose for other scripts
-    window.__deviceCardsMap = deviceCards;
 
     // kiválasztott eszköz push-hoz
     window.jelenlegiEszkozID = null;
@@ -277,7 +125,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function showLoginScreen() {
       document.body.classList.remove("is-authenticated");
-      loginForm.style.display = "block";
       statusDiv.style.display = "block";
       logoutBtn.style.display = "none";
       plantDataCard.style.display = "block";
@@ -285,13 +132,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       addAccountBtn.style.display = "none";
       chartsBtn.style.display = "none";
       setFloatingMenuVisibility(false);
-      statusDiv.style.color = "#1b3a2a";
-      statusDiv.textContent = "Nincs bejelentkezve";
+      statusDiv.textContent = "";
     }
 
     function hideLoginScreen() {
       document.body.classList.add("is-authenticated");
-      loginForm.style.display = "none";
       statusDiv.style.display = "none";
       logoutBtn.style.display = "none";
       plantDataCard.style.display = "none";
@@ -319,7 +164,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function updateLastMeasurementBadge(el, ts) {
       if (!el) return;
-      const n = normalizeExpiryTimestamp(ts);
+      const n = Number(ts) || 0;
       el.dataset.timestamp = String(n);
       const stale = !n || Date.now() - n > 6 * 60 * 60 * 1000;
       el.closest('.card')?.classList.toggle('measurement-stale', stale);
@@ -341,161 +186,11 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       return { label: "Nincs adat", tone: "unknown", icon: "fa-circle-question" };
     }
 
-    function normalizeHistoryEntries(entries) {
-      if (!Array.isArray(entries)) return [];
-      const sorted = entries
-        .map(item => ({ t: Number(item?.t), v: Number(item?.v) }))
-        .filter(item => Number.isFinite(item.t) && Number.isFinite(item.v))
-        .sort((a, b) => a.t - b.t);
-
-      const normalized = [];
-      for (const entry of sorted) {
-        const last = normalized[normalized.length - 1];
-        if (last && last.v === entry.v) continue;
-        normalized.push(entry);
-      }
-      return normalized.slice(-HISTORY_LIMIT);
-    }
-
-    function entriesToHistoryObject(entries) {
-      const output = {};
-      for (const entry of normalizeHistoryEntries(entries)) {
-        output[entry.t] = entry.v;
-      }
-      return output;
-    }
-
-    function historyValueToEntries(value) {
-      if (!value || typeof value !== "object") return [];
-      return Object.entries(value)
-        .map(([t, v]) => ({ t: Number(t), v: Number(v) }))
-        .filter(item => Number.isFinite(item.t) && Number.isFinite(item.v));
-    }
-
-    async function enforceHistoryPolicyForUser(uid) {
-      const devicesRef = ref(db, `users/${uid}/devices`);
-      const devicesSnap = await get(devicesRef);
-      if (!devicesSnap.exists()) return;
-
-      const devices = devicesSnap.val() || {};
-      const deviceIds = Object.keys(devices);
-
-      if (!isHistoryEnabledForUid(uid)) {
-        await Promise.all(deviceIds.map((deviceId) => {
-          const history = devices[deviceId]?.history;
-          if (!history || typeof history !== "object") return Promise.resolve();
-          return remove(ref(db, `users/${uid}/devices/${deviceId}/history`));
-        }));
-        return;
-      }
-
-      await Promise.all(deviceIds.map((deviceId) => {
-        const history = devices[deviceId]?.history;
-        if (!history || typeof history !== "object") return Promise.resolve();
-
-        const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
-        return runTransaction(historyRef, (currentValue) => {
-          if (!currentValue || typeof currentValue !== "object") return currentValue;
-          return entriesToHistoryObject(historyValueToEntries(currentValue));
-        });
-      }));
-    }
-
-    function updateDeviceHistoryState(key, entries) {
-      const obj = deviceCards.get(key);
-      if (!obj) return;
-      const normalized = normalizeHistoryEntries(entries);
-      obj.history = normalized;
-      obj.lastUpdated = normalized.at(-1)?.t || 0;
-    }
-
-    function extractDeviceChangeTimestamp(deviceData) {
-      if (!deviceData || typeof deviceData !== "object") return 0;
-      const candidates = [
-        deviceData.lastMeasurementAt || deviceData.measuredAt || deviceData.sensorUpdatedAt || deviceData.lastSensorUpdate || deviceData.lastUpdated || deviceData.timestamp,
-        deviceData.sensorUpdatedAt,
-        deviceData.lastSensorUpdate,
-      ]
-        .map(normalizeExpiryTimestamp)
-        .filter(value => Number.isFinite(value) && value > 0);
-
-      return candidates.length ? Math.max(...candidates) : 0;
-    }
-
-    async function appendHistoryIfChanged(uid, deviceId, displayPct, changeTimestamp = 0) {
-      if (!isHistoryEnabledForUid(uid)) return;
-
-      const key = `${uid}|${deviceId}`;
-      const obj = deviceCards.get(key);
-      if (!obj) return;
-
-      const safeTimestamp = Number(changeTimestamp) > 0 ? Number(changeTimestamp) : 0;
-      if (!(safeTimestamp > 0)) {
-        return;
-      }
-
-      const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
-      const transaction = await runTransaction(historyRef, (currentValue) => {
-        const currentEntries = normalizeHistoryEntries(historyValueToEntries(currentValue));
-        const lastEntry = currentEntries[currentEntries.length - 1];
-
-        if (lastEntry && Number(lastEntry.v) === Number(displayPct)) {
-          return entriesToHistoryObject(currentEntries);
-        }
-
-        return entriesToHistoryObject([
-          ...currentEntries,
-          { t: safeTimestamp, v: Number(displayPct) }
-        ]);
-      });
-
-      if (transaction.committed) {
-        updateDeviceHistoryState(key, historyValueToEntries(transaction.snapshot.val()));
-      }
-    }
-
-    // ====== Grafikon rajzolás (client-side history) ======
-    function pushHistory(key, value) {
-      const obj = deviceCards.get(key);
-      if (!obj) return;
-
-      const now = new Date();
-      const hour = now.getHours();
-
-      // 🔹 csak napi 2 mérés: délelőtt és délután
-      const isMorning = hour >= 6 && hour <= 11;
-      const isAfternoon = hour >= 15 && hour <= 20;
-
-      if (!isMorning && !isAfternoon) return;
-
-      // 🔹 ne mentsünk duplán ugyanarra a napszakra
-      const last = obj.history[obj.history.length - 1];
-      if (last) {
-        const lastDate = new Date(last.t);
-
-        const sameDay =
-          lastDate.getFullYear() === now.getFullYear() &&
-          lastDate.getMonth() === now.getMonth() &&
-          lastDate.getDate() === now.getDate();
-
-        const lastHour = lastDate.getHours();
-        const samePeriod =
-          (lastHour >= 6 && lastHour <= 11 && isMorning) ||
-          (lastHour >= 15 && lastHour <= 20 && isAfternoon);
-
-        if (sameDay && samePeriod) return;
-      }
-
-      // 🔹 mentés
-      obj.history.push({
-        t: now.getTime(),
-        v: value
-      });
-
-      // 🔹 a helyi előzmény sem nőhet 10 elem fölé
-      obj.history = normalizeHistoryEntries(obj.history);
-
-      obj.lastUpdated = now.getTime();
+    function normalizeHistoryEntries(value) {
+      return Object.values(value || {})
+        .filter(point => Number.isFinite(point?.t) && Number.isFinite(point?.v))
+        .sort((a, b) => a.t - b.t)
+        .slice(-10);
     }
 
     let chartDisposers = [];
@@ -507,12 +202,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     function rebuildChartsModal() {
       clearChartRenderers();
       chartsWrap.innerHTML = "";
-      const items = Array.from(deviceCards.entries())
-        .filter(([key]) => {
-          const uid = key.split("|")[0];
-          return isHistoryEnabledForUid(uid);
-        })
-        .map(([key, obj]) => ({ key, ...obj }));
+      const items = [...deviceCards.values()];
+      if (!items.length) {
+        chartsWrap.innerHTML = '<div class="chart-empty"><h3>Még nincs mérés</h3><p>Párosíts egy virágtartót, majd várd meg az első mérését.</p></div>';
+      }
       items.sort((a,b)=> getChartDisplayTimestamp(b) - getChartDisplayTimestamp(a));
 
       for (const item of items) {
@@ -536,7 +229,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         canvas.width = 1;
         canvas.height = 1;
         canvas.setAttribute("role", "img");
-        canvas.setAttribute("aria-label", `${item.name || "Növény"} vízigényhez igazított korábbi értékei: ${(item.history || []).slice(-7).map(p => Math.round(p.v) + "%").join(", ") || "még nincs adat"}`);
+        canvas.setAttribute("aria-label", `${item.name || "Növény"} korábbi talajnedvesség-mérései: ${(item.history || []).map(p => Math.round(p.v) + "%").join(", ") || "még nincs adat"}`);
 
         chartCard.appendChild(title);
         chartCard.appendChild(canvas);
@@ -548,18 +241,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     }
 
     function openChartsModal() {
-      const eligibleItems = Array.from(deviceCards.entries()).filter(([key]) => {
-        const uid = key.split("|")[0];
-        return isHistoryEnabledForUid(uid);
-      });
-
-      if (eligibleItems.length === 0) {
-        clearChartRenderers();
-        chartsWrap.innerHTML = '<div class="chart-empty"><span class="eyebrow">NÖVÉNYFIGYELŐ PLUS</span><h3>A változás is számít.</h3><p>A mérési előzményekből követheted, hogyan változik a növényed vízellátottsága. A grafikonok Plus csomagban érhetők el.</p><a class="back-link" href="payment.html">Csomagok megtekintése →</a></div>';
-        chartsModal.style.display = 'flex';
-        return;
-      }
-
       chartsModal.style.display = "flex";
       rebuildChartsModal();
     }
@@ -575,38 +256,24 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     // ====== Kártya létrehozása egy konkrét eszközhöz ======
     let gaugeSequence = 0;
-    function createDeviceCardForUser(uid, email, deviceId) {
+    function createDeviceCardForUser(uid, deviceId) {
       const gaugeId = `water-ring-${++gaugeSequence}`;
       const key = uid + "|" + deviceId;
 
       // már létezik → ne duplázzuk
       if (deviceCards.has(key)) return;
 
-      const plantTypes = window.__getAllowedCategoriesForUid(uid);
-
-      const selectId = `plantTypeSelect-${uid}-${deviceId}`;
-
+      const base = devicePath(uid, deviceId);
       const card = document.createElement("div");
       card.className = "card device-card";
-      const cleanups = [];
-      const subscribe = (reference, callback) => {
-        if (!deviceCards.has(key)) return;
-        const stop = onValue(reference, snapshot => { if (deviceCards.has(key)) callback(snapshot); }, error => {
-          card.classList.add('measurement-stale');
-          card.querySelector('[data-last-update]').textContent = 'Az adat nem érhető el. Ellenőrizd a kapcsolatot / belépést.';
-          console.warn('Adatfigyelés:', error.code);
-        });
-        cleanups.push(stop);
-      };
       // 🔹 belépő animáció késleltetés (stagger)
       const index = accountsContainer.children.length;
       card.style.animationDelay = `${Math.min(index, 5) * 0.06}s`;
 
 
       card.innerHTML = `
-        <button class="deleteBtn" type="button" aria-label="Fiók eltávolítása erről a készülékről"><span class="close-x-icon" aria-hidden="true"></span></button>
+        <button class="deleteBtn" type="button" aria-label="Virágtartó elrejtése"><span class="close-x-icon" aria-hidden="true"></span></button>
         <div class="plan-badge-wrap">
-          <div class="plan-badge ${getPlanBadgeClass(uid)}" data-plan-badge>${getPlanBadgeText(uid)}</div>
           <div class="battery-box">
             <img class="battery-icon" src="batteryPercent/battery_100.png" alt="akku"><span class="battery-number"></span>
           </div>
@@ -617,7 +284,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         <div class="title-row">
           <span class="plant-avatar" aria-hidden="true"><svg class="plant-category-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><use href="#plant-leaf"/></svg></span>
           <div class="plant-title-pill">
-            <span class="plant-title">Rosso</span>
+            <span class="plant-title">Növényem</span>
             <button class="edit-pill" aria-label="Név szerkesztése">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 4 5 5M4 20l4-1L20 7a2.8 2.8 0 0 0-4-4L4 15v5Z"/></svg>
             </button>
@@ -651,6 +318,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           <div class="gauge-value">—</div>
           <span class="gauge-caption">Talajnedvesség<small>Szenzormérés</small></span>
         </div>
+
+        <p class="first-reading-hint" hidden>Első méréshez kapcsold be a tartót. Wi-Fi beállításához csatlakozz a <strong>Novenyfigyelo</strong> hálózathoz, és kövesd a megjelenő lépéseket.</p>
 
         <div class="device-facts">
           <p class="care-state" role="status"><span>Állapot a kiválasztott vízigény alapján</span><strong class="care-value">Mérésre vár</strong></p>
@@ -689,7 +358,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
       const deleteBtn = card.querySelector(".deleteBtn");
       const titleEl = card.querySelector(".plant-title");
-      const planBadgeEl = card.querySelector("[data-plan-badge]");
       const lastUpdateEl = card.querySelector("[data-last-update]");
 
       const editBtn = card.querySelector(".edit-pill");
@@ -721,68 +389,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       gaugeValueEl.style.color = "#7e917c";
 
 
-      let currPercent = null;
-      let currCat = "";
-
-      deviceCards.set(key, {
-        card,
-        cleanups,
-        uid,
-        deviceId,
-        name: email,
-        history: [],
-        lastUpdated: 0,
-        lastMeasurementAt: 0,
-        deviceMetaTimestamp: 0,
-        airData: null
-      });
-
-      updateLastMeasurementBadge(lastUpdateEl, 0);
-
-      const plantTypeRef = ref(db, `users/${uid}/devices/${deviceId}/plantType`);
+      let currPercent;
+      let currCat;
+      let confirmedLedLevel = 0;
       const plantSelectValueEl = card.querySelector(".plant-select-value");
-
-      function getFallbackCategoryForUid() {
-        const allowed = window.__getAllowedCategoriesForUid(uid);
-        return allowed[0] || "🌿Kiegyensúlyozott vízigényű";
-      }
-
-      function refreshPlanBadgeAndRestrictions() {
-        if (planBadgeEl) {
-          planBadgeEl.textContent = getPlanBadgeText(uid);
-          planBadgeEl.className = `plan-badge ${getPlanBadgeClass(uid)}`;
-        }
-
-        const allowed = window.__getAllowedCategoriesForUid(uid);
-        if (!allowed.includes(currCat)) {
-          currCat = getFallbackCategoryForUid();
-          plantSelectValueEl.textContent = currCat.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-          updateAccountGauge(currPercent, currCat);
-
-        }
-      }
-
-      subscribe(plantTypeRef, (snap) => {
-        const v = snap.exists() ? String(snap.val() || "") : "";
-        if (v) {
-          currCat = v;
-          plantSelectValueEl.textContent = v.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-          refreshPlanBadgeAndRestrictions();
-          updateAccountGauge(currPercent, currCat);
-        } else {
-          currCat = getFallbackCategoryForUid();
-          plantSelectValueEl.textContent = currCat.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-          updateAccountGauge(currPercent, currCat);
-        }
-      });
-
-      window.addEventListener("subscription-plan-updated", refreshPlanBadgeAndRestrictions);
-      cleanups.push(() => window.removeEventListener("subscription-plan-updated", refreshPlanBadgeAndRestrictions));
-
+      const obj = { card, uid, deviceId, name: "Növényem", history: [], lastMeasurementAt: 0 };
+      deviceCards.set(key, obj);
 
       function updateAccountGauge(realPercent, cat) {
-        // Return the legacy category score; the instrument displays the sensor reading.
-
         const range = plantCategories[cat];
         card.dataset.category = cat;
         const botanicalIcon = {'🌵Szárazkedvelő':'dry','🌾Mérsékelten száraz':'herb','🌿Kiegyensúlyozott vízigényű':'leaf','🌱Nedvességkedvelő':'tropical','💧Vízigényes':'water'}[cat] || 'leaf';
@@ -793,12 +407,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           gaugeValueEl.textContent = '—';
           card.querySelector('.care-value').textContent = 'Mérésre vár';
           gaugeCircleEl.style.strokeDashoffset = C;
-          return null;
+          return;
         }
         realPercent = Math.max(0, Math.min(100, Number(realPercent)));
-        // Preserve the category score for existing history and alert integrations.
         const score = range ? Math.max(0,Math.min(100,Math.round((realPercent-range.min)/(range.max-range.min)*100))) : realPercent;
-        // The instrument itself always displays the sensor reading, independently of category.
         const display = Math.round(realPercent);
         card.dataset.level = String(display);
         card.style.setProperty('--gauge-angle', (display * 3.6) + 'deg');
@@ -831,7 +443,6 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         card.style.setProperty('--reading-color', low ? '#a54822' : high ? '#76531b' : '#275e37');
         gaugeCircleEl.style.stroke = color;
         gaugeValueEl.style.color = color;
-        return score;
       }
 
       function updateAirUI(airData) {
@@ -858,14 +469,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         // ha törlés / gomb nyomás -> ne ütközzön
         if (e.target.closest(".deleteBtn") || e.target.closest(".edit-pill") || e.target.closest(".name-edit-wrap") || e.target.closest("select") || e.target.closest("input") || e.target.closest(".plant-select") ) return;
         window.jelenlegiUID = uid;
-        window.jelenlegiEmail = email;
         setSelectedDevice(deviceId);
       });
 
       // alapból legyen kiválasztva az első, ha még nincs
       if (!window.jelenlegiEszkozID) {
         window.jelenlegiUID = uid;
-        window.jelenlegiEmail = email;
         setSelectedDevice(deviceId);
       }
 
@@ -890,7 +499,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         if (!newName) { closeEdit(); return; }
         okBtn.disabled = true;
         try {
-          await set(ref(db, `users/${uid}/devices/${deviceId}/displayName`), newName);
+          await set(ref(db, `${base}/displayName`), newName);
           titleEl.textContent = newName;
           titleEl.title = newName;
           closeEdit();
@@ -904,34 +513,16 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         if (e.key === 'Enter') { e.preventDefault(); if (!okBtn.disabled) saveDisplayName(); }
       });
 
-      // törlés (csak fiók eltávolítás logika: UID törlése localstorage-ból)
-      deleteBtn.addEventListener("click", async (e) => {
-      e.stopPropagation();
-      const confirmed = await showConfirmModal("Biztosan törlöd ezt a fiókot?");
-      if (!confirmed) return;
-
-      card.classList.add("removing");
-
-      setTimeout(() => {
-        removeAllCardsForUid(uid);
-      }, 450);
-    });
-
-
-      // Firebase: displayName
-      const displayNameRef = ref(db, `users/${uid}/devices/${deviceId}/displayName`);
-      subscribe(displayNameRef, (snap) => {
-        const v = snap.exists() ? String(snap.val() || "").trim() : "";
-        const name = v || email;
-        titleEl.textContent = name;
-        titleEl.title = name;
-        
-        // sync a charts névhez is
-        const obj = deviceCards.get(key);
-        if (obj) obj.name = v ? v : name;
+      deleteBtn.addEventListener("click", async event => {
+        event.stopPropagation();
+        if (!await showConfirmModal("Elrejted ezt a virágtartót? Az aktiválókódjával később újra megjelenítheted.")) return;
+        try {
+          await set(ref(db, `${base}/hidden`), true);
+        } catch {
+          window.showAppToast("A virágtartó elrejtése megszakadt. Próbáld újra.", "Mentési hiba");
+        }
       });
 
-      
       function updateBatteryUI(data) {
         const raw = data.batteryPercent ?? data.battery;
         const p = raw === null || raw === '' || raw === undefined ? NaN : Number(raw);
@@ -948,258 +539,91 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         batteryBox.style.setProperty('--battery-level', safe + '%');
         card.querySelector('.battery-number').textContent = safe + '%';
       }
-      const deviceRootRef = ref(db, `users/${uid}/devices/${deviceId}`);
-      subscribe(deviceRootRef, (snap) => {
-        if (!snap.exists()) return;
-        const obj = deviceCards.get(key);
-        if (!obj) return;
-
-        updateBatteryUI(snap.val());
-        const ts = extractDeviceChangeTimestamp(snap.val()) || 0;
-        obj.deviceMetaTimestamp = ts;
-
-        if (ts > 0) {
-          obj.lastMeasurementAt = ts;
-        }
-
-        updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt || ts || 0);
-
-        try {
-          const cacheKey = `plant_${uid}_${deviceId}`;
-          const cached = localStorage.getItem(cacheKey);
-          const cacheData = cached ? JSON.parse(cached) : {};
-          cacheData.lastMeasurementAt = ts;
-          cacheData.lastUpdated = obj.lastUpdated || 0;
-          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        } catch (e) {
-          console.warn("Device timestamp cache mentési hiba:", e);
-        }
-
-        if (chartsModal.style.display === "flex") rebuildChartsModal();
-      });
-
-     // Firebase: soil sensor + EMAIL riasztás
-    const soilRef = ref(db, `users/${uid}/devices/${deviceId}/sensorValue`);
-          subscribe(soilRef, async (snap) => {
-            if (!snap.exists()) return;
-
-            const v = Number(snap.val());
-            if (!Number.isFinite(v)) return;
-
-            currPercent = v;
-            const displayPct = updateAccountGauge(currPercent, currCat);
-            // 💾 OFFLINE CACHE MENTÉS
-            try {
-              const cacheKey = `plant_${uid}_${deviceId}`;
-
-              const cacheObj = deviceCards.get(uid + "|" + deviceId);
-              const cacheData = {
-                sensorValue: currPercent,
-                displayValue: displayPct,
-                category: currCat || "",
-                name: titleEl.textContent || "",
-                history: cacheObj?.history || [],
-                lastUpdated: cacheObj?.lastUpdated || 0,
-                lastMeasurementAt: cacheObj?.lastMeasurementAt || 0,
-                airData: cacheObj?.airData || null
-              };
-
-              localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-            } catch (e) {
-              console.warn("Offline cache mentési hiba:", e);
-            }
-
-
-            const obj = deviceCards.get(uid + "|" + deviceId);
-            const measurementTimestamp = obj?.deviceMetaTimestamp || obj?.lastMeasurementAt || obj?.lastUpdated || 0;
-
-            if (obj) {
-              obj.lastMeasurementAt = measurementTimestamp;
-              updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt || 0);
-            }
-
-            if (isHistoryEnabledForUid(uid)) {
-              try { await appendHistoryIfChanged(uid, deviceId, displayPct, measurementTimestamp); }
-              catch (error) { console.warn('Mérési előzmény mentése:', error.code); }
-            } else if (obj) {
-              obj.history = [];
-              obj.lastUpdated = 0;
-            }
-
-            if (chartsModal.style.display === "flex") rebuildChartsModal();
-
-
-        //if (window.__maybeEmailNotify) {
-          //window.__maybeEmailNotify({
-          //uid,
-          //deviceId,
-          //realPct: currPercent,   // ← EZ A VALÓDI SZENZOR %   ❌ NINCS AZONNALI EMAIL
-          //displayPct,
-          //plantType: currCat,
-          //displayName: titleEl.textContent });
-        //}
-      });
-
-      const airQualityRef = ref(db, `users/${uid}/devices/${deviceId}/airQuality`);
-      subscribe(airQualityRef, (snap) => {
-        if (!snap.exists()) {
-          updateAirUI(null);
-          return;
-        }
-
-        const raw = snap.val() || {};
-        const airData = {
-          aqi: Number(raw.aqi),
-          tvoc: Number(raw.tvoc),
-          eco2: Number(raw.eco2),
-          bad: !!raw.bad,
-          status: String(raw.status || ""),
-          updatedAt: Number(raw.updatedAt || raw.measuredAt || raw.lastMeasurementAt || 0)
-        };
-        updateAirUI(airData);
-
-        try {
-          const cacheKey = `plant_${uid}_${deviceId}`;
-          const cached = localStorage.getItem(cacheKey);
-          const cacheData = cached ? JSON.parse(cached) : {};
-          cacheData.airData = airData;
-          localStorage.setItem(cacheKey, JSON.stringify(cacheData));
-        } catch (e) {
-          console.warn("Offline air cache mentési hiba:", e);
-        }
-      });
-// Firebase: LED (csak ha van)
-      const ledLevelRef = ref(db, `users/${uid}/devices/${deviceId}/ledLevel`);
-      const ledToggle = card.querySelector('.led-toggle');
+      const ledLevelRef = ref(db, `${base}/ledLevel`);
+      const ledToggle = card.querySelector(".led-toggle");
+      slider.setAttribute("aria-label", "LED fényerő");
       function renderLedLevel(value) {
         const on = Number(value) > 0;
-        card.querySelector('.led-output').textContent = value + '%';
-        slider.style.setProperty('--slider-progress', value + '%');
-        ledToggle.setAttribute('aria-pressed', String(on));
-        card.querySelector('.led-state').textContent = on ? 'Bekapcsolva' : 'Kikapcsolva';
-        sliderContainer.classList.toggle('is-on', on);
+        card.querySelector(".led-output").textContent = value + "%";
+        slider.style.setProperty("--slider-progress", value + "%");
+        ledToggle.setAttribute("aria-pressed", String(on));
+        card.querySelector(".led-state").textContent = on ? "Bekapcsolva" : "Kikapcsolva";
+        sliderContainer.classList.toggle("is-on", on);
       }
-      slider.addEventListener('input', () => renderLedLevel(slider.value));
-      ledToggle.addEventListener('click', () => {
-        if(slider.disabled) return;
-        slider.value = Number(slider.value) > 0 ? '0' : (slider.dataset.lastOn || '50');
+      slider.addEventListener("input", () => renderLedLevel(slider.value));
+      ledToggle.addEventListener("click", () => {
+        if (slider.disabled) return;
+        slider.value = Number(slider.value) > 0 ? "0" : (slider.dataset.lastOn || "50");
         renderLedLevel(slider.value);
-        slider.dispatchEvent(new Event('change', {bubbles:true}));
+        slider.dispatchEvent(new Event("change", { bubbles: true }));
       });
-      get(ledLevelRef).then((snap) => {
-        if (snap.exists()) {
+      slider.addEventListener("change", async event => {
+        event.stopPropagation();
+        const wanted = Number(slider.value);
+        const previous = confirmedLedLevel;
+        if (!navigator.onLine) {
+          slider.value = String(previous);
+          renderLedLevel(previous);
+          window.showAppToast("A világítás állításához internetkapcsolat szükséges.", "Nincs internet");
+          return;
+        }
+        slider.disabled = ledToggle.disabled = true;
+        sliderContainer.setAttribute("aria-busy", "true");
+        try {
+          await set(ledLevelRef, wanted);
+        } catch {
+          slider.value = String(previous);
+          renderLedLevel(previous);
+          window.showAppToast("A fényerő mentése megszakadt. Próbáld újra.", "Mentési hiba");
+        } finally {
+          slider.disabled = ledToggle.disabled = false;
+          sliderContainer.removeAttribute("aria-busy");
+        }
+      });
+
+      obj.render = data => {
+        obj.name = data.displayName || "Növényem";
+        titleEl.textContent = obj.name;
+        titleEl.title = obj.name;
+        const category = Object.hasOwn(plantCategories, data.plantType) ? data.plantType : DEFAULT_CATEGORY;
+        const reading = data.reading || {};
+        const percent = Number.isFinite(reading.sensorValue) ? reading.sensorValue : null;
+        if (currCat !== category || currPercent !== percent) {
+          currCat = category;
+          currPercent = percent;
+          plantSelectValueEl.textContent = currCat.replace(/^[^\p{L}]+/u, "");
+          updateAccountGauge(currPercent, currCat);
+        }
+
+        card.querySelector(".first-reading-hint").hidden = percent !== null;
+        obj.lastMeasurementAt = Number(reading.lastMeasurementAt) || 0;
+        obj.history = normalizeHistoryEntries(data.history);
+        obj.lastUpdated = obj.history.at(-1)?.t || 0;
+        updateLastMeasurementBadge(lastUpdateEl, obj.lastMeasurementAt);
+        updateBatteryUI(reading);
+        updateAirUI(data.airQuality || null);
+
+        if (data.variant === "usb-led") {
           sliderContainer.style.display = "flex";
-          slider.value = Math.round((Number(snap.val()) || 0) / 10) * 10;
-          slider.dataset.savedLevel = slider.value;
-          if(Number(slider.value) > 0) slider.dataset.lastOn = slider.value;
-          renderLedLevel(slider.value);
-          subscribe(ledLevelRef, (s2) => {
-            if (s2.exists()) {
-              slider.value = Math.round((Number(s2.val()) || 0) / 10) * 10;
-              slider.dataset.savedLevel = slider.value;
-              if(Number(slider.value) > 0) slider.dataset.lastOn = slider.value;
-              renderLedLevel(slider.value);
-            }
-          });
-          slider.setAttribute('aria-label', 'LED fényerő');
-          slider.addEventListener("change", async (e)=> {
-            e.stopPropagation();
-            const snapped = Math.max(0, Math.min(100, Math.round((Number(e.target.value) || 0) / 10) * 10));
-            e.target.value = snapped;
-            const savedLevel = Number(slider.dataset.savedLevel ?? slider.value);
-            if (!navigator.onLine) {
-              slider.value = String(savedLevel);
-              renderLedLevel(savedLevel);
-              window.showAppToast('A világítás állításához internetkapcsolat szükséges.', 'Nincs internet');
-              return;
-            }
-            slider.disabled = true;
-            ledToggle.disabled = true;
-            sliderContainer.setAttribute('aria-busy', 'true');
-            try { await set(ledLevelRef, snapped); slider.dataset.savedLevel = String(snapped); if(snapped > 0) slider.dataset.lastOn = String(snapped); }
-            catch {
-              slider.value = String(savedLevel);
-              renderLedLevel(savedLevel);
-              window.showAppToast('A fényerő mentése nem sikerült. Próbáld újra.', 'Mentési hiba');
-            }
-            finally { slider.disabled = false; ledToggle.disabled = false; sliderContainer.removeAttribute('aria-busy'); }
-          });
-        } else {
-          sliderContainer.style.display = "none";
-        }
-      }).catch(() => { window.showAppToast('A világítás beállítása nem tölthető be. Ellenőrizd a kapcsolatot.', 'Betöltési hiba'); });
-
-      // 🔹 HISTORY szinkron Firebase-ből (grafikonhoz) – csak Plusnál
-      const historyRef = ref(db, `users/${uid}/devices/${deviceId}/history`);
-      subscribe(historyRef, (snap) => {
-        const obj = deviceCards.get(key);
-        if (!obj) return;
-
-        if (!isHistoryEnabledForUid(uid)) {
-          obj.history = [];
-          obj.lastUpdated = 0;
-          if (chartsModal.style.display === "flex") rebuildChartsModal();
-          return;
-        }
-
-        if (!snap.exists()) {
-          obj.history = [];
-          obj.lastUpdated = 0;
-          if (chartsModal.style.display === "flex") rebuildChartsModal();
-          return;
-        }
-
-        const entries = Object.entries(snap.val())
-          .map(([t, v]) => ({ t: Number(t), v: Number(v) }))
-          .filter(p => Number.isFinite(p.t) && Number.isFinite(p.v));
-
-        updateDeviceHistoryState(key, entries);
-        if (chartsModal.style.display === "flex") rebuildChartsModal();
-      });
-      // 📦 OFFLINE CACHE BETÖLTÉS (ha van)
-      try {
-        const cacheKey = `plant_${uid}_${deviceId}`;
-        const cached = localStorage.getItem(cacheKey);
-
-        if (cached) {
-          const data = JSON.parse(cached);
-
-          // név
-          if (data.name) {
-            titleEl.textContent = data.name;
-            titleEl.title = data.name;
-          }
-
-          // kategória
-          if (data.category) {
-            currCat = data.category;
-            plantSelectValueEl.textContent = data.category.replace(/^[^A-Za-zÁÉÍÓÖŐÚÜŰáéíóöőúüű]+/u, '');
-          }
-
-          // szenzor érték
-          if (Number.isFinite(data.sensorValue)) {
-            currPercent = data.sensorValue;
-            updateAccountGauge(currPercent, currCat);
-          }
-
-          // history (grafikon)
-          if (Array.isArray(data.history)) {
-            const obj = deviceCards.get(key);
-            if (obj) {
-              obj.history = data.history;
-              obj.lastUpdated = data.lastUpdated || 0;
-              obj.lastMeasurementAt = data.lastMeasurementAt || data.lastUpdated || 0;
-            }
-          }
-
-          if (data.airData) {
-            updateAirUI(data.airData);
+          const level = Math.round((Number(data.ledLevel) || 0) / 10) * 10;
+          if (String(level) !== slider.dataset.savedLevel) {
+            confirmedLedLevel = level;
+            slider.dataset.savedLevel = String(level);
+            if (level > 0) slider.dataset.lastOn = String(level);
+            slider.value = String(level);
+            renderLedLevel(level);
           }
         }
-      } catch (e) {
-        console.warn("Offline cache betöltési hiba:", e);
-      }
 
+        try {
+          localStorage.setItem(cacheKeyFor(uid, deviceId), JSON.stringify({
+            name: obj.name,
+            category: currCat,
+            sensorValue: currPercent,
+            lastMeasurementAt: obj.lastMeasurementAt
+          }));
+        } catch {}
+      };
 
       // kártya hozzáadás a DOM-hoz
       accountsContainer.appendChild(card);
@@ -1208,186 +632,228 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       if (window.jelenlegiEszkozID === deviceId) card.classList.add("selected");
     }
 
-    function removeAllCardsForUid(uid) {
-      subscriptionUnsubscribers.get(uid)?.();
-      subscriptionUnsubscribers.delete(uid);
-      subscriptionListenerUids.delete(uid);
-      userPlanCache.delete(uid);
-      removeStoredAccount(uid);
+    const authPanels = ["activationForm", "registerForm", "loginForm", "resetForm"];
+    const activationInput = document.getElementById("activationCode");
+    const additionalInput = document.getElementById("additionalCode");
+    const registerEmail = document.getElementById("registerEmail");
+    const resetEmail = document.getElementById("resetEmail");
+    const devicesStatus = document.getElementById("devicesStatus");
+    let pendingInvite;
+    let stopDeviceListener;
 
-      // DOM + map törlés
-      for (const [key, obj] of Array.from(deviceCards.entries())) {
-        if (key.startsWith(uid + "|")) {
-          obj.cleanups?.forEach(stop => stop());
-          obj.card.remove();
-          deviceCards.delete(key);
-        }
+    function showStatus(element, message = "", isError = false) {
+      element.textContent = message;
+      element.dataset.error = String(isError);
+    }
+
+    function showAuthPanel(id, focus = true) {
+      for (const panel of authPanels) document.getElementById(panel).hidden = panel !== id;
+      document.getElementById("showActivation").setAttribute("aria-pressed", String(id === "activationForm" || id === "registerForm"));
+      document.getElementById("showLogin").setAttribute("aria-pressed", String(id === "loginForm" || id === "resetForm"));
+      showStatus(statusDiv);
+      if (focus) document.getElementById(id).querySelector("input")?.focus();
+    }
+
+    function renderDevices(uid, data) {
+      for (const [key, item] of deviceCards) {
+        if (item.uid === uid && data[item.deviceId] && !data[item.deviceId].hidden) continue;
+        cancelAnimationFrame(item.card.querySelector(".gauge-value").__numberFrame);
+        item.card.remove();
+        deviceCards.delete(key);
+        try { localStorage.removeItem(cacheKeyFor(item.uid, item.deviceId)); } catch {}
       }
+      for (const [id, device] of Object.entries(data)) {
+        if (device.hidden) {
+          try { localStorage.removeItem(cacheKeyFor(uid, id)); } catch {}
+          continue;
+        }
+        createDeviceCardForUser(uid, id);
+        deviceCards.get(`${uid}|${id}`).render(device);
+      }
+      const visibleIds = [...deviceCards.values()].map(item => item.deviceId);
+      if (!visibleIds.includes(window.jelenlegiEszkozID)) setSelectedDevice(visibleIds[0] || null);
+      if (chartsModal.style.display === "flex") rebuildChartsModal();
+    }
 
-      // ha nincs már kártya, vissza login
-      if (deviceCards.size === 0) {
+    function startSession(user) {
+      stopDeviceListener?.();
+      stopDeviceListener = null;
+      devicesStatus.hidden = true;
+      if (!user) {
+        for (const item of deviceCards.values()) item.card.remove();
+        deviceCards.clear();
+        setSelectedDevice(null);
+        try { localStorage.removeItem(OFFLINE_UID); } catch {}
+        modal.style.display = "none";
+        closeChartsModal();
+        if (infoModal) infoModal.style.display = "none";
+        document.getElementById("notifModal").style.display = "none";
         showLoginScreen();
-      } else {
-        // válasszunk egy maradék eszközt
-        const first = Array.from(deviceCards.keys())[0];
-        const devId = first.split("|")[1];
-        setSelectedDevice(devId);
-      }
-    }
-
-    // ====== Fiók betöltés: UID -> devices -> minden eszköz külön kártya ======
-    async function addAccountByUid(uid, emailLabel) {
-      await ensureUserSubscriptionDefaults(uid, emailLabel || "");
-      await loadUserSubscription(uid, emailLabel || "");
-      listenToUserSubscription(uid, emailLabel || "");
-
-      const devicesSnap = await get(ref(db, `users/${uid}/devices`));
-      if (!devicesSnap.exists()) return;
-
-      const devicesData = devicesSnap.val();
-      const deviceIds = Object.keys(devicesData || {});
-      if (deviceIds.length === 0) return;
-
-      // minden eszköz külön kártya
-      for (const deviceId of deviceIds) {
-        // csak akkor jelenítsük meg, ha van már szenzor érték (különben "0%" ghost kártyák lesznek)
-        const dev = devicesData[deviceId] || {};
-        if (typeof dev.sensorValue === "undefined") continue;
-        createDeviceCardForUser(uid, emailLabel, deviceId);
-      }
-
-      // ha még nincs kijelölt device, az első legyen
-      if (!window.jelenlegiEszkozID) setSelectedDevice(deviceIds[0]);
-    }
-
-    // ====== Login / fiók hozzáadás ======
-    window.addEventListener("load", async () => {
-      try {
-        await auth.authStateReady();
-        const stored = getStoredAccounts();
-        if (stored.length > 0 && auth.currentUser) {
-          hideLoginScreen();
-          for (const acc of stored) {
-            await addAccountByUid(acc.uid, acc.email || "Fiók");
-          }
-        } else {
-          showLoginScreen();
-        }
-        if (auth.currentUser && stored.length > 0 && deviceCards.size === 0) hideLoginScreen();
-      } catch (error) {
-        showLoginScreen();
-        statusDiv.textContent = 'A fiók betöltése nem sikerült. Jelentkezz be újra.';
-        console.warn('Fiók betöltés:', error.code);
-      } finally {
-        window.dispatchEvent(new CustomEvent("app-content-ready"));
-      }
-    });
-
-    loginForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      statusDiv.style.color = "green";
-      statusDiv.textContent = "Bejelentkezés...";
-
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, emailInput.value, passInput.value);
-        const user = userCred.user;
-
-        // localstorage hozzáadás
-        addStoredAccount(emailInput.value, user.uid);
-        await ensureUserSubscriptionDefaults(user.uid, emailInput.value);
-
-        // kártyák létrehozása
-        hideLoginScreen();
-        await addAccountByUid(user.uid, emailInput.value);
-
-        passInput.value = '';
-        statusDiv.textContent = "";
-      } catch (err) {
-        statusDiv.style.color = "red";
-        if (["auth/invalid-credential","auth/wrong-password","auth/user-not-found"].includes(err.code)) {
-          statusDiv.textContent = "Hibás felhasználónév vagy jelszó!";
-        } else {
-          statusDiv.textContent = "Hiba: " + err.message;
-        }
-      }
-    });
-
-    addAccountBtn.addEventListener("click", () => {
-      modal.style.display = "flex";
-      addAccountStatus.textContent = "";
-    });
-
-    if (paymentBtn) {
-      paymentBtn.addEventListener("click", () => {
-        window.location.href = "payment.html";
-      });
-    }
-
-    if (infoBtn && infoModal) {
-      infoBtn.addEventListener("click", () => {
-        infoModal.style.display = "flex";
-        document.body.classList.remove("menu-open");
-        if (menuBtn) menuBtn.innerHTML = '<i class="fa-solid fa-bars"></i>';
-      });
-    }
-
-    if (infoModalClose && infoModal) {
-      infoModalClose.addEventListener("click", () => {
-        infoModal.style.display = "none";
-      });
-    }
-
-    window.addEventListener("click", (e) => {
-      if (e.target === infoModal) infoModal.style.display = "none";
-    });
-
-    modalCloseBtn.addEventListener("click", () => { modal.style.display = "none"; });
-    window.addEventListener("click", (e)=>{ if (e.target === modal) modal.style.display = "none"; });
-
-    addNewAccountForm.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const email = newAccountEmail.value.trim();
-      const pass  = newAccountPass.value;
-
-      addAccountStatus.textContent = "";
-
-      const stored = getStoredAccounts();
-      if (stored.some(acc => (acc.email || "").toLowerCase() === email.toLowerCase())) {
-        addAccountStatus.style.color = "red";
-        addAccountStatus.textContent = "Ez a fiók már hozzá van adva!";
         return;
       }
+      hideLoginScreen();
+      window.jelenlegiUID = user.uid;
+      window.jelenlegiEmail = user.email;
+      try { localStorage.setItem(OFFLINE_UID, user.uid); } catch {}
+      stopDeviceListener = onValue(ref(db, devicePath(user.uid)), snapshot => {
+        devicesStatus.hidden = true;
+        renderDevices(user.uid, snapshot.val() || {});
+      }, () => {
+        devicesStatus.textContent = "A virágtartók adatai most nem érhetők el. Próbáld újra az oldal frissítésével.";
+        devicesStatus.hidden = false;
+      });
+    }
 
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, email, pass);
-        const uid = userCred.user.uid;
+    onAuthStateChanged(auth, user => {
+      startSession(user);
+      window.dispatchEvent(new CustomEvent("app-content-ready"));
+    });
 
-        addStoredAccount(email, uid);
-        await ensureUserSubscriptionDefaults(uid, email);
-        await addAccountByUid(uid, email);
-
-        modal.style.display = "none";
-        newAccountEmail.value = "";
-        newAccountPass.value = "";
-        addAccountStatus.textContent = "";
-
-      } catch (err) {
-        addAccountStatus.style.color = "red";
-        if (err.code === "auth/invalid-credential") {
-          addAccountStatus.textContent = "Hibás email vagy jelszó.";
-        } else {
-          addAccountStatus.textContent = "Hiba történt: " + err.message;
+    function wireForm(form, status, action, errorMessage) {
+      form.addEventListener("submit", async event => {
+        event.preventDefault();
+        const button = form.querySelector("button[type=submit]");
+        if (button.disabled) return;
+        button.disabled = true;
+        showStatus(status, "Egy pillanat…");
+        try {
+          await action();
+        } catch (error) {
+          showStatus(status, errorMessage(error), true);
+        } finally {
+          button.disabled = false;
         }
+      });
+    }
+
+    function authError(error) {
+      if (["auth/invalid-credential", "auth/wrong-password", "auth/user-not-found"].includes(error.code)) return "Hibás e-mail-cím vagy jelszó.";
+      if (error.code === "auth/invalid-email") return "Ellenőrizd az e-mail-címet.";
+      if (error.code === "auth/weak-password" || error.code === "auth/password-does-not-meet-requirements") return "Válassz hosszabb, erősebb jelszót.";
+      if (error.code === "auth/too-many-requests") return "Túl sok próbálkozás. Próbáld újra később.";
+      return "A fiókművelet megszakadt. Ellenőrizd a kapcsolatot, majd próbáld újra.";
+    }
+
+    function openDeviceModal(code = "", message = "") {
+      showStatus(addAccountStatus, message, Boolean(message));
+      additionalInput.value = code;
+      modal.style.display = "flex";
+      document.body.classList.remove("menu-open");
+      additionalInput.focus();
+    }
+
+    async function finishPairing(user) {
+      if (!pendingInvite) return;
+      try {
+        await claimActivation(db, user.uid, pendingInvite);
+        window.showAppToast("A virágtartó megjelent a növényeid között.", "Sikeres párosítás");
+      } catch (error) {
+        openDeviceModal(activationInput.value, activationMessage(error));
+        return;
+      } finally {
+        pendingInvite = null;
       }
+      activationInput.value = "";
+    }
+
+    document.getElementById("showActivation").onclick = () => {
+      pendingInvite = null;
+      showAuthPanel("activationForm");
+    };
+    document.getElementById("showLogin").onclick = () => showAuthPanel("loginForm");
+    document.getElementById("registerExisting").onclick = () => {
+      emailInput.value = registerEmail.value;
+      showAuthPanel("loginForm");
+    };
+    document.getElementById("showReset").onclick = () => {
+      resetEmail.value = emailInput.value;
+      showAuthPanel("resetForm");
+    };
+    document.getElementById("resetBack").onclick = () => {
+      emailInput.value = resetEmail.value;
+      showAuthPanel("loginForm");
+    };
+
+    wireForm(document.getElementById("activationForm"), statusDiv, async () => {
+      pendingInvite = await inspectActivation(db, activationInput.value);
+      showAuthPanel("registerForm");
+    }, activationMessage);
+
+    wireForm(document.getElementById("registerForm"), statusDiv, async () => {
+      if (!pendingInvite) {
+        showAuthPanel("activationForm");
+        return;
+      }
+      try {
+        const password = document.getElementById("registerPassword");
+        const { user } = await createUserWithEmailAndPassword(auth, registerEmail.value.trim(), password.value);
+        password.value = "";
+        await finishPairing(user);
+      } catch (error) {
+        if (error.code !== "auth/email-already-in-use") throw error;
+        emailInput.value = registerEmail.value;
+        showAuthPanel("loginForm");
+        showStatus(statusDiv, "Ehhez az e-mail-címhez már tartozik fiók. Lépj be a virágtartó hozzáadásához.");
+      }
+    }, authError);
+
+    wireForm(loginForm, statusDiv, async () => {
+      const { user } = await signInWithEmailAndPassword(auth, emailInput.value.trim(), passInput.value);
+      passInput.value = "";
+      showStatus(statusDiv);
+      await finishPairing(user);
+    }, authError);
+
+    wireForm(document.getElementById("resetForm"), statusDiv, async () => {
+      try {
+        await sendPasswordResetEmail(auth, resetEmail.value.trim());
+      } catch (error) {
+        if (error.code !== "auth/user-not-found") throw error;
+      }
+      showStatus(statusDiv, "Ha ehhez az e-mail-címhez tartozik fiók, hamarosan megérkezik a jelszó-visszaállító link.");
+    }, authError);
+
+    addAccountBtn.onclick = () => openDeviceModal();
+    document.getElementById("emptyAddDevice").onclick = () => openDeviceModal();
+    modalCloseBtn.onclick = () => { modal.style.display = "none"; };
+    modal.addEventListener("click", event => {
+      if (event.target === modal) modal.style.display = "none";
+    });
+    wireForm(addNewAccountForm, addAccountStatus, async () => {
+      const user = auth.currentUser;
+      if (!user) return;
+      const invite = await inspectActivation(db, additionalInput.value);
+      await claimActivation(db, user.uid, invite);
+      modal.style.display = "none";
+      showStatus(addAccountStatus);
+      window.showAppToast("A virágtartó megjelent a növényeid között.", "Sikeres párosítás");
+    }, activationMessage);
+
+    infoBtn.addEventListener("click", () => {
+      infoModal.style.display = "flex";
+      document.body.classList.remove("menu-open");
+    });
+    infoModalClose.addEventListener("click", () => { infoModal.style.display = "none"; });
+    infoModal.addEventListener("click", event => {
+      if (event.target === infoModal) infoModal.style.display = "none";
     });
 
     logoutBtn.style.display = "none";
     logoutBtn.addEventListener("click", async () => {
-      await signOut(auth);
-      for (const uid of new Set([...deviceCards.values()].map(item => item.uid))) removeAllCardsForUid(uid);
-      setStoredAccounts([]);
-      window.jelenlegiEszkozID = null;
-      showLoginScreen();
+      const uid = auth.currentUser?.uid;
+      try {
+        await window.__detachPushForSession?.().catch(() => {});
+        await signOut(auth);
+        pendingInvite = null;
+        try {
+          for (const key of Object.keys(localStorage)) {
+            if (uid && key.startsWith(`noveny-v2-plant_${uid}_`)) localStorage.removeItem(key);
+          }
+        } catch {}
+        showAuthPanel("loginForm", false);
+      } catch {
+        window.showAppToast("A kijelentkezés megszakadt. Próbáld újra.", "Kapcsolati hiba");
+      }
     });
 
     // ====== Confirm modal ======

@@ -1,0 +1,206 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "v2": {
+      "invites": {
+        "$digest": {
+          "meta": {
+            ".read": "$digest.matches(/^[a-f0-9]{64}$/) && data.exists() && (!data.parent().child('ownerUid').exists() || (auth != null && auth.uid === data.parent().child('ownerUid').val()))"
+          },
+          "ownerUid": {
+            ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && !data.exists() && newData.val() === auth.uid && data.parent().child('meta/id').isString() && root.child('v2/registry').child(data.parent().child('meta/id').val()).child('inviteHash').val() === $digest && newData.parent().parent().parent().child('registry').child(data.parent().child('meta/id').val()).child('ownerUid').val() === auth.uid && newData.parent().parent().parent().child('users').child(auth.uid).child('devices').child(data.parent().child('meta/id').val()).exists()"
+          }
+        }
+      },
+      "registry": {
+        "$id": {
+          "ownerUid": {
+            ".read": "auth != null && auth.token.novenyDevice === true && auth.uid === data.parent().child('deviceUid').val()",
+            ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && !data.exists() && newData.val() === auth.uid && data.parent().child('inviteHash').isString() && newData.parent().parent().parent().child('invites').child(data.parent().child('inviteHash').val()).child('ownerUid').val() === auth.uid && newData.parent().parent().parent().child('users').child(auth.uid).child('devices').child($id).exists()"
+          }
+        }
+      },
+      "users": {
+        "$uid": {
+          ".read": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid",
+          "notificationEmail": {
+            ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && auth.token.email_verified === true && newData.exists()",
+            ".validate": "newData.isString() && newData.val() === auth.token.email && newData.val().length <= 254"
+          },
+          "devices": {
+            "$id": {
+              ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && !data.exists() && newData.exists() && root.child('v2/registry').child($id).child('inviteHash').isString() && newData.parent().parent().parent().parent().child('registry').child($id).child('ownerUid').val() === $uid && newData.parent().parent().parent().parent().child('invites').child(root.child('v2/registry').child($id).child('inviteHash').val()).child('ownerUid').val() === $uid",
+              ".validate": "newData.hasChildren(['variant','displayName','plantType','plantTypeChangedAt','attachedAt','hidden','emailAlerts']) && (!data.exists() || newData.child('plantType').val() === data.child('plantType').val() || (newData.child('plantTypeChangedAt').val() >= now - 300000 && newData.child('plantTypeChangedAt').val() <= now + 300000))",
+              "variant": {
+                ".validate": "(newData.val() === 'usb' || newData.val() === 'usb-led' || newData.val() === 'battery' || newData.val() === 'battery-touch' || newData.val() === 'battery-air') && newData.val() === root.child('v2/registry').child($id).child('variant').val()"
+              },
+              "displayName": {
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 50"
+              },
+              "plantType": {
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "(newData.val() === '🌵Szárazkedvelő' || newData.val() === '🌾Mérsékelten száraz' || newData.val() === '🌿Kiegyensúlyozott vízigényű' || newData.val() === '🌱Nedvességkedvelő' || newData.val() === '💧Vízigényes')"
+              },
+              "plantTypeChangedAt": {
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"
+              },
+              "attachedAt": {
+                ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"
+              },
+              "hidden": {
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "newData.isBoolean()"
+              },
+              "emailAlerts": {
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "newData.isBoolean() && (newData.val() === false || auth.token.email_verified === true)"
+              },
+              "ledLevel": {
+                ".read": "auth != null && auth.token.novenyDevice === true && auth.uid === root.child('v2/registry').child($id).child('deviceUid').val() && $uid === root.child('v2/registry').child($id).child('ownerUid').val() && root.child('v2/registry').child($id).child('variant').val() === 'usb-led'",
+                ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && root.child('v2/registry').child($id).child('ownerUid').val() === $uid && newData.exists()",
+                ".validate": "root.child('v2/registry').child($id).child('variant').val() === 'usb-led' && newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+              },
+              "reading": {
+                ".write": "auth != null && auth.token.novenyDevice === true && auth.uid === root.child('v2/registry').child($id).child('deviceUid').val() && $uid === root.child('v2/registry').child($id).child('ownerUid').val() && root.child('v2/users').child($uid).child('devices').child($id).exists() && newData.exists()",
+                ".validate": "root.child('v2/users').child($uid).child('devices').child($id).exists() && newData.hasChildren(['sensorValue','lastMeasurementAt','lastSeen','firmwareVersion','measurementSequence'])",
+                "sensorValue": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+                },
+                "batteryPercent": {
+                  ".validate": "(data.parent().parent().child('variant').val() === 'battery' || data.parent().parent().child('variant').val() === 'battery-touch' || data.parent().parent().child('variant').val() === 'battery-air') && newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+                },
+                "lastMeasurementAt": {
+                  ".validate": "newData.isNumber() && newData.val() >= 1577836800000 && newData.val() <= now + 300000"
+                },
+                "lastSeen": {
+                  ".validate": "newData.isNumber() && newData.val() >= now - 300000 && newData.val() <= now + 300000"
+                },
+                "firmwareVersion": {
+                  ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 72"
+                },
+                "measurementSequence": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4294967295"
+                },
+                "wifiRSSI": {
+                  ".validate": "newData.isNumber() && newData.val() >= -150 && newData.val() <= 0"
+                },
+                "queueDropped": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4294967295"
+                },
+                "$other": {
+                  ".validate": "false"
+                }
+              },
+              "airQuality": {
+                ".write": "auth != null && auth.token.novenyDevice === true && auth.uid === root.child('v2/registry').child($id).child('deviceUid').val() && $uid === root.child('v2/registry').child($id).child('ownerUid').val() && root.child('v2/users').child($uid).child('devices').child($id).exists() && root.child('v2/registry').child($id).child('variant').val() === 'battery-air' && newData.exists()",
+                ".validate": "root.child('v2/users').child($uid).child('devices').child($id).exists() && root.child('v2/registry').child($id).child('variant').val() === 'battery-air' && newData.hasChildren(['aqi','tvoc','eco2','status','bad','lastAirMeasurementAt'])",
+                "aqi": {
+                  ".validate": "newData.isNumber() && newData.val() >= 1 && newData.val() <= 5"
+                },
+                "tvoc": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 65535"
+                },
+                "eco2": {
+                  ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 65535"
+                },
+                "bad": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "stable": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "valid": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "warmupAccepted": {
+                  ".validate": "newData.isBoolean()"
+                },
+                "status": {
+                  ".validate": "(newData.val() === 'kivalo' || newData.val() === 'jo' || newData.val() === 'kozepes' || newData.val() === 'rossz' || newData.val() === 'nagyon_rossz')"
+                },
+                "deviceStatus": {
+                  ".validate": "newData.isString() && newData.val().length >= 1 && newData.val().length <= 40"
+                },
+                "lastAirMeasurementAt": {
+                  ".validate": "newData.isNumber() && newData.val() >= 1577836800000 && newData.val() <= now + 300000"
+                },
+                "$other": {
+                  ".validate": "false"
+                }
+              },
+              "history": {
+                "$slot": {
+                  ".write": "auth != null && auth.token.novenyDevice === true && auth.uid === root.child('v2/registry').child($id).child('deviceUid').val() && $uid === root.child('v2/registry').child($id).child('ownerUid').val() && root.child('v2/users').child($uid).child('devices').child($id).exists() && newData.exists()",
+                  ".validate": "root.child('v2/users').child($uid).child('devices').child($id).exists() && $slot.matches(/^s[0-9]$/) && newData.hasChildren(['t','v'])",
+                  "t": {
+                    ".validate": "newData.isNumber() && newData.val() >= 1577836800000 && newData.val() <= now + 300000"
+                  },
+                  "v": {
+                    ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 100"
+                  },
+                  "$other": {
+                    ".validate": "false"
+                  }
+                }
+              },
+              "$other": {
+                ".validate": "false"
+              }
+            }
+          },
+          "pushSubscriptions": {
+            "$subscription": {
+              ".write": "(auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && $subscription.matches(/^[a-f0-9]{64}$/)) || (auth != null && auth.token.novenyAlerts === true && data.exists() && !newData.exists())",
+              ".validate": "newData.hasChildren(['endpoint','keys','expiresAt'])",
+              "endpoint": {
+                ".validate": "newData.isString() && newData.val().length >= 8 && newData.val().length <= 2048 && newData.val().beginsWith('https://')"
+              },
+              "expiresAt": {
+                ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 4102444800000"
+              },
+              "keys": {
+                ".validate": "newData.hasChildren(['p256dh','auth'])",
+                "p256dh": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{87}$/)"
+                },
+                "auth": {
+                  ".validate": "newData.isString() && newData.val().matches(/^[A-Za-z0-9_-]{22}$/)"
+                },
+                "$other": {
+                  ".validate": "false"
+                }
+              },
+              "$other": {
+                ".validate": "false"
+              }
+            }
+          },
+          "pushTopics": {
+            ".write": "auth != null && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true && auth.uid === $uid && newData.exists()",
+            ".validate": "newData.hasChildren(['soil','battery','air'])",
+            "soil": {
+              ".validate": "newData.isBoolean()"
+            },
+            "battery": {
+              ".validate": "newData.isBoolean()"
+            },
+            "air": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": "false"
+            }
+          }
+        },
+        ".read": "auth != null && auth.token.novenyAlerts === true"
+      },
+      "alertState": {
+        ".read": "auth != null && auth.token.novenyAlerts === true",
+        ".write": "auth != null && auth.token.novenyAlerts === true"
+      }
+    }
+  }
+}

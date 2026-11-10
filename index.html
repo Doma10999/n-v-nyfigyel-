@@ -16,21 +16,21 @@
   <link rel="apple-touch-icon" href="/pwa-icon-192.png">
 
 
-  <link rel="stylesheet" href="styles.css?v=20261031desktop10">
+  <link rel="stylesheet" href="styles.css?v=20261110activation">
 
   
 
-  <script type="module" src="firebase-app.js?v=20261031desktop10"></script>
+  <script type="module" src="firebase-app.js?v=20261110activation"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
-  <script src="notifications.js?v=20261031desktop10"></script>
+  <script type="module" src="notifications.js?v=20261110activation"></script>
 
   
 
 
-  <link rel="stylesheet" href="dashboard.css?v=20261031desktop10">
-  <script defer src="dashboard.js?v=20261031desktop10"></script>
+  <link rel="stylesheet" href="dashboard.css?v=20261110activation">
+  <script defer src="dashboard.js?v=20261110activation"></script>
 </head>
 
 <body>
@@ -114,43 +114,77 @@
   </header>
   <main class="dashboard-main">
   <section class="welcome-panel"><span class="eyebrow">GONDOSKODÁS. EGYSZERŰEN.</span><h2>Közelebb<br>a növényeidhez.</h2><p>Nedvesség, világítás, nyugalom.<br>Minden fontos adat egy helyen.</p><svg class="welcome-plant" viewBox="0 0 120 140" fill="none" aria-hidden="true"><path d="M60 95V33" stroke="#17634d" stroke-width="4" stroke-linecap="round"/><path d="M59 67C27 70 15 51 17 31c27-2 44 11 42 36Z" fill="#bcd9a0"/><path d="M62 48C59 18 78 6 103 9c0 25-13 40-41 39Z" fill="#17634d"/><path d="M61 88c5-25 22-34 44-29-2 23-18 35-44 29Z" fill="#83bca0"/><path d="M37 96h49l-7 37H44l-7-37Z" fill="#e3b88d"/><path d="M35 96h53" stroke="#a77851" stroke-width="5" stroke-linecap="round"/></svg></section>
-  <section id="gardenOverview" hidden><svg class="garden-botany" viewBox="0 0 110 92" fill="none" aria-hidden="true"><path d="M16 66h36l-5 22H21l-5-22Z" fill="#dfeadb"/><path d="M34 66V21M34 48C17 48 12 39 13 28c15 0 23 7 21 20ZM35 36c0-18 12-25 27-23 0 16-10 24-27 23Z" stroke="#387d61" stroke-width="2" stroke-linecap="round" fill="#c3dfc2"/><path d="M76 81V44M76 69c-10 0-13-5-12-12 9 0 14 5 12 12ZM77 61c0-10 6-14 15-13 0 9-6 14-15 13Z" stroke="#4e8d6e" stroke-width="1.8" stroke-linecap="round" fill="#d4e8cd"/><path d="M76 37c-11-1-9-11-2-9-1-10 10-10 10-2 8-4 13 6 4 9 8 7 0 14-6 7-4 10-14 6-6-5Z" fill="#e5bab6"/><circle cx="80" cy="35" r="4" fill="#d6aa64"/><path d="M9 89h88" stroke="#d9e5d7" stroke-width="2" stroke-linecap="round"/></svg><div class="section-heading"><div><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats" role="group" aria-label="Növények szűrése"><button type="button" data-filter="all" aria-pressed="true"><strong id="statTotal">0</strong><span>Összes</span></button><button type="button" data-filter="attention" aria-pressed="false"><strong id="statAttention">0</strong><span>Figyelmet kér</span></button><button type="button" data-filter="stale" aria-pressed="false"><strong id="statStale">0</strong><span>Régi mérés</span></button></div><p id="emptyPlants" hidden>Nincs megjeleníthető növény. Az eszköz első mérése után itt jelenik meg.</p><p id="noSearchResults" hidden>Nincs a szűrésnek megfelelő növény.</p></section>
+  <section id="gardenOverview" hidden><svg class="garden-botany" viewBox="0 0 110 92" fill="none" aria-hidden="true"><path d="M16 66h36l-5 22H21l-5-22Z" fill="#dfeadb"/><path d="M34 66V21M34 48C17 48 12 39 13 28c15 0 23 7 21 20ZM35 36c0-18 12-25 27-23 0 16-10 24-27 23Z" stroke="#387d61" stroke-width="2" stroke-linecap="round" fill="#c3dfc2"/><path d="M76 81V44M76 69c-10 0-13-5-12-12 9 0 14 5 12 12ZM77 61c0-10 6-14 15-13 0 9-6 14-15 13Z" stroke="#4e8d6e" stroke-width="1.8" stroke-linecap="round" fill="#d4e8cd"/><path d="M76 37c-11-1-9-11-2-9-1-10 10-10 10-2 8-4 13 6 4 9 8 7 0 14-6 7-4 10-14 6-6-5Z" fill="#e5bab6"/><circle cx="80" cy="35" r="4" fill="#d6aa64"/><path d="M9 89h88" stroke="#d9e5d7" stroke-width="2" stroke-linecap="round"/></svg><div class="section-heading"><div><span class="eyebrow">A TE KIS ZÖLD VILÁGOD</span><h2>Növényeim <span id="plantCount">0</span></h2></div><label class="plant-search"><svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="10" cy="10" r="6"/><path d="m15 15 5 5"/></svg><input id="plantSearch" type="search" placeholder="Keress növényt…" autocomplete="off"></label></div><div class="overview-stats" role="group" aria-label="Növények szűrése"><button type="button" data-filter="all" aria-pressed="true"><strong id="statTotal">0</strong><span>Összes</span></button><button type="button" data-filter="attention" aria-pressed="false"><strong id="statAttention">0</strong><span>Figyelmet kér</span></button><button type="button" data-filter="stale" aria-pressed="false"><strong id="statStale">0</strong><span>Régi mérés</span></button></div><p id="emptyPlants" hidden>Még nincs párosított virágtartód. <button type="button" id="emptyAddDevice">Virágtartó hozzáadása</button></p><p id="noSearchResults" hidden>Nincs a szűrésnek megfelelő növény.</p></section>
 
   <div class="card" id="plantData">
-    <form id="loginForm">
-      <span class="eyebrow">ÜDV ÚJRA ITT</span><h3>Jó újra látni.</h3><p class="login-intro">Lépj be, és nézd meg, hogy vannak a növényeid.</p>
-      <input type="email" id="email" placeholder="Email" aria-label="Email-cím" autocomplete="username" required><br>
+    <div class="auth-tabs" aria-label="Fiókműveletek">
+      <button type="button" id="showActivation" aria-pressed="true">Új virágtartóm van</button>
+      <button type="button" id="showLogin" aria-pressed="false">Belépés</button>
+    </div>
+    <form id="activationForm" class="auth-panel">
+      <span class="eyebrow">ELSŐ LÉPÉS</span>
+      <h3>Aktiváld a virágtartód</h3>
+      <p class="login-intro">Írd be a csomagban kapott aktiválókódot.</p>
+      <label for="activationCode">Aktiválókód</label>
+      <input id="activationCode" type="text" placeholder="NF-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
+      <button type="submit">Tovább</button>
+    </form>
+    <form id="registerForm" class="auth-panel" hidden>
+      <span class="eyebrow">MÁSODIK LÉPÉS</span>
+      <h3>Hozd létre a fiókod</h3>
+      <p class="login-intro">Ehhez a fiókhoz később más virágtartókat is hozzáadhatsz.</p>
+      <label for="registerEmail">E-mail-cím</label>
+      <input type="email" id="registerEmail" autocomplete="username" maxlength="254" required>
+      <label for="registerPassword">Jelszó</label>
       <div class="password-field">
-        <input type="password" id="password" placeholder="Jelszó" aria-label="Jelszó" autocomplete="current-password" required>
-        <button type="button" class="password-eye" data-target="password" aria-label="Jelszó megjelenítése">
-          <i class="fa-solid fa-eye"></i>
-        </button>
+        <input type="password" id="registerPassword" autocomplete="new-password" minlength="8" maxlength="128" placeholder="Legalább 8 karakter" required>
+        <button type="button" class="password-eye" data-target="registerPassword" aria-label="Jelszó megjelenítése"><i class="fa-solid fa-eye"></i></button>
+      </div>
+      <button type="submit">Fiók létrehozása és párosítás</button>
+      <button type="button" id="registerExisting" class="auth-link">Már van fiókom</button>
+    </form>
+    <form id="loginForm" class="auth-panel" hidden>
+      <span class="eyebrow">ÜDV ÚJRA ITT</span>
+      <h3>Jelentkezz be</h3>
+      <p class="login-intro">Nézd meg, hogy vannak a növényeid.</p>
+      <label for="email">E-mail-cím</label>
+      <input type="email" id="email" autocomplete="username" maxlength="254" required>
+      <label for="password">Jelszó</label>
+      <div class="password-field">
+        <input type="password" id="password" autocomplete="current-password" required>
+        <button type="button" class="password-eye" data-target="password" aria-label="Jelszó megjelenítése"><i class="fa-solid fa-eye"></i></button>
       </div>
       <button type="submit">Belépés</button>
+      <button type="button" id="showReset" class="auth-link">Elfelejtettem a jelszavam</button>
+    </form>
+    <form id="resetForm" class="auth-panel" hidden>
+      <span class="eyebrow">HOZZÁFÉRÉS</span>
+      <h3>Új jelszó kérése</h3>
+      <p class="login-intro">E-mailben kapsz egy linket, ahol új jelszót állíthatsz be.</p>
+      <label for="resetEmail">E-mail-cím</label>
+      <input type="email" id="resetEmail" autocomplete="email" maxlength="254" required>
+      <button type="submit">Visszaállító link kérése</button>
+      <button type="button" id="resetBack" class="auth-link">Vissza a belépéshez</button>
     </form>
     <button id="logout">Kijelentkezés</button>
-    <p id="status" role="status" aria-live="polite">Nincs bejelentkezve</p>
+    <p id="status" role="status" aria-live="polite"></p>
     <div class="gauge-container" style="display:none"></div>
   </div>
 
-  <div id="accountsContainer"></div>
+  <p id="devicesStatus" class="devices-status" role="status" hidden></p><div id="accountsContainer"></div>
   <footer class="garden-footer"><svg class="footer-garden" viewBox="0 0 100 45" fill="none" aria-hidden="true"><path d="M25 43V18m25 25V8m25 35V19" stroke="#639366" stroke-width="1.5"/><path d="M25 30C12 30 10 22 13 16c9 1 14 5 12 14ZM26 23c0-10 6-14 14-13 0 10-5 14-14 13ZM50 23C37 23 34 14 37 7c11 1 15 6 13 16ZM51 16C51 6 57 2 65 3c0 9-5 14-14 13ZM75 32C63 31 61 23 64 17c9 1 14 6 11 15ZM76 24c0-9 5-13 13-12 0 9-5 13-13 12Z" fill="#d4e6bf" stroke="#79a471" stroke-width="1.3"/></svg>Növényfigyelő · Gondoskodás, egyszerűen.</footer></main>
 
   <button type="button" id="menuShade" aria-label="Menü bezárása" tabindex="-1"></button>
   <nav class="app-dock" aria-label="Alkalmazás funkciói">
   <button id="homeTab" type="button" title="Növényeim" aria-label="Növényeim" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 21V9M12 14C4 15 2 9 3 5c7 0 10 3 9 9ZM12 10c0-6 4-9 10-8 0 6-4 9-10 8Z"/></svg></button>
-  <button id="addAccountBtn" style="display:none;" title="Fiók hozzáadása">+</button>
+  <button id="addAccountBtn" style="display:none;" title="Virágtartó hozzáadása" aria-label="Virágtartó hozzáadása" type="button">+</button>
 
-  <button id="notifBellBtn" style="display:none;" aria-label="Email értesítés" title="Email értesítés">
+  <button id="notifBellBtn" style="display:none;" aria-label="Értesítések" title="Értesítések">
     <i class="fa-solid fa-bell"></i>
   </button>
 
   <button id="chartsBtn" style="display:none;" aria-label="Grafikonok" title="Mérések">
     <i class="fa-solid fa-chart-line"></i>
-  </button>
-
-  <button id="paymentBtn" style="display:none;" aria-label="Csomagok és fizetés" title="Csomagok és fizetés">
-    <i class="fa-solid fa-money-bill-wave"></i>
   </button>
 
   <button id="infoBtn" style="display:none;" aria-label="Információ és használati útmutató" title="Információ">
@@ -162,22 +196,23 @@
   </nav>
   <div id="notifModal">
     <div id="notifModalContent">
-<header class="botanical-panel-header"><svg class="panel-flora" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M42 130C8 100 14 42 57 12M66 130c30-27 39-56 27-85" stroke="#8bc58a" stroke-width="2.2"/><path d="M29 100C8 102 2 88 5 73c19 1 27 11 24 27ZM27 69C9 61 9 45 18 33c15 9 19 22 9 36ZM37 45c-1-18 10-28 27-28 1 19-9 28-27 28ZM79 110c3-20 17-27 34-22-4 20-16 26-34 22ZM95 82c-1-19 10-28 25-27 1 18-9 28-25 27Z" fill="#b3d68a"/><g transform="translate(84 45)"><circle cy="-9" r="8" fill="#efb4b8"/><circle cx="9" cy="-2" r="8" fill="#e99ca7"/><circle cx="5" cy="8" r="8" fill="#f2c1b8"/><circle cx="-6" cy="7" r="8" fill="#e99ca7"/><circle cx="-9" cy="-3" r="8" fill="#f2c1b8"/><circle r="5" fill="#f2d184"/></g></svg><button id="notifModalClose" class="panel-close" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button><span class="eyebrow">EGY KIS FIGYELEM, IDŐBEN</span><h3>Email értesítések</h3><p>Válaszd ki, mely növényekről szeretnél értesítést kapni.</p></header>
-      <div class="panel-body notification-body"><p class="panel-intro-note">Emailt kérhetsz, ha a kijelzett érték <b>35% alá esik</b>, vagy az eszköz rossz levegőminőséget jelez.</p>
-      <div id="notifDeviceList" style="text-align:left; margin-top:16px;"></div>
-
-      <div style="margin-top:14px; text-align:left;">
-        <label for="notifEmailInput" style="font-weight:700; font-size:13px; opacity:.85; display:block; margin-bottom:6px;">
-          Email cím (a kijelölt növényekhez)
-        </label>
-        <input id="notifEmailInput" type="email" placeholder="pl. nev@email.hu" autocomplete="email" style="width:100%; padding:12px 12px; border-radius:14px; border:1px solid rgba(0,0,0,0.08); outline:none;" />
-        <div style="margin-top:6px; font-size:12px; opacity:.7;">
-          Csak a kipipált növényekhez mentjük el ezt az email címet.
-        </div>
-      </div>
-
-
-      <p class="notification-hint">Az email-címet a kijelölt növényekhez rendeljük.</p>
+<header class="botanical-panel-header"><svg class="panel-flora" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M42 130C8 100 14 42 57 12M66 130c30-27 39-56 27-85" stroke="#8bc58a" stroke-width="2.2"/><path d="M29 100C8 102 2 88 5 73c19 1 27 11 24 27ZM27 69C9 61 9 45 18 33c15 9 19 22 9 36ZM37 45c-1-18 10-28 27-28 1 19-9 28-27 28ZM79 110c3-20 17-27 34-22-4 20-16 26-34 22ZM95 82c-1-19 10-28 25-27 1 18-9 28-25 27Z" fill="#b3d68a"/><g transform="translate(84 45)"><circle cy="-9" r="8" fill="#efb4b8"/><circle cx="9" cy="-2" r="8" fill="#e99ca7"/><circle cx="5" cy="8" r="8" fill="#f2c1b8"/><circle cx="-6" cy="7" r="8" fill="#e99ca7"/><circle cx="-9" cy="-3" r="8" fill="#f2c1b8"/><circle r="5" fill="#f2d184"/></g></svg><button id="notifModalClose" class="panel-close" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button><span class="eyebrow">EGY KIS FIGYELEM, IDŐBEN</span><h3>Értesítések</h3><p>Állítsd be, miről szeretnél jelzést kapni.</p></header>
+      <div class="panel-body notification-body">
+        <p class="panel-intro-note">A rendszer a legutóbbi mérés alapján jelez, ha locsolásra vagy szellőztetésre lehet szükség.</p>
+        <p id="notificationEmail"></p>
+        <button id="verifyAlertEmail" type="button" hidden>E-mail-cím megerősítése</button>
+        <div id="notifDeviceList" class="notif-list"></div>
+        <section id="pushSettings" class="push-settings" aria-labelledby="pushSettingsTitle">
+          <h4 id="pushSettingsTitle">Telefonos és böngészőértesítés</h4>
+          <p id="pushStatus" role="status"></p>
+          <div id="pushTopics" hidden>
+            <label><input type="checkbox" data-topic="soil" checked> Locsolás</label>
+            <label><input type="checkbox" data-topic="battery" checked> Akkumulátor</label>
+            <label><input type="checkbox" data-topic="air" checked> Levegőminőség</label>
+          </div>
+          <button type="button" id="pushToggle" hidden>Értesítések bekapcsolása ezen az eszközön</button>
+        </section>
+        <p id="notifStatus" role="status"></p>
       </div>
       <footer class="panel-actions"><button id="notifCancel" type="button">Mégse</button><button id="notifSave" type="button">Beállítások mentése</button></footer>
     </div>
@@ -185,7 +220,7 @@
 
 <div id="chartsModal">
     <div id="chartsModalContent">
-<header class="botanical-panel-header"><svg class="panel-flora" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M42 130C8 100 14 42 57 12M66 130c30-27 39-56 27-85" stroke="#8bc58a" stroke-width="2.2"/><path d="M29 100C8 102 2 88 5 73c19 1 27 11 24 27ZM27 69C9 61 9 45 18 33c15 9 19 22 9 36ZM37 45c-1-18 10-28 27-28 1 19-9 28-27 28ZM79 110c3-20 17-27 34-22-4 20-16 26-34 22ZM95 82c-1-19 10-28 25-27 1 18-9 28-25 27Z" fill="#b3d68a"/><g transform="translate(84 45)"><circle cy="-9" r="8" fill="#efb4b8"/><circle cx="9" cy="-2" r="8" fill="#e99ca7"/><circle cx="5" cy="8" r="8" fill="#f2c1b8"/><circle cx="-6" cy="7" r="8" fill="#e99ca7"/><circle cx="-9" cy="-3" r="8" fill="#f2c1b8"/><circle r="5" fill="#f2d184"/></g></svg><button id="chartsModalClose" class="panel-close" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button><span class="eyebrow">AHOGY A KERTED VÁLTOZIK</span><h3>Mérési előzmények</h3><p>Korábbi, vízigényhez igazított értékek. A főképernyőn a szenzor talajnedvesség-mérése látható.</p></header>
+<header class="botanical-panel-header"><svg class="panel-flora" viewBox="0 0 120 130" fill="none" aria-hidden="true"><path d="M42 130C8 100 14 42 57 12M66 130c30-27 39-56 27-85" stroke="#8bc58a" stroke-width="2.2"/><path d="M29 100C8 102 2 88 5 73c19 1 27 11 24 27ZM27 69C9 61 9 45 18 33c15 9 19 22 9 36ZM37 45c-1-18 10-28 27-28 1 19-9 28-27 28ZM79 110c3-20 17-27 34-22-4 20-16 26-34 22ZM95 82c-1-19 10-28 25-27 1 18-9 28-25 27Z" fill="#b3d68a"/><g transform="translate(84 45)"><circle cy="-9" r="8" fill="#efb4b8"/><circle cx="9" cy="-2" r="8" fill="#e99ca7"/><circle cx="5" cy="8" r="8" fill="#f2c1b8"/><circle cx="-6" cy="7" r="8" fill="#e99ca7"/><circle cx="-9" cy="-3" r="8" fill="#f2c1b8"/><circle r="5" fill="#f2d184"/></g></svg><button id="chartsModalClose" class="panel-close" type="button" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button><span class="eyebrow">AHOGY A KERTED VÁLTOZIK</span><h3>Mérési előzmények</h3><p>A virágtartó legutóbbi tíz talajnedvesség-mérése.</p></header>
       <div class="panel-body charts-wrap" id="chartsWrap"></div>
     </div>
   </div>
@@ -231,7 +266,7 @@
       <div class="info-section">
         <h4>Mit csinál a fényerő csúszka?</h4>
         <p>
-          A LED-es változatnál ezzel lehet állítani a növény világításának erősségét.
+          Az USB-s LED-es változat világítását a csúszkával állíthatod. Az érintős akkumulátoros modelleket magán a tartón vezérelheted.
           Ha 0%-on van, a LED kikapcsol.
         </p>
       </div>
@@ -239,7 +274,7 @@
       <div class="info-section">
         <h4>Email értesítés</h4>
         <p>
-          Plus csomagban kérhetsz email értesítést. A rendszer akkor küld emailt,
+          A megerősített e-mail-címedre kérhetsz értesítést. A rendszer akkor küld üzenetet,
           ha a növény nedvessége túl alacsonyra esik, vagy levegőminőséges eszköznél
           rossz lesz a levegő.
         </p>
@@ -248,7 +283,7 @@
       <div class="info-section">
         <h4>Grafikon</h4>
         <p>
-          A grafikonok a korábban mentett, vízigényhez igazított értékeket mutatják. Ezek korábbi számított adatok, ezért eltérhetnek a főképernyőn látható szenzorméréstől.
+          A grafikon a virágtartó legutóbbi tíz talajnedvesség-mérését mutatja.
         </p>
       </div>
 
@@ -267,7 +302,7 @@
           <li>Ellenőrizd, hogy a lakásban működik-e a WiFi.</li>
           <li>Várj egy kicsit, mert az eszköz időközönként küldi az adatokat.</li>
           <li>Ha továbbra sem frissül, nyomd meg röviden a tartó alján lévő reset gombot.</li>
-          <li>Új WiFi beállításakor reset után megjelenik a <b>NovenyFigyelo</b> WiFi hálózat. Csatlakozz rá, majd add meg az otthoni WiFi adatait.</li>
+          <li>Új WiFi beállításakor reset után megjelenik a <b>Novenyfigyelo</b> WiFi hálózat. Csatlakozz rá, majd add meg az otthoni WiFi adatait.</li>
         </ol>
       </div>
 
@@ -281,26 +316,22 @@
 
   <div id="modal">
     <div id="modalContent">
-      <span id="modalClose">&times;</span>
-      <h3>Fiók hozzáadása</h3>
-      <form id="addNewAccountForm">
-        <input type="email" id="newAccountEmail" placeholder="Email"><br>
-        <div class="password-field">
-          <input type="password" id="newAccountPass" placeholder="Jelszó">
-          <button type="button" class="password-eye" data-target="newAccountPass" aria-label="Jelszó megjelenítése">
-            <i class="fa-solid fa-eye"></i>
-          </button>
-        </div>
-        <button type="submit">Belépés</button>
+      <button type="button" class="panel-close" id="modalClose" aria-label="Bezárás"><span class="close-x-icon" aria-hidden="true"></span></button>
+      <h3>Virágtartó hozzáadása</h3>
+      <form id="addNewAccountForm" class="auth-panel">
+        <p class="login-intro">Írd be az új virágtartód kódját. A jelenlegi fiókodhoz adjuk hozzá.</p>
+        <label for="additionalCode">Aktiválókód</label>
+        <input id="additionalCode" type="text" placeholder="NF-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
+        <button type="submit">Virágtartó hozzáadása</button>
       </form>
-      <p id="addAccountStatus"></p>
+      <p id="addAccountStatus" role="status"></p>
     </div>
   </div>
 
   <div id="confirmModal">
     <div id="confirmModalContent">
       <span id="confirmClose">&times;</span>
-      <h3 id="confirmText">Biztosan törlöd ezt a fiókot?</h3>
+      <h3 id="confirmText">Elrejted ezt a virágtartót?</h3>
       <div class="confirm-btn-group">
         <button class="confirm-btn confirm-igen" id="confirmIgenBtn">Igen</button>
         <button class="confirm-btn confirm-nem" id="confirmNemBtn">Nem</button>
@@ -362,8 +393,8 @@
     });
   </script>
 
-  <script src="service-worker-register.js?v=20261031desktop10"></script>
-  <script src="push-client.js?v=20261031desktop10"></script>
+  <script src="service-worker-register.js?v=20261110activation"></script>
+  <script type="module" src="push-client.js?v=20261110activation"></script>
   <script src="offline-status.js"></script>
 
 
@@ -386,7 +417,7 @@
     </div>
   </div>
 
-  <script src="plant-type-modal.js?v=20261031desktop10"></script>
+  <script src="plant-type-modal.js?v=20261110activation"></script>
 
 
 

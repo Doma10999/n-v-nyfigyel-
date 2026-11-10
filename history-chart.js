@@ -1,10 +1,10 @@
 // Draw in CSS pixels, with a backing bitmap matched to the display's pixel ratio.
-// History stays on its existing, water-demand-adjusted scale.
+// The points are raw soil readings stored by the planter.
 export function mountHistoryChart(canvas, history) {
   const view = canvas.ownerDocument.defaultView;
   const ctx = canvas.getContext('2d');
   if (!ctx) return () => {};
-  const data = history.filter(point => Number.isFinite(point.v)).slice(-7);
+  const data = history.filter(point => Number.isFinite(point.v)).slice(-10);
   let frame = 0, disposed = false, sized = false, previousSize = '';
 
   function resize() {
@@ -61,7 +61,7 @@ export function mountHistoryChart(canvas, history) {
         ctx.roundRect(center - barWidth / 2, top + plotHeight - barHeight, barWidth, barHeight, radius);
         ctx.fill();
         ctx.fillStyle = value < 30 ? '#9a4d35' : value < 50 ? '#8c621e' : '#245c3c';
-        ctx.font = `650 ${slotWidth < 38 ? 11 : 13}px system-ui`; ctx.textAlign = 'center';
+        ctx.font = `650 ${slotWidth < 22 ? 9 : slotWidth < 38 ? 11 : 13}px system-ui`; ctx.textAlign = 'center';
         ctx.fillText(Math.round(value) + '%', center, height - 10);
       });
       if (progress < 1) frame = view.requestAnimationFrame(draw);

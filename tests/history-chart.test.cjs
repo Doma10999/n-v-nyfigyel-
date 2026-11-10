@@ -70,12 +70,12 @@ test('hidden dialog waits for sizing and redraws on resize and pixel ratio chang
   const callCount = f.calls.length; f.resize(); assert.equal(f.calls.length, callCount);
 });
 
-test('recent seven values are clamped, invalid values skipped, and empty data labelled', async () => {
+test('recent ten values are clamped, invalid values skipped, and empty data labelled', async () => {
   const { mountHistoryChart } = await chartModule;
   const f = fixture();
-  mountHistoryChart(f.canvas, [1, 2, 3, 4, 5, 6, 7, -20, 180, NaN].map(v => ({ v })));
+  mountHistoryChart(f.canvas, [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, -20, 180, NaN].map(v => ({ v })));
   const labels = f.calls.filter(c => c.name === 'fillText' && String(c.args[0]).endsWith('%'));
-  assert.deepEqual(labels.map(c => c.args[0]), ['3%', '4%', '5%', '6%', '7%', '0%', '100%']);
+  assert.deepEqual(labels.map(c => c.args[0]), ['3%', '4%', '5%', '6%', '7%', '8%', '9%', '10%', '0%', '100%']);
   const empty = fixture(); mountHistoryChart(empty.canvas, []);
   assert.ok(empty.calls.some(c => c.name === 'fillText' && c.args[0] === 'Még nincs mentett mérés.'));
 });
