@@ -3,6 +3,11 @@
   publish = "dist"
 
 [[redirects]]
+  from = "/email-megerosites"
+  to = "/email-megerosites.html"
+  status = 200
+
+[[redirects]]
   from = "/payment.html"
   to = "/"
   status = 302

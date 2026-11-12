@@ -112,7 +112,8 @@ async function main() {
         response.writeHead(503).end();
         return;
       }
-      const file = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+      const pages = { "/": "index.html", "/email-megerosites": "email-megerosites.html" };
+      const file = pages[url.pathname] || url.pathname.slice(1);
       const data = await readFile(join("dist", file));
       response.writeHead(200, { "Content-Type": types[extname(file)] || "application/octet-stream" }).end(data);
     } catch {
@@ -125,10 +126,11 @@ async function main() {
     headless: true,
     args: ["--no-sandbox", "--disable-dev-shm-usage", ...JSON.parse(process.env.CHROMIUM_EXTRA_ARGS || "[]")]
   });
-  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const page = await context.newPage();
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await page.route("https://www.gstatic.com/firebasejs/10.12.2/**", async route => {
+  await context.route("https://www.gstatic.com/firebasejs/10.12.2/**", async route => {
     const dir = process.env.FIREBASE_CDN_DIR;
     if (!dir) return route.continue();
     const file = basename(new URL(route.request().url()).pathname);
@@ -214,7 +216,23 @@ async function main() {
     await page.locator("#verifyAlertEmail").waitFor();
     await page.locator("#verifyAlertEmail").click();
     await page.getByText(/Megküldtük a megerősítő linket/).waitFor();
-    await authCall("update", { oobCode: await oobCode("VERIFY_EMAIL") });
+    const verification = await context.newPage();
+    const emailLink = (mode, oobCode) => site + "/email-megerosites?" + new URLSearchParams({ mode, oobCode, emulator: "1" });
+    const verificationLink = emailLink("verifyEmail", await oobCode("VERIFY_EMAIL"));
+    await verification.goto(verificationLink);
+    const confirm = verification.getByRole("button", { name: "E-mail-cím megerősítése" });
+    await confirm.waitFor();
+    await assertFit(verification);
+    assert.equal(new URL(verification.url()).search, "");
+    const session = await authCall("signInWithPassword", { email, password, returnSecureToken: true });
+    const accountBefore = await authCall("lookup", { idToken: session.idToken });
+    assert.notEqual(accountBefore.users[0].emailVerified, true);
+    if (process.env.VERIFICATION_SCREENSHOT) await verification.screenshot({ path: process.env.VERIFICATION_SCREENSHOT });
+    await confirm.click();
+    await verification.getByRole("heading", { name: "E-mail-cím megerősítve" }).waitFor();
+    await verification.goto(verificationLink);
+    await verification.getByRole("heading", { name: "A link már nem használható" }).waitFor();
+    assert.ok(!await confirm.isVisible());
     await closeModal(page, "notifModal");
     await openMenuItem(page, "#notifBellBtn");
     await page.getByText(/^E-mail-cím:/).waitFor();
@@ -242,7 +260,16 @@ async function main() {
     await page.locator("#resetForm button[type=submit]").click();
     await page.getByText(/hamarosan megérkezik a jelszó-visszaállító link/).waitFor();
     const newPassword = "Browser-only-new-password-44";
-    await authCall("resetPassword", { oobCode: await oobCode("PASSWORD_RESET"), newPassword });
+    const resetCode = await oobCode("PASSWORD_RESET");
+    const defaultHandler = "https://plant-monitor-3976f.firebaseapp.com/__/auth/action";
+    await verification.route(defaultHandler + "?**", route => route.fulfill({ body: "Firebase" }));
+    const forwardedRequest = verification.waitForRequest(request => request.url().startsWith(defaultHandler + "?"));
+    await verification.goto(emailLink("resetPassword", resetCode));
+    const forwarded = new URL((await forwardedRequest).url());
+    assert.equal(forwarded.searchParams.get("mode"), "resetPassword");
+    assert.equal(forwarded.searchParams.get("oobCode"), resetCode);
+    await verification.close();
+    await authCall("resetPassword", { oobCode: resetCode, newPassword });
     await page.locator("#resetBack").click();
     await page.locator("#password").fill(newPassword);
     await page.locator("#loginForm button[type=submit]").click();

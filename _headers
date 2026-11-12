@@ -7,3 +7,13 @@
   Cache-Control: no-cache
 /manifest.json
   Cache-Control: no-cache
+/email-megerosites
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self'; connect-src https://identitytoolkit.googleapis.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
+/email-megerosites.html
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://www.gstatic.com; style-src 'self'; img-src 'self'; connect-src https://identitytoolkit.googleapis.com; base-uri 'none'; form-action 'none'; frame-ancestors 'none'
