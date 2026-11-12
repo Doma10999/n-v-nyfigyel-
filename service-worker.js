@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20261112";
+const CACHE_NAME = "novenyfigyelo-cache-v20261112-email";
 const OFFLINE_URL = "offline.html";
 
 self.addEventListener("install", (event) => {
@@ -37,6 +37,7 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
+  if (url.pathname === "/email-megerosites.html") return;
   // Firebase/auth requests never enter the app cache. HTML fallback is navigation only.
   const appFiles = /\.(?:html|css|js|png|svg|json|woff2)$/i.test(url.pathname) || url.pathname === '/';
   if (!appFiles) return;

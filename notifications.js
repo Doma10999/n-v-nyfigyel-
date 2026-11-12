@@ -82,7 +82,7 @@ verify.addEventListener("click", async () => {
       showStatus("Az e-mail-címed meg van erősítve.");
     } else {
       await sendEmailVerification(user);
-      showStatus("Megküldtük a megerősítő linket. Kattints rá, majd nyisd meg újra ezt a panelt.");
+      showStatus("Megküldtük a megerősítő linket. A levélből nyisd meg a linket, erősítsd meg a címedet, majd térj vissza az Értesítésekhez.");
     }
   } catch {
     showStatus("A megerősítő e-mail küldése most nem sikerült.", true);
