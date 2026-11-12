@@ -2,6 +2,12 @@
   "rules": {
     ".read": false,
     ".write": false,
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true",
+        ".write": "auth != null && auth.uid === $uid && auth.token.novenyDevice !== true && auth.token.novenyAlerts !== true"
+      }
+    },
     "v2": {
       "invites": {
         "$digest": {

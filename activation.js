@@ -22,13 +22,32 @@ function isPermissionError(error) {
   return /permission.?denied/i.test(`${error.code} ${error.message}`);
 }
 
-export async function inspectActivation(db, input) {
-  let code = input.trim().toUpperCase().replace(/[\s-]/g, "");
-  if (code.length === 18 && code.startsWith("NF")) code = code.slice(2);
-  code = code.replace(/O/g, "0").replace(/[IL]/g, "1");
-  if (!/^[0-9A-HJKMNP-TV-Z]{16}$/.test(code)) throw activationError("activation/invalid");
+async function shortCodeDigest(code) {
+  const response = await fetch("/.netlify/functions/activation-code", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+    signal: AbortSignal.timeout(10000)
+  });
+  if (response.status === 404) throw activationError("activation/unavailable");
+  if (response.status === 429) throw activationError("activation/rate-limit");
+  if (!response.ok) throw activationError("activation/temporary");
+  const { digest } = await response.json();
+  if (!/^[a-f0-9]{64}$/.test(digest ?? "")) throw activationError("activation/temporary");
+  return digest;
+}
 
-  const digest = await sha256(code);
+async function activationDigest(input) {
+  const compact = input.trim().toUpperCase().replace(/[\s-]/g, "");
+  if (/^[A-Z0-9]{6}$/.test(compact)) return shortCodeDigest(compact);
+  const long = compact.length === 18 && compact.startsWith("NF") ? compact.slice(2) : compact;
+  const code = long.replace(/O/g, "0").replace(/[IL]/g, "1");
+  if (!/^[0-9A-HJKMNP-TV-Z]{16}$/.test(code)) throw activationError("activation/invalid");
+  return sha256(code);
+}
+
+export async function inspectActivation(db, input) {
+  const digest = await activationDigest(input);
   let meta;
   try {
     meta = (await get(ref(db, `v2/invites/${digest}/meta`))).val();
@@ -78,7 +97,8 @@ export async function claimActivation(db, uid, invite) {
 }
 
 export function activationMessage(error) {
-  if (error.code === "activation/invalid") return "Ellenőrizd a kódot. A kártyán NF-fel kezdődik, utána 16 karakter következik.";
+  if (error.code === "activation/invalid") return "Ellenőrizd a kódot. Az új kód 6 betűből és számból állhat. A korábbi NF kezdetű kódot is használhatod.";
   if (error.code === "activation/unavailable") return "Ez a kód nem érhető el. Ellenőrizd a karaktereket, vagy lépj be abba a fiókba, amelyhez már hozzáadtad a tartót.";
+  if (error.code === "activation/rate-limit") return "Túl sok próbálkozás történt. Várj egy percet, majd próbáld újra.";
   return "A kód ellenőrzése vagy mentése megszakadt. Ellenőrizd a kapcsolatot, majd próbáld újra.";
 }

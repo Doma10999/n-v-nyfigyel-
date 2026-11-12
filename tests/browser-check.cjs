@@ -12,6 +12,8 @@ const authBase = "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1";
 const site = "http://127.0.0.1:8765";
 const firstCode = "1TS9WDQH2CJ8M3RB";
 const secondCode = "ZRW2S31BNP35HGS8";
+const shortCode = "K7M4Q2";
+const digestOf = value => createHash("sha256").update(value).digest("hex");
 const email = `browser-${randomBytes(6).toString("hex")}@example.test`;
 const password = "Browser-only-password-23";
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png" };
@@ -44,12 +46,14 @@ async function oobCode(type) {
   throw new Error("Missing emulator email " + type);
 }
 
-async function seed(code, variant) {
+async function seed(code, variant, shortCode) {
   const id = "nf_" + randomBytes(12).toString("hex");
-  const digest = createHash("sha256").update(code).digest("hex");
+  const digest = digestOf(code);
+  const meta = { id, variant };
+  if (shortCode) meta.shortCodeHash = digestOf(shortCode);
   await admin("v2", "PATCH", {
     [`registry/${id}`]: { variant, deviceUid: id, inviteHash: digest },
-    [`invites/${digest}/meta`]: { id, variant }
+    [`invites/${digest}/meta`]: meta
   });
   return id;
 }
@@ -71,10 +75,39 @@ async function openMenuItem(page, selector) {
 
 async function main() {
   assert.ok(process.env.FIREBASE_AUTH_EMULATOR_HOST, "Run the local demo emulators with emulators:exec.");
-  const [first, second] = await Promise.all([seed(firstCode, "usb-led"), seed(secondCode, "battery-air")]);
+  const [first, second] = await Promise.all([seed(firstCode, "usb-led", shortCode), seed(secondCode, "battery-air", shortCode)]);
+  const { activationHandler } = await import("../netlify/functions/activation-code.mjs");
+  const aliases = new Map();
+  const store = {
+    get: async key => aliases.get(key) ?? null,
+    setJSON: async (key, value, options) => {
+      assert.equal(options.onlyIfNew, true);
+      if (aliases.has(key)) return { modified: false };
+      aliases.set(key, value);
+      return { modified: true };
+    }
+  };
+  const resolveCode = activationHandler(() => store, async url =>
+    fetch(`http://127.0.0.1:9000${new URL(url).pathname}?ns=${namespace}`));
+  const publishCode = (code, proof) => resolveCode(new Request(site + "/.netlify/functions/activation-code", {
+    method: "POST", body: JSON.stringify({ code, proof })
+  }));
+  assert.equal((await publishCode("WRONG1", firstCode)).status, 404);
+  assert.equal((await publishCode(shortCode, firstCode)).status, 201);
+  assert.equal((await publishCode(shortCode, firstCode)).status, 200);
+  assert.equal((await publishCode(shortCode, secondCode)).status, 409);
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url, site);
+      if (url.pathname === "/.netlify/functions/activation-code") {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        const result = await resolveCode(new Request(url, {
+          method: request.method, body: Buffer.concat(chunks)
+        }));
+        response.writeHead(result.status, Object.fromEntries(result.headers)).end(await result.text());
+        return;
+      }
       if (url.pathname === "/.netlify/functions/push-key") {
         response.writeHead(503).end();
         return;
@@ -110,7 +143,10 @@ async function main() {
     await page.locator("#activationCode").fill("hibás");
     await page.locator("#activationForm button[type=submit]").click();
     assert.match(await page.locator("#status").innerText(), /Ellenőrizd a kódot/);
-    await page.locator("#activationCode").fill("NF-" + firstCode.match(/.{4}/g).join("-").toLowerCase());
+    await page.locator("#activationCode").fill("NOPE42");
+    await page.locator("#activationForm button[type=submit]").click();
+    await page.getByText(/Ez a kód nem érhető el/).waitFor();
+    await page.locator("#activationCode").fill(shortCode.toLowerCase());
     await page.locator("#activationForm button[type=submit]").click();
     await page.locator("#registerForm").waitFor();
     await assertFit(page);
@@ -191,7 +227,7 @@ async function main() {
     await page.locator("#confirmIgenBtn").click();
     await firstCard.waitFor({ state: "detached" });
     await openMenuItem(page, "#addAccountBtn");
-    await page.locator("#additionalCode").fill(firstCode);
+    await page.locator("#additionalCode").fill(shortCode);
     await page.locator("#addNewAccountForm button[type=submit]").click();
     await firstCard.waitFor();
 
@@ -211,8 +247,21 @@ async function main() {
     await page.locator("#password").fill(newPassword);
     await page.locator("#loginForm button[type=submit]").click();
     await page.waitForFunction(() => document.querySelectorAll(".device-card").length === 2);
+    assert.equal((await publishCode(shortCode, firstCode)).status, 200);
+    await admin(`users/${owner}/devices/esp32_001`, "PUT", {
+      displayName: "Korábbi virágtartó", sensorValue: "55", ledLevel: 20,
+      lastMeasurementAt: now, history: { [now]: 55 }
+    });
+    const legacyCard = page.locator('.device-card:has([data-device="esp32_001"])');
+    await legacyCard.getByText("55%", { exact: true }).waitFor();
+    await legacyCard.locator(".led-toggle").click();
+    await page.waitForFunction(() => {
+      const led = document.querySelector('.device-card:has([data-device="esp32_001"]) .led-toggle');
+      return led.getAttribute("aria-pressed") === "false" && !led.disabled;
+    });
+    assert.equal(await admin(`users/${owner}/devices/esp32_001/ledLevel`), 0);
     assert.deepEqual(errors, []);
-    console.log("Chromium: registration, additional device, telemetry, LED, category, charts, verified email settings, hide/restore, offline and reset passed.");
+    console.log("Chromium: six-character registration and unique codes, legacy code and devices, telemetry, LED, charts, alerts, restore, offline and reset passed.");
   } catch (error) {
     console.error("Browser errors:", errors);
     console.error("UI status:", await page.locator("#status").textContent().catch(() => ""));

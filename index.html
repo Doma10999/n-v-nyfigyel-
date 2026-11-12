@@ -20,7 +20,7 @@
 
   
 
-  <script type="module" src="firebase-app.js?v=20261110activation"></script>
+  <script type="module" src="firebase-app.js?v=20261112"></script>
 
   
     <!-- Email értesítés (Google Apps Script Web App) -->
@@ -118,19 +118,17 @@
 
   <div class="card" id="plantData">
     <div class="auth-tabs" aria-label="Fiókműveletek">
-      <button type="button" id="showActivation" aria-pressed="true">Új virágtartóm van</button>
+      <button type="button" id="showActivation" aria-pressed="true">Regisztráció</button>
       <button type="button" id="showLogin" aria-pressed="false">Belépés</button>
     </div>
     <form id="activationForm" class="auth-panel">
-      <span class="eyebrow">ELSŐ LÉPÉS</span>
       <h3>Aktiváld a virágtartód</h3>
-      <p class="login-intro">Írd be a csomagban kapott aktiválókódot.</p>
+      <p class="login-intro">Írd be a virágtartóhoz kapott 6 karakteres kódot, vagy a korábbi NF kezdetű kódot.</p>
       <label for="activationCode">Aktiválókód</label>
-      <input id="activationCode" type="text" placeholder="NF-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
+      <input id="activationCode" type="text" placeholder="Pl. K7M4Q2" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
       <button type="submit">Tovább</button>
     </form>
     <form id="registerForm" class="auth-panel" hidden>
-      <span class="eyebrow">MÁSODIK LÉPÉS</span>
       <h3>Hozd létre a fiókod</h3>
       <p class="login-intro">Ehhez a fiókhoz később más virágtartókat is hozzáadhatsz.</p>
       <label for="registerEmail">E-mail-cím</label>
@@ -321,7 +319,7 @@
       <form id="addNewAccountForm" class="auth-panel">
         <p class="login-intro">Írd be az új virágtartód kódját. A jelenlegi fiókodhoz adjuk hozzá.</p>
         <label for="additionalCode">Aktiválókód</label>
-        <input id="additionalCode" type="text" placeholder="NF-XXXX-XXXX-XXXX-XXXX" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
+        <input id="additionalCode" type="text" placeholder="Pl. K7M4Q2" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="28" required>
         <button type="submit">Virágtartó hozzáadása</button>
       </form>
       <p id="addAccountStatus" role="status"></p>

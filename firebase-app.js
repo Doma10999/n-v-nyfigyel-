@@ -1,5 +1,5 @@
 import { mountHistoryChart } from "./history-chart.js?v=20261110activation";
-import { activationMessage, claimActivation, devicePath, inspectActivation } from "./activation.js";
+import { activationMessage, claimActivation, devicePath, inspectActivation } from "./activation.js?v=20261112";
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
     import { connectAuthEmulator, createUserWithEmailAndPassword, getAuth, onAuthStateChanged, sendPasswordResetEmail, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
     import { connectDatabaseEmulator, getDatabase, ref, onValue, set, get, update, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
@@ -42,7 +42,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     window.__onValue = onValue;
     window.__devicePath = devicePath;
     window.__setPlantType = (uid, id, plantType) =>
-      update(ref(db, devicePath(uid, id)), { plantType, plantTypeChangedAt: serverTimestamp() });
+      update(ref(db, cardDevicePath(uid, id)), { plantType, plantTypeChangedAt: serverTimestamp() });
 
 
     // ====== UI elemek ======
@@ -110,6 +110,35 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
     // ====== Eszköz-kártyák (minden eszköz külön) ======
     // deviceCards: key = uid|deviceId -> { card, name, history[], canvas, lastUpdated }
     const deviceCards = new Map();
+    const legacyPath = uid => `users/${uid}/devices`;
+
+    function cardDevicePath(uid, id) {
+      return deviceCards.get(`${uid}|${id}`)?.legacy ? `${legacyPath(uid)}/${id}` : devicePath(uid, id);
+    }
+
+    function legacyTimestamp(value) {
+      const numeric = Number(value);
+      if (numeric > 0 && Number.isFinite(numeric)) return numeric < 1e12 ? numeric * 1000 : numeric;
+      if (typeof value !== "string") return 0;
+      return Date.parse(value.replace(/^(\d{4})\.(\d{2})\.(\d{2})-/, "$1-$2-$3T")) || 0;
+    }
+
+    function legacyDevices(value) {
+      const result = [];
+      for (const [id, data] of Object.entries(value || {})) {
+        if (data?.sensorValue == null || data.sensorValue === "" || !Number.isFinite(Number(data.sensorValue))) continue;
+        const history = normalizeHistoryEntries(
+          Object.entries(data.history || {}).map(([t, v]) => ({ t: legacyTimestamp(t), v: Number(v) }))
+        );
+        const lastMeasurementAt = legacyTimestamp(data.lastMeasurementAt || data.measuredAt || data.sensorUpdatedAt ||
+          data.lastSensorUpdate || data.lastUpdated || data.timestamp) || Number(history.at(-1)?.t) || 0;
+        result.push([id, {
+          ...data, legacy: true, history,
+          reading: { sensorValue: Number(data.sensorValue), batteryPercent: data.batteryPercent ?? data.battery, lastMeasurementAt }
+        }]);
+      }
+      return Object.fromEntries(result);
+    }
 
     // kiválasztott eszköz push-hoz
     window.jelenlegiEszkozID = null;
@@ -256,14 +285,14 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     // ====== Kártya létrehozása egy konkrét eszközhöz ======
     let gaugeSequence = 0;
-    function createDeviceCardForUser(uid, deviceId) {
+    function createDeviceCardForUser(uid, deviceId, legacy) {
       const gaugeId = `water-ring-${++gaugeSequence}`;
       const key = uid + "|" + deviceId;
 
       // már létezik → ne duplázzuk
       if (deviceCards.has(key)) return;
 
-      const base = devicePath(uid, deviceId);
+      const base = legacy ? `${legacyPath(uid)}/${deviceId}` : devicePath(uid, deviceId);
       const card = document.createElement("div");
       card.className = "card device-card";
       // 🔹 belépő animáció késleltetés (stagger)
@@ -346,7 +375,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
         <div class="plant-select-wrap">
           <span class="category-label"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><use href="#plant-herb"/></svg> Kiválasztott vízigény</span>
-          <div class="plant-select" data-uid="${uid}" data-device="${deviceId}">
+          <div class="plant-select">
             <span class="plant-select-value">Válassz kategóriát</span>
             <span class="plant-select-arrow">Módosítás <span aria-hidden="true">⌄</span></span>
           </div>
@@ -357,6 +386,10 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       `;
 
       const deleteBtn = card.querySelector(".deleteBtn");
+      if (legacy) deleteBtn.style.display = "none";
+      const plantSelect = card.querySelector(".plant-select");
+      plantSelect.dataset.uid = uid;
+      plantSelect.dataset.device = deviceId;
       const titleEl = card.querySelector(".plant-title");
       const lastUpdateEl = card.querySelector("[data-last-update]");
 
@@ -393,7 +426,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       let currCat;
       let confirmedLedLevel = 0;
       const plantSelectValueEl = card.querySelector(".plant-select-value");
-      const obj = { card, uid, deviceId, name: "Növényem", history: [], lastMeasurementAt: 0 };
+      const obj = { card, uid, deviceId, legacy, name: "Növényem", history: [], lastMeasurementAt: 0 };
       deviceCards.set(key, obj);
 
       function updateAccountGauge(realPercent, cat) {
@@ -603,8 +636,9 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
         updateBatteryUI(reading);
         updateAirUI(data.airQuality || null);
 
-        if (data.variant === "usb-led") {
-          sliderContainer.style.display = "flex";
+        const hasLed = data.variant === "usb-led" || (legacy && data.ledLevel != null);
+        sliderContainer.style.display = hasLed ? "flex" : "none";
+        if (hasLed) {
           const level = Math.round((Number(data.ledLevel) || 0) / 10) * 10;
           if (String(level) !== slider.dataset.savedLevel) {
             confirmedLedLevel = level;
@@ -656,7 +690,8 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
 
     function renderDevices(uid, data) {
       for (const [key, item] of deviceCards) {
-        if (item.uid === uid && data[item.deviceId] && !data[item.deviceId].hidden) continue;
+        const next = Object.hasOwn(data, item.deviceId) ? data[item.deviceId] : null;
+        if (item.uid === uid && next && !next.hidden && item.legacy === (next.legacy === true)) continue;
         cancelAnimationFrame(item.card.querySelector(".gauge-value").__numberFrame);
         item.card.remove();
         deviceCards.delete(key);
@@ -667,7 +702,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
           try { localStorage.removeItem(cacheKeyFor(uid, id)); } catch {}
           continue;
         }
-        createDeviceCardForUser(uid, id);
+        createDeviceCardForUser(uid, id, device.legacy === true);
         deviceCards.get(`${uid}|${id}`).render(device);
       }
       const visibleIds = [...deviceCards.values()].map(item => item.deviceId);
@@ -695,13 +730,28 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/fireba
       window.jelenlegiUID = user.uid;
       window.jelenlegiEmail = user.email;
       try { localStorage.setItem(OFFLINE_UID, user.uid); } catch {}
-      stopDeviceListener = onValue(ref(db, devicePath(user.uid)), snapshot => {
+      let current = {};
+      let legacy = {};
+      const render = () => renderDevices(user.uid, { ...legacy, ...current });
+      const stopCurrent = onValue(ref(db, devicePath(user.uid)), snapshot => {
         devicesStatus.hidden = true;
-        renderDevices(user.uid, snapshot.val() || {});
+        current = snapshot.val() || {};
+        render();
       }, () => {
         devicesStatus.textContent = "A virágtartók adatai most nem érhetők el. Próbáld újra az oldal frissítésével.";
         devicesStatus.hidden = false;
       });
+      const stopLegacy = onValue(ref(db, legacyPath(user.uid)), snapshot => {
+        legacy = legacyDevices(snapshot.val());
+        render();
+      }, () => {
+        legacy = {};
+        render();
+      });
+      stopDeviceListener = () => {
+        stopCurrent();
+        stopLegacy();
+      };
     }
 
     onAuthStateChanged(auth, user => {

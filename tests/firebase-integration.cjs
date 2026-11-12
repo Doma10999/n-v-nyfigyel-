@@ -93,6 +93,15 @@ async function main() {
   const second = await seed("battery-air", secondHardware.localId, "PQPRB8HC51QHP2CR");
   const firstInvite = `v2/invites/${first.hash}`;
 
+  const legacy = `users/${alice.localId}/devices/esp32_001`;
+  allowed(await database(legacy, "PUT", { sensorValue: 47 }, "owner"));
+  denied(await database(legacy));
+  denied(await database(legacy, "GET", undefined, bob.idToken));
+  denied(await database(legacy, "PUT", { sensorValue: 0 }, bob.idToken));
+  allowed(await database(legacy, "GET", undefined, alice.idToken));
+  allowed(await database(`${legacy}/displayName`, "PUT", "Korábbi növény", alice.idToken));
+  denied(await database("emailWatcher", "PUT", { changed: true }));
+
   denied(await database("v2/invites"));
   allowed(await database(`${firstInvite}/meta`));
   denied(await database(`${firstInvite}/ownerUid`, "PUT", alice.localId, alice.idToken));

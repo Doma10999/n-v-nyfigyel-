@@ -1,6 +1,6 @@
 # Növényfigyelő v2 · átállás és firmware
 
-A vevő a csomagban kapott `NF-XXXX-XXXX-XXXX-XXXX` kódot adja meg, majd e-mail-címmel és jelszóval létrehozza a fiókját. A már belépett vevő a **Virágtartó hozzáadása** menüben írhatja be a következő kódot. A bejelentkezés a Firebase Authban marad, ezért meglévő fiókkal is be lehet lépni. Az **Elfelejtettem a jelszavam** gomb a Firebase jelszó-visszaállító e-mailjét használja.
+A vevő a **Regisztráció** fülön beírja a kapott hatkarakteres kódot, majd e-mail-címmel és jelszóval létrehozza a fiókját. A korábbi `NF-XXXX-XXXX-XXXX-XXXX` formátum is működik. Egy tartó egy fiókhoz rendelhető. A már belépett vevő a **Virágtartó hozzáadása** menüben írhatja be a következő kódot. Meglévő Firebase-fiókkal az e-mail-címeddel és jelszavaddal léphetsz be. Az **Elfelejtettem a jelszavam** gomb a Firebase jelszó-visszaállító e-mailjét használja.
 
 Az előfizetéses felület szünetel. Az öt vízigény-kategória, a grafikon és az értesítési beállítások minden párosított fiókban elérhetők. A grafikon a virágtartó utolsó tíz nyers szenzormérését mutatja. A locsolási állapot továbbra is a kiválasztott növény vízigényéhez igazodik.
 
@@ -15,11 +15,11 @@ Az előfizetéses felület szünetel. Az öt vízigény-kategória, a grafikon �
    npm run stage:rules -- meglevo-rules.json staging-rules.json
    ```
 
-   Ha a parancs leáll, mert a régi szabályok a gyökéren adnak olvasási vagy írási jogot, először a régi jogosultságokat kell a megfelelő régi ágakra korlátozni. A gyökéren adott engedély a Firebase-ben a gyermekágakra is kiterjed. A `firebase/database.rules.json` az önálló v2 szabályfájl, a régi ágakra épülő oldalak lezárása után használható teljes szabálykészletként.
+   A projekt eredeti, nyilvánosan írható szabályaiból a parancs a meglévő `users/{uid}` ágat a fiók tulajdonosára korlátozza, és lezárja a régi `emailWatcher` ágat. Az adatok megmaradnak. Ha a régi szabályok a gyökéren adnak jogot vagy az érintett ágakhoz egyedi szabályok tartoznak, ezeket külön ellenőrizd. A projekt eredeti, egyszerű szabályaihoz a `firebase/database.rules.json` közvetlenül is közzétehető.
 
-4. Az élesítés előtt egy saját virágtartón próbáld ki a következő fejezetet. A kódot váltsd be a tesztoldalon, majd indítsd el a tartót, és nézd meg, megjelenik-e a mérés. Új Wi-Fi esetén csatlakozz a **Novenyfigyelo** hálózathoz, majd a megnyíló felületen add meg az otthoni 2,4 GHz-es Wi-Fi adatait. Szükség esetén nyisd meg a `192.168.4.1` címet.
+4. Az első vevő előtt próbáld ki a folyamatot egy saját virágtartón. A kódot váltsd be a weboldalon, majd indítsd el a tartót, és nézd meg, megjelenik-e a mérés. Új Wi-Fi esetén csatlakozz a **Novenyfigyelo** hálózathoz, majd a megnyíló felületen add meg az otthoni 2,4 GHz-es Wi-Fi adatait. Szükség esetén nyisd meg a `192.168.4.1` címet.
 
-A korábbi mérések a régi adatágban maradnak. A v2-ben minden újrapárosított tartó új mérési sort kezd.
+A korábbi növények és mérések ugyanazzal a fiókkal megjelennek az új felületen. A v2-re átprogramozott tartó új mérési sort kezd. Azokhoz a régi eszközökhöz, amelyek a nyilvános írási jogot használták, a mérések folytatásához a v2 firmware kell.
 
 ## 2. Arduino-feltöltés
 
@@ -43,7 +43,9 @@ $env:FIREBASE_WEB_API_KEY = 'IDE_A_WEBES_API_KULCS'
 | Akkus, LED és ENS160 | `npm run provision -- battery-air` | Helyi érintés és levegőmérés |
 | Offline OLED | `firmware/06_Offline_OLED/06_Offline_OLED.ino` | Helyi kijelző, nincs párosítás |
 
-Az első öt parancs a `device-output/<azonosító>/` mappába ír. Az Arduino IDE-ben az ott található almappából nyisd meg az azonos nevű `.ino` fájlt. A mellette lévő fejlécek, köztük a `DeviceSecrets.h`, az adott tartóhoz tartoznak. A vevőnek az `Aktiválókód.txt` tartalmát add át.
+Hatkarakteres kódhoz add hozzá a `--code K7M4Q2` kapcsolót. A `K7M4Q2` példa, minden tartóhoz válassz külön, lehetőleg véletlenszerű kódot ékezet nélküli betűkből és számokból. A rövid kódot az éles Netlify-függvény ellenőrzi és menti, ezért ehhez a webes kiadásnak és a Firebase-szabályoknak már futniuk kell. Kapcsoló nélkül a parancs hosszú NF-kódot készít.
+
+Az első öt parancs a `device-output/<azonosító>/` mappába ír. Az Arduino IDE-ben az ott található almappából nyisd meg az azonos nevű `.ino` fájlt. A készítőprogram az ESP saját azonosítóját és hozzáférését a `DeviceSecrets.h` fájlba írja. A vevőnek a külön `Aktiválókód.txt` tartalmát add át. Ha foglalt a választott kód, a készítőprogram kiírja a folytatás parancsát, amelyben az `UJ_KOD` helyére írhatod a másik kódot.
 
 - **Board** · WEMOS LOLIN32 Lite (`esp32:esp32:lolin32-lite`)
 - **ESP32 board package** · Espressif 3.3.8
@@ -64,9 +66,9 @@ A háttérküldéshez nem kell fizetős Firebase Cloud Functions. A [Firebase Sp
 
 ## 4. Élesítés sorrendje
 
-1. Staging szabályok, egy teszteszköz, próbaaktiválás. Ellenőrizd a Wi-Fi-kiesés utáni újraküldést, a második eszközt és a valóban megérkező jelszó-visszaállító e-mailt.
-2. Ellenőrizd a fizikai LED-vezérlést, az akkus változat ébresztését és a valóban megérkező e-mailes, illetve telefonos jelzést. Az Arduino-fordítás nem méri az üzemidőt.
-3. Az ellenőrzött verzió kerüljön a fő Netlify-címre. A régi [novenyfigyelo.netlify.app](https://novenyfigyelo.netlify.app/) címet irányítsd át a fő címre, hogy az ügyfelek ugyanazt az oldalt nyissák meg.
+1. Tedd közzé az adatbázis-szabályokat, és ellenőrizd a fő Netlify-kiadást. A régi [novenyfigyelo.netlify.app](https://novenyfigyelo.netlify.app/) cím átirányítható a fő címre.
+2. Készíts egy saját teszteszközt, váltsd be a kódját, és ellenőrizd az első mérést, a Wi-Fi-kiesés utáni újraküldést, a második eszköz hozzáadását és a jelszó-visszaállító e-mailt.
+3. A LED-es és akkus modelleken ellenőrizd a fizikai LED-vezérlést és az ébresztést. Ha beállítod a háttérértesítéseket, ellenőrizd az e-mail és a telefonos jelzés kézbesítését.
 4. Állítsd le a régi Plus-szinkront és a régi értesítési időzítéseket, amikor a régi firmware-ek leálltak. A Stripe fizetési linkeket a Stripe kezelőfelületén lehet külön szüneteltetni, ha már megosztottad őket.
 5. A régi hozzáférések lezárása előtt őrizd meg a mentést. Visszaállításhoz a korábbi Netlify deploy és az elmentett adatbázis-szabályok szükségesek.
 
