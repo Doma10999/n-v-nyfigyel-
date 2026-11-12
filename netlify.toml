@@ -1,3 +1,13 @@
 [build]
   command = "node scripts/build.mjs"
   publish = "dist"
+
+[[redirects]]
+  from = "/payment.html"
+  to = "/"
+  status = 302
+
+[[redirects]]
+  from = "/payment-success.html"
+  to = "/"
+  status = 302

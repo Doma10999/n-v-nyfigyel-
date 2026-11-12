@@ -1,58 +1,276 @@
-const {chromium}=require('playwright');
-const assert=require('node:assert/strict');
-(async()=>{const http=require('node:http'),fs=require('node:fs'),path=require('node:path');const server=http.createServer((req,res)=>{const file=path.join(process.cwd(),decodeURIComponent(new URL(req.url,'http://local').pathname).replace(/^\//,'')||'index.html');try{res.setHeader('Content-Type',file.endsWith('.js')?'application/javascript':file.endsWith('.css')?'text/css':file.endsWith('.json')?'application/json':file.endsWith('.html')?'text/html':'image/png');res.end(fs.readFileSync(file));}catch{res.statusCode=404;res.end();}});await new Promise(resolve=>server.listen(8765,'127.0.0.1',resolve));const chromiumOptions = process.env.CHROMIUM_PACKAGE ? (await import(process.env.CHROMIUM_PACKAGE)).default : null;const browser=await chromium.launch(chromiumOptions ? {executablePath:process.env.CHROMIUM_EXECUTABLE || await chromiumOptions.executablePath(),args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu'],headless:true} : {headless:true});const context=await browser.newContext({viewport:{width:1440,height:1000},reducedMotion:'reduce'});const page=await context.newPage();let errors=[];page.on('pageerror',e=>errors.push(e.message));
-let subscription={plan:'free',status:'inactive'};
-const devices={esp32_001:{sensorValue:43,displayName:'Monstera',plantType:'🌿Kiegyensúlyozott vízigényű',lastMeasurementAt:Date.now(),batteryPercent:76,ledLevel:40,emailNotifEmail:'teszt@example.com',emailNotifEnabled:true},esp32_002:{sensorValue:12,displayName:'Szobapáfrány',plantType:'🌿Kiegyensúlyozott vízigényű',lastMeasurementAt:Date.now()-86400000,battery:18,airQuality:{aqi:2,tvoc:40,eco2:430,status:'jo',updatedAt:Date.now()}}};
-await page.route('https://www.gstatic.com/firebasejs/**',route=>{const url=route.request().url();let body;
-if(url.endsWith('firebase-app.js'))body='export const initializeApp = () => ({});';
-else if(url.endsWith('firebase-auth.js'))body=`const auth={currentUser:{uid:'test'},authStateReady:async()=>{}};export const getAuth=()=>auth;export const onAuthStateChanged=(a,cb)=>{queueMicrotask(()=>cb(a.currentUser));return ()=>{}}; export const signInWithEmailAndPassword=async()=>({user:{uid:'test'}});export const signOut=async()=>{auth.currentUser=null};`;
-else body=`export const getDatabase=()=>({});export const ref=(db,path)=>path;const data=${JSON.stringify(devices)};const snap=v=>({exists:()=>v!==undefined&&v!==null,val:()=>v});function value(path){if(path==='.info/connected')return true;if(path.endsWith('/subscription'))return ${JSON.stringify(subscription)};if(path==='users/test/devices')return data;const parts=path.split('/');if(parts[3])return parts[4]?data[parts[3]]?.[parts[4]]:data[parts[3]];}export const get=async p=>snap(value(p));const listeners=new Map();export const onValue=(p,cb)=>{const callbacks=listeners.get(p)||new Set();callbacks.add(cb);listeners.set(p,callbacks);queueMicrotask(()=>cb(snap(value(p))));return ()=>callbacks.delete(cb)};window.__testWrites=[];export const set=async(p,v)=>{if(window.__failWrites)throw Error('test rejected write');window.__testWrites.push({path:p,value:v});const parts=p.split('/');if(parts[3]&&parts[4]&&data[parts[3]])data[parts[3]][parts[4]]=v;for(const cb of listeners.get(p)||[])cb(snap(v));};export const update=async(p,v)=>{if(window.__failWrites)throw Error('test rejected update');window.__testWrites.push({path:p,value:v});const id=p.split('/')[3];if(data[id])Object.assign(data[id],v);};export const remove=async()=>{};export const runTransaction=async(p,fn)=>{const value=fn(undefined);(window.__testTransactions||=[]).push({path:p,value});return {committed:false}};`;
-route.fulfill({contentType:'application/javascript',body});});
-await page.addInitScript(()=>localStorage.setItem('storedAccounts_v2',JSON.stringify([{uid:'test',email:'teszt@example.com'}])));
-await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.waitForTimeout(1000);
-assert.equal(await page.locator('.device-card').count(),2);assert.equal(await page.locator('#statStale').textContent(),'1');assert.equal(await page.locator('#statAttention').textContent(),'1');assert.equal(await page.locator('#statTotal').textContent(),'2');assert.equal(await page.locator('.battery-number').nth(1).textContent(),'18%');
-await page.screenshot({path:'/tmp/garden-desktop.png',fullPage:true});assert.equal(await page.locator('#gardenOverview').isVisible(),true);assert.equal(await page.locator('.plant-search').isVisible(),false);assert.equal(await page.locator('.garden-hero').count(),0);
-await page.emulateMedia({reducedMotion:'no-preference'});assert.equal(await page.locator('.device-card').first().evaluate(el=>getComputedStyle(el,'::before').display),'none');await page.locator('#themeToggle').click();assert.equal(await page.locator('html').getAttribute('data-theme'),'light');assert.equal(await page.locator('html').getAttribute('data-motion'),'off');assert.equal(await page.locator('.device-card').first().evaluate(el=>getComputedStyle(el,'::before').animationName),'none');
-await page.setViewportSize({width:390,height:844});await page.screenshot({path:'/tmp/garden-mobile.png',fullPage:true});if(process.env.CAPTURE_PREVIEW) await page.screenshot({path:'docs/clarity-app-preview.png'});if(process.env.CAPTURE_PREVIEW){fs.mkdirSync('docs',{recursive:true});await page.locator('.device-card').first().screenshot({path:'docs/clarity-card-preview.png',style:'nav.app-dock {display:none !important;}'});}assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));assert.equal(await page.locator('.gauge-fill').count(),2);assert.equal(await page.locator('.water-orb').count(),0);assert.equal(await page.locator('.device-facts').count(),2);assert.equal(await page.locator('.care-value').first().textContent(),'Megfelelő');assert.equal(await page.locator('.plant-select-value').first().textContent(),'Kiegyensúlyozott vízigényű');const readable=await page.locator('.device-card').first().evaluate(card=>({ring:parseFloat(getComputedStyle(card.querySelector('.gauge-fill')).strokeWidth),number:parseFloat(getComputedStyle(card.querySelector('.gauge-value')).fontSize),timestamp:parseFloat(getComputedStyle(card.querySelector('[data-last-update]')).fontSize),category:parseFloat(getComputedStyle(card.querySelector('.plant-select')).fontSize),editHeight:card.querySelector('.edit-pill').getBoundingClientRect().height,cardRadius:parseFloat(getComputedStyle(card).borderRadius)}));assert.ok(readable.ring>=22,'the circular reading should be visibly thick');assert.ok(readable.number>=48);assert.ok(readable.timestamp>=12);assert.ok(readable.category>=14);assert.ok(readable.editHeight>=44);assert.ok(readable.cardRadius>=24);for(const width of [360,430,768]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'overflow at '+width);}await page.setViewportSize({width:390,height:844});
-assert.ok(await page.locator('#homeTab').isVisible());assert.ok(await page.locator('#chartsBtn').isVisible());assert.equal(await page.locator('#chartsBtn').evaluate(el=>el.tabIndex),0);await page.locator('#menuBtn').click();assert.equal(await page.locator('#menuBtn').getAttribute('aria-expanded'),'true');assert.equal(await page.locator('#infoBtn').evaluate(el=>el.tabIndex),0);await page.locator('#infoBtn').click();assert.ok(await page.locator('#infoModal').isVisible());if(process.env.CAPTURE_PREVIEW)await page.screenshot({path:'docs/clarity-guide-preview.png',animations:'disabled'});await page.keyboard.press('Tab');assert.ok(await page.locator('#infoModalContent').evaluate(el=>el.contains(document.activeElement)));await page.keyboard.press('Escape');assert.equal(await page.locator('#menuBtn').getAttribute('aria-expanded'),'false');await page.locator('#installApp').click();assert.equal(await page.locator('[role=dialog]:visible').count(),1);await page.keyboard.press('Escape');
-// Real controls with isolated Firebase write mocks, including failure and offline paths.
-await page.locator('[data-filter=attention]').click();assert.equal(await page.locator('.device-card:visible').count(),1);assert.equal(await page.locator('.device-card:visible .plant-title').textContent(),'Szobapáfrány');
-await page.locator('[data-filter=stale]').click();assert.equal(await page.locator('.device-card:visible').count(),1);await page.locator('[data-filter=all]').click();
-const card=page.locator('.device-card').first();
-await page.evaluate(()=>window.__failWrites=true);await card.locator('.plant-select').click();const originalCategory=await card.locator('.plant-select-value').textContent();await page.locator('.plant-option:visible').first().click();assert.ok(await page.locator('#plantTypeModal .modal-box').isVisible());assert.equal(await card.locator('.plant-select-value').textContent(),originalCategory);assert.equal(await page.locator('#plantTypeModal [aria-busy]').count(),0);await page.keyboard.press('Escape');
-const slider=card.locator('.led-slider');await slider.focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('Tab');await page.waitForTimeout(100);assert.equal(await slider.inputValue(),'40');assert.equal(await card.locator('.led-output').textContent(),'40%');assert.equal(await slider.isEnabled(),true);
-await page.evaluate(()=>window.__failWrites=false);await slider.focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('Tab');await page.waitForTimeout(100);assert.equal(await slider.inputValue(),'50');assert.ok(await page.evaluate(()=>window.__testWrites.some(w=>w.path.endsWith('/ledLevel')&&w.value===50)));
-await context.setOffline(true);await slider.focus();await page.keyboard.press('ArrowRight');await page.keyboard.press('Tab');assert.equal(await slider.inputValue(),'50');assert.equal(await page.locator('#connectionState').textContent(),'Nincs internet');await context.setOffline(false);
-const toggle=card.locator('.led-toggle');await toggle.click();assert.equal(await slider.inputValue(),'0');assert.equal(await toggle.getAttribute('aria-pressed'),'false');await toggle.click();assert.equal(await slider.inputValue(),'50');assert.equal(await toggle.getAttribute('aria-pressed'),'true');await page.evaluate(()=>window.__failWrites=true);await toggle.click();assert.equal(await slider.inputValue(),'50');assert.equal(await toggle.getAttribute('aria-pressed'),'true');await page.evaluate(()=>window.__failWrites=false);
-await card.locator('.edit-pill').click();await card.locator('.name-input').fill('Monstera új név');await card.locator('.ok-btn').click();assert.equal(await card.locator('.plant-title').textContent(),'Monstera új név');
-await page.locator('#chartsBtn').click();assert.ok(await page.locator('#chartsModal').isVisible());assert.equal(await page.locator('.chart-empty').count(),1);await page.keyboard.press('Escape');
-await page.locator('#menuBtn').click();await page.locator('#addAccountBtn').waitFor({state:'visible'});assert.ok(await page.locator('#addAccountBtn').isVisible());assert.ok(await page.locator('#paymentBtn').isVisible());if(process.env.CAPTURE_PREVIEW)await page.screenshot({path:'docs/clarity-menu-preview.png',animations:'disabled',style:'.app-toast {display:none !important;}'});await page.keyboard.press('Escape');
-await page.goto('http://127.0.0.1:8765/offline.html');assert.equal(await page.locator('.offline-plant').count(),2);await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.locator('#sessionLogout').click();await page.waitForTimeout(200);assert.equal(await page.locator('.device-card').count(),0);assert.ok(await page.locator('#loginForm').isVisible());assert.equal(await page.locator('#plantData').evaluate(el=>getComputedStyle(el).opacity),'1');if(process.env.CAPTURE_PREVIEW){await page.evaluate(()=>scrollTo(0,0));await page.screenshot({path:'docs/clarity-login-preview.png'});}
-devices.esp32_003={sensorValue:45,displayName:'Zamioculcas',lastMeasurementAt:Date.now()};devices.esp32_004={sensorValue:50,displayName:'Vitorlavirág',lastMeasurementAt:Date.now()};await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.waitForTimeout(300);assert.equal(await page.locator('.device-card').count(),4);assert.ok(await page.locator('#gardenOverview').isVisible());await page.locator('#plantSearch').fill('Monstera');assert.equal(await page.locator('.device-card:visible').count(),1);await page.locator('#homeTab').click();assert.equal(await page.locator('.device-card:visible').count(),4);await page.locator('#menuBtn').click();await page.locator('#menuShade').click({position:{x:30,y:100}});assert.equal(await page.locator('#menuBtn').getAttribute('aria-expanded'),'false');subscription={plan:'plus',status:'active',expiresAt:Date.now()+86400000};devices.esp32_001.history={[Date.now()-3600000]:40,[Date.now()-1000]:43};
-await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.waitForTimeout(300);await page.locator('#chartsBtn').click();assert.equal(await page.locator('.chart-card canvas').count(),4);if(process.env.CAPTURE_PREVIEW)await page.screenshot({path:'docs/clarity-charts-preview.png'});await page.keyboard.press('Escape');
-// Desktop regression coverage: bounded dialogs, side-by-side charts and crisp backing pixels.
-await page.locator('#chartsBtn').click();
-for(const width of [900,1024,1366,1920,2560]) {
-  await page.setViewportSize({width,height:900});await page.waitForTimeout(100);
-  const layout=await page.locator('#chartsModalContent').evaluate(el=>({width:el.getBoundingClientRect().width,columns:getComputedStyle(el.querySelector('#chartsWrap')).gridTemplateColumns.split(' ').length,graphs:[...el.querySelectorAll('canvas')].map(c=>({height:c.clientHeight,width:c.clientWidth,bitmap:c.width,ratio:Math.min(3,Math.max(1,devicePixelRatio))}))}));
-  assert.ok(layout.width<=1120);assert.equal(layout.columns,2);
-  for(const graph of layout.graphs){assert.equal(graph.height,206);assert.equal(graph.bitmap,Math.round(graph.width*graph.ratio));}
-  assert.equal(await page.locator('html').evaluate(el=>getComputedStyle(el).overflowY),'hidden');
+// Run after npm run build under the demo Auth/RTDB emulators.
+const assert = require("node:assert/strict");
+const { createHash, randomBytes } = require("node:crypto");
+const { createServer } = require("node:http");
+const { readFile } = require("node:fs/promises");
+const { join, basename, extname } = require("node:path");
+const { chromium } = require("playwright");
+
+const project = "demo-novenyfigyelo";
+const namespace = project + "-default-rtdb";
+const authBase = "http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1";
+const site = "http://127.0.0.1:8765";
+const firstCode = "1TS9WDQH2CJ8M3RB";
+const secondCode = "ZRW2S31BNP35HGS8";
+const shortCode = "K7M4Q2";
+const digestOf = value => createHash("sha256").update(value).digest("hex");
+const email = `browser-${randomBytes(6).toString("hex")}@example.test`;
+const password = "Browser-only-password-23";
+const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".json": "application/json", ".png": "image/png" };
+
+async function admin(path, method = "GET", body) {
+  const response = await fetch(`http://127.0.0.1:9000/${path}.json?ns=${namespace}`, {
+    method, headers: { Authorization: "Bearer owner", "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+  assert.equal(response.status, 200);
+  return response.json();
 }
-await page.keyboard.press('Escape');assert.equal(await page.locator('html').evaluate(el=>el.classList.contains('dialog-open')),false);
-await page.setViewportSize({width:1920,height:1080});await page.locator('#menuBtn').click();await page.locator('#notifBellBtn').click();
-assert.ok(await page.locator('#notifModalContent').evaluate(el=>el.getBoundingClientRect().width<=720));await page.keyboard.press('Escape');
-await page.locator('#menuBtn').click();await page.locator('#infoBtn').click();assert.ok(await page.locator('#infoModalContent').evaluate(el=>el.getBoundingClientRect().width<=760));await page.keyboard.press('Escape');
-await page.setViewportSize({width:390,height:844});
-await page.locator('#menuBtn').click();await page.locator('#notifBellBtn').click();assert.ok(await page.locator('#notifModal').isVisible());for(const width of [360,430]){await page.setViewportSize({width,height:844});assert.ok(await page.locator('.notif-item').first().evaluate(el=>el.scrollWidth<=el.clientWidth));}await page.setViewportSize({width:390,height:844});await page.locator('.notif-checkbox').first().check();await page.locator('#notifEmailInput').fill('teszt@example.com');assert.equal(await page.locator('#notifModalContent').evaluate(el=>getComputedStyle(el).padding),'0px');assert.equal(await page.locator('#webPushSettingsBox').evaluate(el=>el.parentElement.classList.contains('notification-body')),true);if(process.env.CAPTURE_PREVIEW){await page.locator('.notification-body').evaluate(el=>el.scrollTop=0);await page.screenshot({path:'docs/clarity-notifications-preview.png',animations:'disabled'});}
-await page.evaluate(()=>window.__failWrites=true);await page.locator('#notifSave').click();assert.ok(await page.locator('#notifModal').isVisible());assert.equal(await page.locator('#notifSave').isEnabled(),true);
-await page.evaluate(()=>window.__failWrites=false);await page.locator('#notifSave').click();assert.equal(await page.locator('#notifModal').isVisible(),false);assert.ok(await page.evaluate(()=>window.__testWrites.some(w=>w.value.emailNotifEnabled===true&&w.value.emailNotifEmail==='teszt@example.com')));
-await page.locator('.device-card').first().locator('.plant-select').click();assert.equal(await page.locator('.plant-option:visible').count(),5);assert.equal(await page.locator('.plant-option[data-selected=true]').count(),1);await page.locator('.plant-option[data-value="🌱Nedvességkedvelő"]').click();assert.equal(await page.locator('.device-card').first().locator('.plant-select-value').textContent(),'Nedvességkedvelő');
-await page.goto('http://127.0.0.1:8765/payment.html');await page.waitForSelector('.billing-account-card');assert.equal(await page.locator('.billing-account-card').count(),1);assert.ok((await page.locator('.pay-link-btn.monthly').getAttribute('href')).startsWith('https://buy.stripe.com/'));assert.ok((await page.locator('.pay-link-btn.monthly').getAttribute('href')).includes('client_reference_id=test'));for(const width of [360,390,768,1440]){await page.setViewportSize({width,height:900});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'billing overflow at '+width);}await page.setViewportSize({width:390,height:844});if(process.env.CAPTURE_PREVIEW)await page.screenshot({path:'docs/clarity-billing-preview.png',fullPage:true});
-// The main instrument always shows the sensor value, while legacy history keeps its scale.
-devices.esp32_001.sensorValue=81;await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.waitForTimeout(300);const highCard=page.locator('.device-card').first();assert.equal(await highCard.locator('.gauge-value').textContent(),'81%');assert.equal(await highCard.locator('.gauge-caption').textContent(),'TalajnedvességSzenzormérés');assert.equal(await highCard.locator('.care-value').textContent(),'Magas talajnedvesség');assert.equal(await highCard.locator('.soil-detail,.reading-explainer').count(),0);assert.ok(await page.evaluate(()=>window.__testTransactions.some(t=>t.path.includes('esp32_001/history')&&Object.values(t.value||{}).includes(100))));
-if(process.env.CAPTURE_PREVIEW)await highCard.screenshot({path:'docs/clarity-high-reading-preview.png',style:'nav.app-dock {display:none !important;}',animations:'disabled'});
-await highCard.locator('.plant-select').click();await page.locator('.plant-option[data-value="💧Vízigényes"]').click();assert.equal(await highCard.locator('.gauge-value').textContent(),'81%');assert.equal(await highCard.locator('.care-value').textContent(),'Megfelelő');
-await page.goto('http://127.0.0.1:8765/offline.html');assert.equal(await page.locator('.offline-plant').filter({hasText:'Monstera'}).locator('.level').textContent(),'81%');
-devices.esp32_001.sensorValue='invalid';await page.evaluate(()=>localStorage.removeItem('plant_test_esp32_001'));await page.goto('http://127.0.0.1:8765/');await page.waitForSelector('.device-card');await page.waitForTimeout(200);assert.equal(await page.locator('.device-card').first().locator('.gauge-value').textContent(),'—');assert.equal(await page.locator('.device-card').first().locator('.care-value').textContent(),'Mérésre vár');
-assert.deepEqual(errors,[]);console.log('PASS: cards, freshness, summary, conditional search, status filters, name/category/LED writes and rollback, offline controls, Plus graphs, notifications, billing, animation toggle, menu, mobile overflow, install, logout; no uncaught errors');await browser.close();server.close();})().catch(e=>{console.error(e);process.exit(1)});
+
+async function authCall(method, body) {
+  const response = await fetch(`${authBase}/accounts:${method}?key=demo-api-key`, {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body)
+  });
+  assert.equal(response.status, 200);
+  return response.json();
+}
+
+async function oobCode(type) {
+  for (let tries = 0; tries < 30; tries++) {
+    const response = await fetch(`http://127.0.0.1:9099/emulator/v1/projects/${project}/oobCodes`);
+    const { oobCodes } = await response.json();
+    const found = oobCodes.findLast(entry => entry.email === email && entry.requestType === type);
+    if (found) return found.oobCode;
+    await new Promise(resolve => setTimeout(resolve, 100));
+  }
+  throw new Error("Missing emulator email " + type);
+}
+
+async function seed(code, variant, shortCode) {
+  const id = "nf_" + randomBytes(12).toString("hex");
+  const digest = digestOf(code);
+  const meta = { id, variant };
+  if (shortCode) meta.shortCodeHash = digestOf(shortCode);
+  await admin("v2", "PATCH", {
+    [`registry/${id}`]: { variant, deviceUid: id, inviteHash: digest },
+    [`invites/${digest}/meta`]: meta
+  });
+  return id;
+}
+
+async function assertFit(page) {
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+}
+
+async function closeModal(page, name) {
+  await page.locator(`#${name}Close`).click();
+  await page.locator(`#${name}`).waitFor({ state: "hidden" });
+}
+
+async function openMenuItem(page, selector) {
+  const menu = page.locator("#menuBtn");
+  if (await menu.getAttribute("aria-expanded") !== "true") await menu.click();
+  await page.locator(selector).click();
+}
+
+async function main() {
+  assert.ok(process.env.FIREBASE_AUTH_EMULATOR_HOST, "Run the local demo emulators with emulators:exec.");
+  const [first, second] = await Promise.all([seed(firstCode, "usb-led", shortCode), seed(secondCode, "battery-air", shortCode)]);
+  const { activationHandler } = await import("../netlify/functions/activation-code.mjs");
+  const aliases = new Map();
+  const store = {
+    get: async key => aliases.get(key) ?? null,
+    setJSON: async (key, value, options) => {
+      assert.equal(options.onlyIfNew, true);
+      if (aliases.has(key)) return { modified: false };
+      aliases.set(key, value);
+      return { modified: true };
+    }
+  };
+  const resolveCode = activationHandler(() => store, async url =>
+    fetch(`http://127.0.0.1:9000${new URL(url).pathname}?ns=${namespace}`));
+  const publishCode = (code, proof) => resolveCode(new Request(site + "/.netlify/functions/activation-code", {
+    method: "POST", body: JSON.stringify({ code, proof })
+  }));
+  assert.equal((await publishCode("WRONG1", firstCode)).status, 404);
+  assert.equal((await publishCode(shortCode, firstCode)).status, 201);
+  assert.equal((await publishCode(shortCode, firstCode)).status, 200);
+  assert.equal((await publishCode(shortCode, secondCode)).status, 409);
+  const server = createServer(async (request, response) => {
+    try {
+      const url = new URL(request.url, site);
+      if (url.pathname === "/.netlify/functions/activation-code") {
+        const chunks = [];
+        for await (const chunk of request) chunks.push(chunk);
+        const result = await resolveCode(new Request(url, {
+          method: request.method, body: Buffer.concat(chunks)
+        }));
+        response.writeHead(result.status, Object.fromEntries(result.headers)).end(await result.text());
+        return;
+      }
+      if (url.pathname === "/.netlify/functions/push-key") {
+        response.writeHead(503).end();
+        return;
+      }
+      const file = url.pathname === "/" ? "index.html" : url.pathname.slice(1);
+      const data = await readFile(join("dist", file));
+      response.writeHead(200, { "Content-Type": types[extname(file)] || "application/octet-stream" }).end(data);
+    } catch {
+      response.writeHead(404).end();
+    }
+  });
+  await new Promise(resolve => server.listen(8765, "127.0.0.1", resolve));
+  const browser = await chromium.launch({
+    executablePath: process.env.CHROMIUM_EXECUTABLE,
+    headless: true,
+    args: ["--no-sandbox", "--disable-dev-shm-usage", ...JSON.parse(process.env.CHROMIUM_EXTRA_ARGS || "[]")]
+  });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 }, reducedMotion: "reduce" });
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.message));
+  await page.route("https://www.gstatic.com/firebasejs/10.12.2/**", async route => {
+    const dir = process.env.FIREBASE_CDN_DIR;
+    if (!dir) return route.continue();
+    const file = basename(new URL(route.request().url()).pathname);
+    await route.fulfill({ body: await readFile(join(dir, file)), contentType: "text/javascript" });
+  });
+  await page.route(/^https:\/\/(fonts\.googleapis\.com|cdnjs\.cloudflare\.com)/, route => route.abort());
+
+  try {
+    await page.goto(site + "/?emulator=1");
+    await page.locator("#appLaunchSplash").waitFor({ state: "detached" });
+    await assertFit(page);
+    await page.locator("#activationCode").fill("hibás");
+    await page.locator("#activationForm button[type=submit]").click();
+    assert.match(await page.locator("#status").innerText(), /Ellenőrizd a kódot/);
+    await page.locator("#activationCode").fill("NOPE42");
+    await page.locator("#activationForm button[type=submit]").click();
+    await page.getByText(/Ez a kód nem érhető el/).waitFor();
+    await page.locator("#activationCode").fill(shortCode.toLowerCase());
+    await page.locator("#activationForm button[type=submit]").click();
+    await page.locator("#registerForm").waitFor();
+    await assertFit(page);
+    await page.locator("#registerEmail").fill(email);
+    await page.locator("#registerPassword").fill(password);
+    await page.locator("#registerForm button[type=submit]").click();
+    await page.locator(".device-card").first().waitFor();
+    assert.equal(await page.locator(".care-value").first().innerText(), "Mérésre vár");
+    assert.equal(await page.locator("#paymentBtn").count(), 0);
+
+    const owner = await admin(`v2/registry/${first}/ownerUid`);
+    assert.ok(owner);
+    const base = `v2/users/${owner}/devices`;
+    await openMenuItem(page, "#addAccountBtn");
+    await page.locator("#additionalCode").fill(secondCode);
+    await page.locator("#addNewAccountForm button[type=submit]").click();
+    await page.waitForFunction(() => document.querySelectorAll(".device-card").length === 2);
+    assert.equal(await admin(`v2/registry/${second}/ownerUid`), owner);
+    const [firstCard, secondCard] = [
+      page.locator(`.device-card:has([data-device="${first}"])`),
+      page.locator(`.device-card:has([data-device="${second}"])`)
+    ];
+    const now = Date.now();
+    const history = Object.fromEntries(Array.from({ length: 10 }, (_, i) => [`s${i}`, { t: now - (10 - i) * 3600000, v: 30 + i }]));
+    await admin(base, "PATCH", {
+      [`${first}/displayName`]: "Monstera",
+      [`${first}/reading`]: { sensorValue: 81, lastMeasurementAt: now },
+      [`${first}/history`]: history,
+      [`${second}/displayName`]: "Páfrány",
+      [`${second}/reading`]: { sensorValue: 47, batteryPercent: 76, lastMeasurementAt: now },
+      [`${second}/airQuality`]: { aqi: 3, tvoc: 120, eco2: 850, status: "kozepes" }
+    });
+    await firstCard.getByText("81%", { exact: true }).waitFor();
+    await secondCard.getByText("76%", { exact: true }).waitFor();
+    assert.equal(await secondCard.locator(".air-quality-state").innerText(), "Közepes");
+    assert.ok(!await secondCard.locator(".led-slider").isVisible());
+    await firstCard.locator(".led-toggle").click();
+    await page.waitForFunction(id => {
+      const card = document.querySelector(`.device-card:has([data-device="${id}"])`);
+      return !card.querySelector(".led-toggle").disabled && card.querySelector(".led-output").textContent === "50%";
+    }, first);
+    assert.equal(await admin(`${base}/${first}/ledLevel`), 50);
+    await firstCard.locator(".plant-select").click();
+    assert.equal(await page.locator(".plant-option:visible").count(), 5);
+    await page.locator(".plant-option").last().click();
+    await page.locator("#plantTypeModal").waitFor({ state: "hidden" });
+    assert.match(await admin(`${base}/${first}/plantType`), /Vízigényes/);
+    assert.equal(await firstCard.locator(".gauge-value").innerText(), "81%");
+
+    await page.locator("#chartsBtn").click();
+    const chart = page.locator(".chart-card canvas").filter({ visible: true }).first();
+    await chart.waitFor();
+    const graphLabels = await page.locator(".chart-card canvas").evaluateAll(canvases => canvases.map(canvas => canvas.getAttribute("aria-label")));
+    assert.ok(graphLabels.some(label => (label.match(/%/g) || []).length === 10));
+    for (const width of [360, 390, 768, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await assertFit(page);
+      const dialog = page.locator("#chartsModalContent");
+      const rect = await dialog.boundingBox();
+      assert.ok(rect.x >= 0 && rect.x + rect.width <= width);
+    }
+    await closeModal(page, "chartsModal");
+
+    await openMenuItem(page, "#notifBellBtn");
+    await page.locator("#verifyAlertEmail").waitFor();
+    await page.locator("#verifyAlertEmail").click();
+    await page.getByText(/Megküldtük a megerősítő linket/).waitFor();
+    await authCall("update", { oobCode: await oobCode("VERIFY_EMAIL") });
+    await closeModal(page, "notifModal");
+    await openMenuItem(page, "#notifBellBtn");
+    await page.getByText(/^E-mail-cím:/).waitFor();
+    await page.locator("#notifDeviceList input[type=checkbox]").first().check();
+    await page.locator("#notifSave").click();
+    await page.locator("#notifModal").waitFor({ state: "hidden" });
+    assert.equal(await admin(`v2/users/${owner}/notificationEmail`), email);
+
+    await firstCard.locator(".deleteBtn").click();
+    await page.locator("#confirmIgenBtn").click();
+    await firstCard.waitFor({ state: "detached" });
+    await openMenuItem(page, "#addAccountBtn");
+    await page.locator("#additionalCode").fill(shortCode);
+    await page.locator("#addNewAccountForm button[type=submit]").click();
+    await firstCard.waitFor();
+
+    await page.goto(site + "/offline.html");
+    assert.equal(await page.locator(".offline-plant").count(), 2);
+    await page.goto(site + "/?emulator=1");
+    await page.locator(".device-card").first().waitFor();
+    await page.locator("#sessionLogout").click();
+    await page.locator("#loginForm").waitFor();
+    await page.locator("#showReset").click();
+    await page.locator("#resetEmail").fill(email);
+    await page.locator("#resetForm button[type=submit]").click();
+    await page.getByText(/hamarosan megérkezik a jelszó-visszaállító link/).waitFor();
+    const newPassword = "Browser-only-new-password-44";
+    await authCall("resetPassword", { oobCode: await oobCode("PASSWORD_RESET"), newPassword });
+    await page.locator("#resetBack").click();
+    await page.locator("#password").fill(newPassword);
+    await page.locator("#loginForm button[type=submit]").click();
+    await page.waitForFunction(() => document.querySelectorAll(".device-card").length === 2);
+    assert.equal((await publishCode(shortCode, firstCode)).status, 200);
+    await admin(`users/${owner}/devices/esp32_001`, "PUT", {
+      displayName: "Korábbi virágtartó", sensorValue: "55", ledLevel: 20,
+      lastMeasurementAt: now, history: { [now]: 55 }
+    });
+    const legacyCard = page.locator('.device-card:has([data-device="esp32_001"])');
+    await legacyCard.getByText("55%", { exact: true }).waitFor();
+    await legacyCard.locator(".led-toggle").click();
+    await page.waitForFunction(() => {
+      const led = document.querySelector('.device-card:has([data-device="esp32_001"]) .led-toggle');
+      return led.getAttribute("aria-pressed") === "false" && !led.disabled;
+    });
+    assert.equal(await admin(`users/${owner}/devices/esp32_001/ledLevel`), 0);
+    assert.deepEqual(errors, []);
+    console.log("Chromium: six-character registration and unique codes, legacy code and devices, telemetry, LED, charts, alerts, restore, offline and reset passed.");
+  } catch (error) {
+    console.error("Browser errors:", errors);
+    console.error("UI status:", await page.locator("#status").textContent().catch(() => ""));
+    if (process.env.BROWSER_FAILURE_SCREENSHOT) await page.screenshot({ path: process.env.BROWSER_FAILURE_SCREENSHOT }).catch(() => {});
+    throw error;
+  } finally {
+    await browser.close();
+    server.close();
+  }
+}
+
+main().catch(error => { console.error(error); process.exitCode = 1; });

@@ -2,3 +2,11 @@ dist/
 node_modules/
 .netlify/
 test-results/
+
+# Local emulators and per-device production files
+*-debug.log
+.firebase/
+device-output/
+DeviceSecrets.h
+.env
+.env.*
