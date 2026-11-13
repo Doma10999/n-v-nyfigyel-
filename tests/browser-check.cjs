@@ -96,9 +96,11 @@ async function main() {
   assert.equal((await publishCode(shortCode, firstCode)).status, 201);
   assert.equal((await publishCode(shortCode, firstCode)).status, 200);
   assert.equal((await publishCode(shortCode, secondCode)).status, 409);
+  let stallAppHome = false;
   const server = createServer(async (request, response) => {
     try {
       const url = new URL(request.url, site);
+      if (stallAppHome && url.pathname === "/") return;
       if (url.pathname === "/.netlify/functions/activation-code") {
         const chunks = [];
         for await (const chunk of request) chunks.push(chunk);
@@ -249,6 +251,42 @@ async function main() {
     await page.locator("#addNewAccountForm button[type=submit]").click();
     await firstCard.waitFor();
 
+    await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+    await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openMenuItem(page, "#wifiSetupLink");
+    await page.waitForURL(site + "/offline.html#wifi");
+    await page.locator("#deviceWifi").waitFor();
+    await page.goto(site + "/?emulator=1");
+    await page.locator(".device-card").first().waitFor();
+    await context.setOffline(true);
+    try {
+      const offlineBadge = page.locator("#offlineBadge");
+      await offlineBadge.getByText("Nincs internetkapcsolat").waitFor();
+      assert.equal(await offlineBadge.getByRole("link", { name: "Eszköz Wi‑Fi beállítása" }).getAttribute("href"), "http://192.168.4.1/wifi");
+      await page.goto(site + "/?emulator=1");
+      await page.locator("#deviceWifi").waitFor({ timeout: 7000 });
+    } finally {
+      await context.setOffline(false);
+    }
+
+    // The device's hotspot can report a network connection while the website never responds.
+    stallAppHome = true;
+    try {
+      assert.equal(await page.evaluate(() => navigator.onLine), true);
+      await page.goto(site + "/?emulator=1", { timeout: 10000 });
+      await page.getByText("Nincs internetkapcsolat", { exact: true }).waitFor();
+      await assertFit(page);
+      assert.equal(await page.locator(".offline-plant").count(), 2);
+      if (process.env.WIFI_SCREENSHOT) await page.screenshot({ path: process.env.WIFI_SCREENSHOT });
+      const portal = "http://192.168.4.1/wifi";
+      await page.route(portal, route => route.fulfill({ body: "ESP32 Wi-Fi setup" }));
+      await page.getByRole("link", { name: "Eszköz Wi‑Fi beállítása" }).click();
+      await page.waitForURL(portal);
+      await page.getByText("ESP32 Wi-Fi setup").waitFor();
+    } finally {
+      stallAppHome = false;
+    }
     await page.goto(site + "/offline.html");
     assert.equal(await page.locator(".offline-plant").count(), 2);
     await page.goto(site + "/?emulator=1");
@@ -288,7 +326,7 @@ async function main() {
     });
     assert.equal(await admin(`users/${owner}/devices/esp32_001/ledLevel`), 0);
     assert.deepEqual(errors, []);
-    console.log("Chromium: six-character registration and unique codes, legacy code and devices, telemetry, LED, charts, alerts, restore, offline and reset passed.");
+    console.log("Chromium: registration, legacy devices, telemetry, LED, charts, alerts, offline Wi-Fi setup and password reset passed.");
   } catch (error) {
     console.error("Browser errors:", errors);
     console.error("UI status:", await page.locator("#status").textContent().catch(() => ""));
