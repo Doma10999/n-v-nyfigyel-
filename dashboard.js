@@ -32,10 +32,30 @@
     document.addEventListener('keydown', key); button.onclick = close; backdrop.onclick = e => { if(e.target === backdrop) close(); };
   };
   let connected = false;
+  let wasConnected = false;
   const connection = document.getElementById('connectionState');
-  function connectionState() { const offline = !navigator.onLine; connection.dataset.state = offline ? 'offline' : connected ? 'online' : 'connecting'; connection.textContent = offline ? 'Nincs internet' : connected ? 'Adatkapcsolat aktív' : document.body.classList.contains('is-authenticated') ? 'Kapcsolódás…' : 'Bejelentkezésre vár'; }
+  const offlineBadge = document.getElementById('offlineBadge');
+  const offlineBadgeTitle = document.getElementById('offlineBadgeTitle');
+  function connectionState() {
+    const offline = !navigator.onLine;
+    const disconnected = wasConnected && !connected;
+    connection.dataset.state = offline || disconnected ? 'offline' : connected ? 'online' : 'connecting';
+    if (offline) connection.textContent = 'Nincs internet';
+    else if (connected) connection.textContent = 'Adatkapcsolat aktív';
+    else if (disconnected) connection.textContent = 'Megszakadt az adatkapcsolat';
+    else connection.textContent = document.body.classList.contains('is-authenticated') ? 'Kapcsolódás…' : 'Bejelentkezésre vár';
+    offlineBadge.hidden = !offline && !disconnected;
+    offlineBadgeTitle.textContent = offline ? 'Nincs internetkapcsolat' : 'Megszakadt az adatkapcsolat';
+  }
   ['online','offline'].forEach(name => window.addEventListener(name, connectionState)); connectionState();
-  function bindConnection() { if(window.__db && window.__onValue) { window.__onValue(window.__ref(window.__db, '.info/connected'), snap => { connected = snap.val() === true; connectionState(); }); return true; } return false; }
+  function bindConnection() {
+    if (!window.__db || !window.__onValue) return;
+    window.__onValue(window.__ref(window.__db, '.info/connected'), snapshot => {
+      connected = snapshot.val() === true;
+      wasConnected ||= connected;
+      connectionState();
+    });
+  }
   window.addEventListener('app-content-ready', bindConnection, {once:true});
   const search = document.getElementById('plantSearch');
   let activeFilter = 'all';
@@ -107,7 +127,7 @@
     menuButton.setAttribute('aria-expanded', String(open));
     menuButton.setAttribute('aria-label', open ? 'Menü bezárása' : 'Menü megnyitása');
     menuButton.innerHTML = `<svg aria-hidden="true" viewBox="0 0 24 24" width="23" height="23" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="${open ? 'M6 6l12 12M6 18 18 6' : 'M4 6h16M4 12h16M4 18h16'}"/></svg>`;
-    for(const id of ['addAccountBtn','notifBellBtn','infoBtn']) {
+    for(const id of ['addAccountBtn','wifiSetupLink','notifBellBtn','infoBtn']) {
       document.getElementById(id).tabIndex = open ? 0 : -1;
     }
   }

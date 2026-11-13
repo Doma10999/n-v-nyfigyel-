@@ -5,6 +5,8 @@
   Cache-Control: no-cache
 /index.html
   Cache-Control: no-cache
+/offline.html
+  Cache-Control: no-cache
 /manifest.json
   Cache-Control: no-cache
 /email-megerosites

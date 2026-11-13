@@ -1,5 +1,6 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20261112-email";
-const OFFLINE_URL = "offline.html";
+const CACHE_NAME = "novenyfigyelo-cache-v20261112-wifi";
+const OFFLINE_URL = "/offline.html";
+const NAVIGATION_TIMEOUT_MS = 4000;
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -7,18 +8,17 @@ self.addEventListener("install", (event) => {
       cache.addAll([
         "/",
         "/index.html",
-        "/offline.html",
+        OFFLINE_URL,
         "/manifest.json",
-        "/dashboard.css?v=20261110activation",
-        "/dashboard.js?v=20261110activation",
+        "/styles.css?v=20261112wifi",
+        "/dashboard.css?v=20261112wifi",
+        "/dashboard.js?v=20261112wifi",
         "/history-chart.js?v=20261110activation",
         "/pwa-icon-192.png",
         "/pwa-icon-512.png"
-      ])
-    )
+      ].map(url => new Request(url, { cache: "reload" })))
+    ).then(() => self.skipWaiting())
   );
-
-  self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
@@ -43,15 +43,26 @@ self.addEventListener("fetch", (event) => {
   if (!appFiles) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
+    const navigation = request.mode === 'navigate';
+    if (navigation && url.pathname === OFFLINE_URL) {
+      const guide = await cache.match(OFFLINE_URL);
+      if (guide) return guide;
+    }
+
+    // A Wi-Fi kapcsolat élhet akkor is, amikor a webhely elérhetetlen.
+    const controller = navigation ? new AbortController() : null;
+    const timeout = controller && setTimeout(() => controller.abort(), NAVIGATION_TIMEOUT_MS);
     try {
-      const response = await fetch(request);
+      const response = await fetch(request, controller ? { signal: controller.signal } : undefined);
       if (response.ok && response.type === 'basic') await cache.put(request, response.clone());
       return response;
     } catch {
-      if (request.mode === 'navigate') return (await cache.match('/offline.html')) || (await cache.match(request)) || Response.error();
+      if (navigation) return (await cache.match(OFFLINE_URL)) || (await cache.match(request)) || Response.error();
       const cached = await cache.match(request);
       if (cached) return cached;
       return Response.error();
+    } finally {
+      if (controller) clearTimeout(timeout);
     }
   })());
 });

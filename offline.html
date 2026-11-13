@@ -1,6 +1,188 @@
 <!doctype html>
-<html lang="hu"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#f6f8f3"><title>Növényfigyelő · Mentett adatok</title><style>
-*{box-sizing:border-box}body{margin:0;background:#f6f8f3;color:#172d31;font:14px system-ui,sans-serif;padding:calc(28px + env(safe-area-inset-top)) 22px calc(30px + env(safe-area-inset-bottom))}main{max-width:900px;margin:auto}header{display:flex;align-items:center;justify-content:space-between;gap:18px;border-bottom:1px solid #e4ebee;padding-bottom:20px}header strong{font-size:20px}button{background:#087d6e;border:0;color:white;padding:13px 17px;border-radius:16px;font:inherit;cursor:pointer;min-height:44px}button:focus-visible{outline:3px solid #b0ca91;outline-offset:4px}.notice{padding:28px;background:#e9f4f3;border-radius:20px;margin:28px 0}h1{font:700 34px system-ui,sans-serif;letter-spacing:-1px;margin:0 0 15px}.notice p{line-height:1.7;margin:8px 0;color:#566b70}.eyebrow{font-size:10px;letter-spacing:2px;display:block;margin-bottom:15px}.plants{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:16px}.offline-plant{background:#fff;border:1px solid #e4ebee;border-radius:28px;padding:25px}.offline-plant h2{font-size:24px;margin:0 0 20px}.level{font-size:50px;letter-spacing:-2px;color:#087d6e}.offline-plant p{font-size:14px;color:#435f4b;line-height:1.6}.date{font-size:13px;color:#947340;margin-top:17px}.empty{padding:25px;border:1px solid #e4ebee;border-radius:28px;line-height:1.7}footer{font-size:11px;color:#587565;margin-top:28px;line-height:1.7}.dark{background:#101d18;color:#e2ede3}.dark .offline-plant,.dark .empty{background:#192c23;border-color:#32493c}.dark .level{color:#a4cfad}.dark .offline-plant p,.dark footer{color:#a4b7a8}@media(max-width:500px){h1{font-size:30px}header strong{font-size:17px}.notice{padding:22px}header button{font-size:12px}}@media(prefers-reduced-motion:reduce){*{animation:none;transition:none}}
-</style></head><body><main><header><strong>❧ Növényfigyelő</strong><button id="retry" type="button">Újrapróbálás</button></header><section class="notice"><span class="eyebrow">OFFLINE ÁTTEKINTÉS</span><h1>A kerted itt marad.</h1><p id="networkState">Most nincs adatkapcsolat. A legutóbb ezen a készüléken mentett adataidat látod.</p><p>A mérések nem frissülnek. A világítás és a beállítások internetkapcsolattal módosíthatók.</p></section><div id="plants" class="plants"></div><p id="empty" class="empty" hidden>Még nincs megjeleníthető mentett mérés. Csatlakozz az internethez, és jelentkezz be a növényfigyelős fiókodba.</p><footer>A nagy százalék az érzékelő legutóbb mentett talajnedvesség-értéke. Öntözés előtt ellenőrizd a földet, különösen régi mérésnél.</footer></main><script>
-(()=>{'use strict';const list=document.getElementById('plants');const add=(tag,text,cls,parent)=>{const el=document.createElement(tag);el.textContent=text;if(cls)el.className=cls;parent.append(el);return el};const pct=v=>v!==null&&v!==''&&Number.isFinite(Number(v))?Math.max(0,Math.min(100,Math.round(Number(v))))+'%':'—';try{if(localStorage.getItem('garden-theme')==='dark')document.body.classList.add('dark');const uid=localStorage.getItem('noveny-v2-offline-uid');const prefix=uid?'noveny-v2-plant_'+uid+'_':null;for(let i=0;prefix&&i<localStorage.length;i++){const key=localStorage.key(i);if(!key.startsWith(prefix))continue;let data;try{data=JSON.parse(localStorage.getItem(key));}catch{continue}if(!data||typeof data!=='object')continue;const card=add('article','','offline-plant',list);add('h2',data.name||'Növény',null,card);add('strong',pct(data.sensorValue),'level',card);add('p','Talajnedvesség · mentett szenzormérés',null,card);add('p',data.category||'Kategória nincs mentve',null,card);let ts=Number(data.lastMeasurementAt)||0;if(ts>0&&ts<1e12)ts*=1000;add('div',ts?'Mérés: '+new Date(ts).toLocaleString('hu-HU')+' · mentett adat':'Mérési időpont nincs mentve','date',card);}}catch{}document.getElementById('empty').hidden=list.children.length>0;document.getElementById('retry').onclick=()=>location.replace('/');window.addEventListener('online',()=>{document.getElementById('networkState').textContent='Az internetkapcsolat visszatért. Az Újrapróbálás gombbal megnyithatod az élő alkalmazást.';});})();
-</script></body></html>
+<html lang="hu">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f6f8f3">
+  <title>Növényfigyelő · Wi-Fi beállítása</title>
+  <style>
+    * { box-sizing:border-box; }
+    body {
+      margin:0;
+      padding:calc(20px + env(safe-area-inset-top)) 16px calc(28px + env(safe-area-inset-bottom));
+      background:#f6f8f3;
+      color:#183c31;
+      font:15px/1.55 system-ui,sans-serif;
+    }
+    .brand, .wifi-card, .app-return { width:min(100%, 480px); margin-inline:auto; }
+    .brand {
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:20px;
+      font-size:20px;
+      font-weight:750;
+      letter-spacing:-.4px;
+    }
+    .brand svg { width:32px; height:32px; padding:5px; border-radius:10px; background:#e8f1df; }
+    .wifi-card {
+      overflow:hidden;
+      background:#fff;
+      border:1px solid #d9e6d8;
+      border-radius:25px;
+      box-shadow:0 12px 34px #1c422410;
+    }
+    .wifi-heading { padding:21px clamp(19px, 5vw, 28px); background:#174634; color:#fff; }
+    .network-state {
+      display:flex;
+      align-items:center;
+      gap:7px;
+      margin:0 0 7px;
+      color:#e4edc8;
+      font-size:13px;
+      font-weight:650;
+    }
+    .network-state::before {
+      content:"";
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      background:#e3b474;
+    }
+    h1 { margin:0; font-size:clamp(24px, 6vw, 30px); line-height:1.16; letter-spacing:-.7px; }
+    .wifi-content { padding:20px clamp(19px, 5vw, 28px); }
+    .wifi-steps { margin:0 0 18px; padding-inline-start:22px; }
+    .wifi-steps li { padding-inline-start:3px; }
+    .wifi-steps li + li { margin-top:12px; }
+    .wifi-steps li::marker { color:#1c6747; font-weight:750; }
+    .wifi-steps p, .wifi-help p { margin:3px 0 0; color:#436253; }
+    .wifi-action {
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:10px;
+      min-height:52px;
+      padding:11px 13px;
+      border-radius:15px;
+      background:#216744;
+      color:#fff;
+      text-align:center;
+      text-decoration:none;
+      font-weight:750;
+    }
+    .wifi-action:hover { background:#194f36; }
+    a:focus-visible, summary:focus-visible { outline:2px solid #317d53; outline-offset:4px; }
+    .wifi-help { margin-top:9px; color:#315b44; font-size:14px; }
+    .wifi-help summary { min-height:44px; padding:11px 0; font-weight:650; cursor:pointer; }
+    .wifi-help p + p { margin-top:8px; }
+    .app-return { display:block; padding:12px 0; text-align:center; color:#315b44; text-underline-offset:3px; }
+    .saved { max-width:900px; margin:24px auto 0; padding-top:20px; border-top:1px solid #d9e6d8; }
+    .saved h2 { margin:0; font-size:22px; }
+    .saved p { margin:4px 0 12px; color:#436253; }
+    .plants { display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 235px), 1fr)); gap:12px; }
+    .offline-plant, .empty { padding:16px; border:1px solid #d9e6d8; border-radius:17px; background:#fff; }
+    .offline-plant h3 { margin:0 0 6px; font-size:18px; overflow-wrap:anywhere; }
+    .offline-plant .level { display:block; color:#216744; font-size:32px; line-height:1.2; }
+    .offline-plant p { margin:3px 0; }
+    .date { margin-top:8px; color:#586c60; font-size:13px; }
+    body:target .offline-only { display:none; }
+  </style>
+</head>
+<body id="wifi">
+  <header class="brand">
+    <svg viewBox="0 0 40 42" fill="none" aria-hidden="true" focusable="false">
+      <path d="M19 39c4-12 4-20 1-28" stroke="#7eaf3e" stroke-width="3.5" stroke-linecap="round"/>
+      <path d="M20 21C8 23 2 15 3 6c12 0 18 4 17 15Z" fill="#a2cc57"/>
+      <path d="M22 16C22 5 29 1 38 2c0 10-5 16-16 14Z" fill="#84ba3f"/>
+    </svg>
+    Növényfigyelő
+  </header>
+  <main>
+    <section class="wifi-card" aria-labelledby="wifiTitle">
+      <div class="wifi-heading">
+        <p class="network-state offline-only">Nincs internetkapcsolat</p>
+        <h1 id="wifiTitle">Virágtartó csatlakoztatása</h1>
+      </div>
+      <div class="wifi-content">
+        <ol class="wifi-steps">
+          <li>
+            <strong>Csatlakozz a virágtartóhoz.</strong>
+            <p>A telefonodon válaszd a <b>Novenyfigyelo</b> Wi‑Fi-t. Ha a telefon internet nélküli hálózatot jelez, maradj csatlakozva.</p>
+          </li>
+          <li>
+            <strong>Állítsd be az otthoni Wi‑Fi-t.</strong>
+            <p>A gomb megnyitja a hálózatlistát. Válaszd ki a 2,4 GHz-es Wi‑Fi-det, add meg a jelszót, ha kéri, majd mentsd.</p>
+          </li>
+        </ol>
+        <a id="deviceWifi" class="wifi-action" href="http://192.168.4.1/wifi" rel="noreferrer">
+          Eszköz Wi‑Fi beállítása <span aria-hidden="true">→</span>
+        </a>
+        <details class="wifi-help">
+          <summary>Nem találod a hálózatot?</summary>
+          <p>Indítsd újra a virágtartót, vagy az érintős változaton tartsd lenyomva az érintőt 12 másodpercig. A beállító hálózat kb. két percig érhető el.</p>
+          <p>Ha a helyi oldal nem nyílik meg, írd be a böngésző címsorába a <code>http://192.168.4.1</code> címet.</p>
+        </details>
+      </div>
+    </section>
+    <a id="retry" class="app-return" href="/">Vissza a Növényfigyelőhöz</a>
+
+    <section class="saved offline-only" aria-labelledby="savedTitle">
+      <h2 id="savedTitle">Mentett mérések</h2>
+      <p>Az utoljára ezen a készüléken mentett adatok látszanak.</p>
+      <div id="plants" class="plants"></div>
+      <p id="empty" class="empty">Még nincs mentett mérés ezen a készüléken.</p>
+    </section>
+  </main>
+  <script>
+    (() => {
+      "use strict";
+      const list = document.getElementById("plants");
+
+      function addText(parent, tag, text, className) {
+        const element = document.createElement(tag);
+        element.textContent = text;
+        if (className) element.className = className;
+        parent.append(element);
+      }
+
+      try {
+        const uid = localStorage.getItem("noveny-v2-offline-uid");
+        if (!uid) return;
+        const prefix = "noveny-v2-plant_" + uid + "_";
+        for (let index = 0; index < localStorage.length; index++) {
+          const key = localStorage.key(index);
+          if (!key?.startsWith(prefix)) continue;
+          let data;
+          try {
+            data = JSON.parse(localStorage.getItem(key));
+          } catch {
+            continue;
+          }
+          if (!data || typeof data !== "object") continue;
+
+          const card = document.createElement("article");
+          card.className = "offline-plant";
+          addText(card, "h3", data.name || "Növény");
+          const value = Number(data.sensorValue);
+          const level = data.sensorValue !== null && data.sensorValue !== "" && Number.isFinite(value)
+            ? Math.max(0, Math.min(100, Math.round(value))) + "%"
+            : "—";
+          addText(card, "strong", level, "level");
+          addText(card, "p", "Talajnedvesség · mentett szenzormérés");
+          addText(card, "p", data.category || "Kategória nincs mentve");
+          let timestamp = Number(data.lastMeasurementAt);
+          if (timestamp > 0 && timestamp < 1e12) timestamp *= 1000;
+          const date = new Date(timestamp);
+          addText(card, "p", timestamp > 0 && Number.isFinite(date.getTime())
+            ? "Mentett mérés · " + date.toLocaleString("hu-HU")
+            : "A mérés időpontja nincs mentve.", "date");
+          list.append(card);
+        }
+        document.getElementById("empty").hidden = list.children.length > 0;
+      } catch {
+        // A Wi-Fi útmutató tárolási hozzáférés nélkül is megnyitható.
+      }
+    })();
+  </script>
+</body>
+</html>
