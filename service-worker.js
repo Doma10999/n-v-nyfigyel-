@@ -1,4 +1,4 @@
-const CACHE_NAME = "novenyfigyelo-cache-v20261112-wifi";
+const CACHE_NAME = "novenyfigyelo-cache-v20261113-wifi";
 const OFFLINE_URL = "/offline.html";
 const NAVIGATION_TIMEOUT_MS = 4000;
 
@@ -37,14 +37,16 @@ self.addEventListener("fetch", (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname === "/email-megerosites.html") return;
+  if (url.pathname === "/email-megerosites" || url.pathname === "/email-megerosites.html") return;
+  const navigation = request.mode === 'navigate';
+  // Netlify a beállítóoldalt .html nélkül is kiszolgálja.
+  const wifiGuide = navigation && [OFFLINE_URL, "/offline", "/offline/"].includes(url.pathname);
   // Firebase/auth requests never enter the app cache. HTML fallback is navigation only.
   const appFiles = /\.(?:html|css|js|png|svg|json|woff2)$/i.test(url.pathname) || url.pathname === '/';
-  if (!appFiles) return;
+  if (!appFiles && !wifiGuide) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE_NAME);
-    const navigation = request.mode === 'navigate';
-    if (navigation && url.pathname === OFFLINE_URL) {
+    if (wifiGuide) {
       const guide = await cache.match(OFFLINE_URL);
       if (guide) return guide;
     }

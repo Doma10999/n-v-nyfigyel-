@@ -114,7 +114,7 @@ async function main() {
         response.writeHead(503).end();
         return;
       }
-      const pages = { "/": "index.html", "/email-megerosites": "email-megerosites.html" };
+      const pages = { "/": "index.html", "/offline": "offline.html", "/email-megerosites": "email-megerosites.html" };
       const file = pages[url.pathname] || url.pathname.slice(1);
       const data = await readFile(join("dist", file));
       response.writeHead(200, { "Content-Type": types[extname(file)] || "application/octet-stream" }).end(data);
@@ -255,7 +255,7 @@ async function main() {
     await page.waitForFunction(() => Boolean(navigator.serviceWorker.controller));
     await page.setViewportSize({ width: 390, height: 844 });
     await openMenuItem(page, "#wifiSetupLink");
-    await page.waitForURL(site + "/offline.html#wifi");
+    await page.waitForURL(site + "/offline#wifi");
     await page.locator("#deviceWifi").waitFor();
     await page.goto(site + "/?emulator=1");
     await page.locator(".device-card").first().waitFor();
@@ -264,6 +264,9 @@ async function main() {
       const offlineBadge = page.locator("#offlineBadge");
       await offlineBadge.getByText("Nincs internetkapcsolat").waitFor();
       assert.equal(await offlineBadge.getByRole("link", { name: "Eszköz Wi‑Fi beállítása" }).getAttribute("href"), "http://192.168.4.1/wifi");
+      await openMenuItem(page, "#wifiSetupLink");
+      await page.waitForURL(site + "/offline#wifi");
+      await page.locator("#deviceWifi").waitFor({ timeout: 7000 });
       await page.goto(site + "/?emulator=1");
       await page.locator("#deviceWifi").waitFor({ timeout: 7000 });
     } finally {

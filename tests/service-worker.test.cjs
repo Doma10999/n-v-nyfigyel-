@@ -6,12 +6,14 @@ test('offline navigation gets saved fallback',async()=>{const {handlers,cacheDat
 test('the Wi-Fi guide uses the saved page immediately', async () => {
   const { handlers, cacheData } = setup(() => assert.fail('The saved guide should not use the network'));
   cacheData.set('/offline.html', new Response('Wi-Fi guide'));
-  let response;
-  handlers.fetch({
-    request: { url: 'https://garden.example/offline.html', method: 'GET', mode: 'navigate' },
-    respondWith(value) { response = value; }
-  });
-  assert.equal(await (await response).text(), 'Wi-Fi guide');
+  for (const path of ['/offline', '/offline/', '/offline.html']) {
+    let response;
+    handlers.fetch({
+      request: { url: 'https://garden.example' + path, method: 'GET', mode: 'navigate' },
+      respondWith(value) { response = value; }
+    });
+    assert.equal(await (await response).clone().text(), 'Wi-Fi guide');
+  }
 });
 test('the device portal is a direct navigation outside the app cache', () => {
   const { handlers } = setup(() => assert.fail('The service worker should not fetch the local portal'));
